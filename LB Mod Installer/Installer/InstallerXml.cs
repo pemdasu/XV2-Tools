@@ -510,6 +510,7 @@ namespace LB_Mod_Installer.Installer
         [YAXAttributeFor("ProgressBarShowProgress")]
         [YAXSerializeAs("value")]
         [YAXDontSerializeIfNull]
+        [YAXErrorIfMissed(YAXExceptionTypes.Ignore)]
         public bool ProgressBarShowProgress { get; set; } = false;
 
 
