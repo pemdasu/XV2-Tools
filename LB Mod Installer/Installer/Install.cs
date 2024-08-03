@@ -2740,7 +2740,7 @@ namespace LB_Mod_Installer.Installer
 
                 if (currentProgress != -1 && !overwriteShowProgress && this.installerXml.UiOverrides.ProgressBarShowProgress)
                 {
-                    Parent.ProgressBar_Label.Content = $"Installing {percentage:0.00}%";
+                    Parent.ProgressBar_Label.Content = $"Installing {percentage.ToString("0.00", CultureInfo.InvariantCulture)}%";
                     return;
                 }
 
