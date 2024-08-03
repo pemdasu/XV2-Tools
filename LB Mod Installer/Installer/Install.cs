@@ -58,6 +58,7 @@ using Xv2CoreLib.EEPK;
 using Xv2CoreLib.OCT;
 using Xv2CoreLib.PSO;
 using Xv2CoreLib.OCP;
+using Xv2CoreLib.IKD;
 using xv2Utils = Xv2CoreLib.Utils;
 //using LB_Mod_Installer.Installer.Transformation;
 
@@ -229,7 +230,7 @@ namespace LB_Mod_Installer.Installer
                         fileManager.AddStreamFile($"../XV2PATCHER/Epatches/{File.SourcePath}", zipManager.GetZipEntry(string.Format("Epatches/{0}", File.SourcePath)), true);
                         break;
                     case FileType.MSG: // Not sure if this is the best approach
-                        UpdateProgessBarText(String.Format("_Installing \"{0}\"...", Path.GetFileName(File.InstallPath)), current);
+                        UpdateProgessBarText(String.Format("_Installing \"{0}\"...", Path.GetFileName(File.InstallPath)), currentProgress);
                         Install_MSG(File.SourcePath, File.InstallPath, Path.GetExtension(File.SourcePath) == ".xml", File.UseSkipBinding, File.InstallToAllLanguages);
                         break;
                     default:
@@ -418,6 +419,9 @@ namespace LB_Mod_Installer.Installer
                     break;
                 case ".ocp":
                     Install_OCP(xmlPath, installPath, isXml, useSkipBindings);
+                    break;
+                case ".ikd":
+                    Install_IKD(xmlPath, installPath, isXml, useSkipBindings);
                     break;
                 default:
                     //if (TryTransformationInstall(xmlPath))
@@ -1881,6 +1885,28 @@ namespace LB_Mod_Installer.Installer
 #endif
         }
 
+        private void Install_IKD(string xmlPath, string installPath, bool isXml, bool useSkipBindings)
+        {
+#if !DEBUG
+            try
+#endif
+            {
+                IKD_File xmlFile = (isXml) ? zipManager.DeserializeXmlFromArchive_Ext<IKD_File>(GeneralInfo.GetPathInZipDataDir(xmlPath)) : IKD_File.Parse(zipManager.GetFileFromArchive(GeneralInfo.GetPathInZipDataDir(xmlPath)));
+                IKD_File binaryFile = (IKD_File)GetParsedFile<IKD_File>(installPath);
+
+                //Install entries
+                InstallEntries(xmlFile.Entries, binaryFile.Entries, installPath, Sections.IKD_Entry, useSkipBindings);
+
+            }
+#if !DEBUG
+            catch (Exception ex)
+            {
+                string error = string.Format("Failed at IKD install phase ({0}).", xmlPath);
+                throw new Exception(error, ex);
+            }
+#endif
+        }
+
         private void Install_ERS(string xmlPath, string installPath, bool isXml, bool useSkipBindings)
         {
 #if !DEBUG
@@ -2603,6 +2629,8 @@ namespace LB_Mod_Installer.Installer
                     return PSO_File.Read(fileIO.GetFileFromGame(path, raiseEx, onlyFromCpk));
                 case ".ocp":
                     return OCP_File.Load(fileIO.GetFileFromGame(path, raiseEx, onlyFromCpk));
+                case ".ikd":
+                    return IKD_File.Parse(fileIO.GetFileFromGame(path, raiseEx, onlyFromCpk));
                 default:
                     throw new InvalidDataException(String.Format("GetParsedFileFromGame: The filetype of \"{0}\" is not supported.", path));
             }
@@ -2721,6 +2749,8 @@ namespace LB_Mod_Installer.Installer
                     return ((PSO_File)data).Write();
                 case ".ocp":
                     return ((OCP_File)data).SaveToBytes();
+                case ".ikd":
+                    return ((IKD_File)data).SaveToBytes();
                 case ".eepk":
                     return ((EEPK_File)data).SaveToBytes();
                 default:
