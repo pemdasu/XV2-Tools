@@ -230,7 +230,7 @@ namespace LB_Mod_Installer.Installer
                         fileManager.AddStreamFile($"../XV2PATCHER/Epatches/{File.SourcePath}", zipManager.GetZipEntry(string.Format("Epatches/{0}", File.SourcePath)), true);
                         break;
                     case FileType.MSG: // Not sure if this is the best approach
-                        UpdateProgessBarText(String.Format("_Installing \"{0}\"...", Path.GetFileName(File.InstallPath)), current);
+                        UpdateProgessBarText(String.Format("_Installing \"{0}\"...", Path.GetFileName(File.InstallPath)), currentProgress);
                         Install_MSG(File.SourcePath, File.InstallPath, Path.GetExtension(File.SourcePath) == ".xml", File.UseSkipBinding, File.InstallToAllLanguages);
                         break;
                     default:
