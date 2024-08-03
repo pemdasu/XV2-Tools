@@ -2738,7 +2738,7 @@ namespace LB_Mod_Installer.Installer
                 if (advanceProgress)
                     Parent.ProgressBar_Main.Value++;
 
-                if (currentProgress != -1 && !overwriteShowProgress && bool.Parse(this.installerXml.UiOverrides.ProgressBarShowProgress))
+                if (currentProgress != -1 && !overwriteShowProgress && this.installerXml.UiOverrides.ProgressBarShowProgress)
                 {
                     Parent.ProgressBar_Label.Content = $"Installing {percentage:0.00}%";
                     return;

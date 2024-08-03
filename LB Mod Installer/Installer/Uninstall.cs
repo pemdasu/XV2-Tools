@@ -1791,7 +1791,7 @@ namespace LB_Mod_Installer.Installer
                 if (advanceProgress)
                     parent.ProgressBar_Main.Value++;
 
-                if (currentProgress != -1 && !overwriteShowProgress && bool.Parse(installerXml.UiOverrides.ProgressBarShowProgress))
+                if (currentProgress != -1 && !overwriteShowProgress && installerXml.UiOverrides.ProgressBarShowProgress)
                 {
                     parent.ProgressBar_Label.Content = $"Uninstalling {percentage:0.00}%";
                     return;
