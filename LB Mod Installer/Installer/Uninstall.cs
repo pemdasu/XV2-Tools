@@ -102,21 +102,21 @@ namespace LB_Mod_Installer.Installer
 
         private void UninstallMod()
         {
-            int current = 0;
+            int currentProgress = 0;
             //Parsed files
             foreach (var file in currentMod.Files)
             {
-                UpdateProgessBarText(string.Format("_Uninstalling \"{0}\"...", file.filePath), current);
+                UpdateProgessBarText(string.Format("_Uninstalling \"{0}\"...", file.filePath), currentProgress);
                 ResolveFileType(file.filePath, file);
-                current++;
+                currentProgress++;
             }
 
             //MsgComponents
             foreach (var file in currentMod.MsgComponents)
             {
-                UpdateProgessBarText(string.Format("_Uninstalling \"{0}\"...", file.filePath), current);
+                UpdateProgessBarText(string.Format("_Uninstalling \"{0}\"...", file.filePath), currentProgress);
                 Uninstall_MsgComponent(file.filePath, file);
-                current++;
+                currentProgress++;
             }
 
             //Clear trackers
