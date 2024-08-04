@@ -1819,7 +1819,7 @@ namespace LB_Mod_Installer.Installer
 
                 if (currentProgress != -1 && !overwriteShowProgress && installerXml.UiOverrides.ProgressBarShowProgress)
                 {
-                    parent.ProgressBar_Label.Content = $"Installing {percentage.ToString("0.00", CultureInfo.InvariantCulture)}%";
+                    parent.ProgressBar_Label.Content = $"Uninstalling {percentage.ToString("0.00", CultureInfo.InvariantCulture)}%";
                     return;
                 }
 
