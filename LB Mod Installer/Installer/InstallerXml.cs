@@ -507,6 +507,12 @@ namespace LB_Mod_Installer.Installer
         [YAXDontSerializeIfNull]
         public string ProgressBarBackgroundColor { get; set; }
 
+        [YAXAttributeFor("ProgressBarShowProgress")]
+        [YAXSerializeAs("value")]
+        [YAXDontSerializeIfNull]
+        [YAXErrorIfMissed(YAXExceptionTypes.Ignore)]
+        public bool ProgressBarShowProgress { get; set; } = false;
+
 
         //Preset InstallStep Overwrites
         [YAXDontSerializeIfNull]
@@ -1056,6 +1062,11 @@ namespace LB_Mod_Installer.Installer
         [YAXErrorIfMissed(YAXExceptionTypes.Ignore, DefaultValue = "True")]
         public string IsEnabled { get; set; }
 
+        // For MSG files
+        [YAXAttributeForClass]
+        [YAXErrorIfMissed(YAXExceptionTypes.Ignore, DefaultValue = false)]
+        public bool InstallToAllLanguages { get; set; }
+
         //SkillDir
         [YAXAttributeForClass]
         [YAXErrorIfMissed(YAXExceptionTypes.Ignore, DefaultValue = SkillType.NotSet)]
@@ -1124,7 +1135,8 @@ namespace LB_Mod_Installer.Installer
         AudioPackage,
         Binding,
         SkillDir,
-        EPatch
+        EPatch,
+        MSG
     }
 
     //Localisation

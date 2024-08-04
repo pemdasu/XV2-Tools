@@ -55,7 +55,12 @@ using Xv2CoreLib.QED;
 using Xv2CoreLib.TNN;
 using Xv2CoreLib.ODF;
 using Xv2CoreLib.EEPK;
+using Xv2CoreLib.OCT;
+using Xv2CoreLib.PSO;
+using Xv2CoreLib.OCP;
+using Xv2CoreLib.IKD;
 using Xv2CoreLib.VLC;
+using xv2Utils = Xv2CoreLib.Utils;
 //using LB_Mod_Installer.Installer.Transformation;
 
 namespace LB_Mod_Installer.Installer
@@ -131,7 +136,7 @@ namespace LB_Mod_Installer.Installer
 
                     try
                     {
-                        UpdateProgessBarText("_Restoring files...", false);
+                        UpdateProgessBarText("_Restoring files...", advanceProgress: false, overwriteShowProgress: true);
                         fileManager.RestoreBackups();
                     }
                     catch
@@ -166,6 +171,7 @@ namespace LB_Mod_Installer.Installer
 
         private void StartInstall()
         {
+            int currentProgress = 0;
             //Files. 
             foreach (var File in Files)
             {
@@ -182,22 +188,22 @@ namespace LB_Mod_Installer.Installer
                     case FileType.Binary:
                     case FileType.XML:
                         //Install XML or Binary
-                        UpdateProgessBarText(String.Format("_Installing \"{0}\"...", Path.GetFileName(File.InstallPath)));
+                        UpdateProgessBarText(String.Format("_Installing \"{0}\"...", Path.GetFileName(File.InstallPath)), currentProgress);
                         ResolveFileType(File.SourcePath, File.InstallPath, type == FileType.XML, File.UseSkipBinding);
                         break;
                     case FileType.VfxPackage:
                         //Install effects
-                        UpdateProgessBarText(String.Format("_Installing \"{0}\"...", Path.GetFileName(File.InstallPath)));
+                        UpdateProgessBarText(String.Format("_Installing \"{0}\"...", Path.GetFileName(File.InstallPath)), currentProgress);
                         Install_EEPK(File.SourcePath, File.InstallPath);
                         break;
                     case FileType.AudioPackage:
                         //Install new BGM or CSS tracks
-                        UpdateProgessBarText("_Installing Audio...");
+                        UpdateProgessBarText("_Installing Audio...", currentProgress);
                         Install_ACB(File.SourcePath, File.InstallPath);
                         break;
                     case FileType.CopyFile:
                         //Binary file. Copy to dir.
-                        UpdateProgessBarText(String.Format("_Copying \"{0}\"...", Path.GetFileNameWithoutExtension(File.SourcePath)));
+                        UpdateProgessBarText(String.Format("_Copying \"{0}\"...", Path.GetFileNameWithoutExtension(File.SourcePath)), currentProgress);
 
                         if (!IsJungleFileBlacklisted(File.InstallPath))
                         {
@@ -206,7 +212,7 @@ namespace LB_Mod_Installer.Installer
                         break;
                     case FileType.CopyDir:
                         {
-                            UpdateProgessBarText($"_Copying {File.SourcePath}...");
+                            UpdateProgessBarText($"_Copying {File.SourcePath}...", currentProgress);
 
                             //Path can be in either data or JUNGLE3
                             if (!ProcessJungle($"{JUNGLE3}/{File.SourcePath}", true, File.InstallPath, true))
@@ -214,33 +220,38 @@ namespace LB_Mod_Installer.Installer
                         }
                         break;
                     case FileType.SkillDir:
-                        UpdateProgessBarText($"_Skill {File.InstallPath}...");
+                        UpdateProgessBarText($"_Skill \"{File.SourcePath}\"...", currentProgress);
                         InstallSkillFolder(File);
                         break;
                     case FileType.Binding:
                         bindingManager.ParseString(File.Binding, GeneralInfo.InstallerXml, "Binding");
                         break;
                     case FileType.EPatch:
-                        UpdateProgessBarText(string.Format("_EPatch \"{0}\"...", Path.GetFileNameWithoutExtension(File.SourcePath)));
+                        UpdateProgessBarText(string.Format("_EPatch \"{0}\"...", Path.GetFileNameWithoutExtension(File.SourcePath)), currentProgress);
                         fileManager.AddStreamFile($"../XV2PATCHER/Epatches/{File.SourcePath}", zipManager.GetZipEntry(string.Format("Epatches/{0}", File.SourcePath)), true);
+                        break;
+                    case FileType.MSG: // Not sure if this is the best approach
+                        UpdateProgessBarText(String.Format("_Installing \"{0}\"...", Path.GetFileName(File.InstallPath)), currentProgress);
+                        Install_MSG(File.SourcePath, File.InstallPath, Path.GetExtension(File.SourcePath) == ".xml", File.UseSkipBinding, File.InstallToAllLanguages);
                         break;
                     default:
                         MessageBox.Show($"Unknown File.Type: {type}");
                         break;
                 }
+                currentProgress++;
             }
 
             //JUNGLES
 
             if (useJungle1)
             {
-                UpdateProgessBarText("_Installing JUNGLE1...");
+                UpdateProgessBarText("_Installing JUNGLE1...", currentProgress);
                 ProcessJungle(JUNGLE1, true);
             }
 
             if (useJungle2)
             {
-                UpdateProgessBarText("_Installing JUNGLE2...");
+                UpdateProgessBarText("_Installing JUNGLE2...", currentProgress);
                 ProcessJungle(JUNGLE2, false);
             }
 
@@ -377,6 +388,9 @@ namespace LB_Mod_Installer.Installer
                 case ".oco":
                     Install_OCO(xmlPath, installPath, isXml, useSkipBindings);
                     break;
+                case ".oct":
+                    Install_OCT(xmlPath, installPath, isXml, useSkipBindings);
+                    break;
                 case ".dml":
                     Install_DML(xmlPath, installPath, isXml, useSkipBindings);
                     break;
@@ -398,12 +412,22 @@ namespace LB_Mod_Installer.Installer
                 case ".odf":
                     Install_ODF(xmlPath, installPath, isXml, useSkipBindings);
                     break;
+                case ".pso":
+                    Install_PSO(xmlPath, installPath, isXml, useSkipBindings);
+                    break;
                 case ".bcm":
                     Install_BCM(xmlPath, installPath, isXml, useSkipBindings);
+                    break;
+               case ".ocp":
+                    Install_OCP(xmlPath, installPath, isXml, useSkipBindings);
+                    break;
+                case ".ikd":
+                    Install_IKD(xmlPath, installPath, isXml, useSkipBindings);
                     break;
                 case ".vlc":
                     Install_VLC(xmlPath, installPath, isXml, useSkipBindings);
                     break;
+                   break;
                 default:
                     //if (TryTransformationInstall(xmlPath))
                     //    break;
@@ -421,7 +445,7 @@ namespace LB_Mod_Installer.Installer
             {
                 if (xmlPath.Contains("_CusAuraDefine.xml"))
                 {
-                    UpdateProgessBarText("_Loading CusAuraDefines...", false);
+                    UpdateProgessBarText("_Loading CusAuraDefines...", advanceProgress: false, overwriteShowProgress: true);
 
                     var xml = zipManager.DeserializeXmlFromArchive_Ext<TransformCusAuras>(GeneralInfo.GetPathInZipDataDir(xmlPath));
                     transformInstaller.LoadCusAuras(xml);
@@ -430,7 +454,7 @@ namespace LB_Mod_Installer.Installer
 
                 if (xmlPath.Contains("_PartSetDefine.xml"))
                 {
-                    UpdateProgessBarText("_Loading PartSetDefines...", false);
+                    UpdateProgessBarText("_Loading PartSetDefines...", advanceProgress: false, overwriteShowProgress: true);
 
                     var xml = zipManager.DeserializeXmlFromArchive_Ext<TransformPartSets>(GeneralInfo.GetPathInZipDataDir(xmlPath));
                     transformInstaller.LoadPartSets(xml);
@@ -439,7 +463,7 @@ namespace LB_Mod_Installer.Installer
 
                 if (xmlPath.Contains("_PowerUpDefine.xml"))
                 {
-                    UpdateProgessBarText("_Loading PowerUpDefines...", false);
+                    UpdateProgessBarText("_Loading PowerUpDefines...", advanceProgress: false, overwriteShowProgress: true);
 
                     var xml = zipManager.DeserializeXmlFromArchive_Ext<TransformPowerUps>(GeneralInfo.GetPathInZipDataDir(xmlPath));
                     transformInstaller.LoadPupEntries(xml);
@@ -448,7 +472,7 @@ namespace LB_Mod_Installer.Installer
 
                 if (xmlPath.Contains("_TransformDefine.xml"))
                 {
-                    UpdateProgessBarText("_Loading TransformDefines...", false);
+                    UpdateProgessBarText("_Loading TransformDefines...", advanceProgress: false, overwriteShowProgress: true);
 
                     var xml = zipManager.DeserializeXmlFromArchive_Ext<TransformDefines>(GeneralInfo.GetPathInZipDataDir(xmlPath));
                     transformInstaller.LoadTransformations(xml);
@@ -465,7 +489,7 @@ namespace LB_Mod_Installer.Installer
 
             if (xmlPath.Contains("_TransformSkill.xml"))
             {
-                UpdateProgessBarText("_Installing Awoken Skill...", false);
+                UpdateProgessBarText("_Installing Awoken Skill...", advanceProgress: false, overwriteShowProgress: true);
                 TransformSkill xml = null;
 #if !DEBUG
                 try
@@ -616,8 +640,12 @@ namespace LB_Mod_Installer.Installer
                                     bdmFile.ChangeNeutralSkillId((ushort)id2);
                                     fileManager.AddParsedFile(newFilePath, bdmFile);
                                     break;
+                                case ".bcm":
+                                    BCM_File bcmFile = zipManager.DeserializeXmlFromArchive_Ext<BCM_File>(file.FullName);
+                                    fileManager.AddParsedFile(newFilePath, bcmFile);
+                                    break;
                                 default:
-                                    throw new Exception($"Error while installing SkillDir \"{fileInstance.SourcePath}\".\n\nAn unknown .xml file was detected in the skill dir ({file.FullName}). Only .bac, .bdm and .bsa xmls are allowed.");
+                                    throw new Exception($"Error while installing SkillDir \"{fileInstance.SourcePath}\".\n\nAn unknown .xml file was detected in the skill dir ({file.FullName}). Only .bac, .bcm, .bdm and .bsa xmls are allowed.");
                             }
 
                         }
@@ -665,7 +693,7 @@ namespace LB_Mod_Installer.Installer
             try
 #endif
             {
-                UpdateProgessBarText("_Saving files...", false);
+                UpdateProgessBarText("_Saving files...", advanceProgress: false, overwriteShowProgress: true);
                 startedSaving = true;
 
                 fileManager.SaveParsedFiles();
@@ -1497,17 +1525,34 @@ namespace LB_Mod_Installer.Installer
 #endif
         }
 
-        private void Install_MSG(string xmlPath, string installPath, bool isXml, bool useSkipBindings)
+        private void Install_MSG(string xmlPath, string installPath, bool isXml, bool useSkipBindings, bool installAllLanguages = false)
         {
 #if !DEBUG
             try
 #endif
             {
+                if (installAllLanguages)
+                {
+                    for (int i = 0; i < GeneralInfo.LanguageSuffix.Length; i++)
+                    {
+                        installPath = $"{xv2Utils.GetPathWithoutExtension(installPath).Substring(0, xv2Utils.GetPathWithoutExtension(installPath).LastIndexOf('_') + 1)}{GeneralInfo.LanguageSuffix[i]}";
+                        Install_MSG(xmlPath, installPath, isXml, useSkipBindings, false);
+                    }
+                    return;
+                }
+
                 MSG_File xmlFile = (isXml) ? zipManager.DeserializeXmlFromArchive_Ext<MSG_File>(GeneralInfo.GetPathInZipDataDir(xmlPath)) : MSG_File.Load(zipManager.GetFileFromArchive(GeneralInfo.GetPathInZipDataDir(xmlPath)));
                 MSG_File binaryFile = (MSG_File)GetParsedFile<MSG_File>(installPath, raiseEx: false);
 
                 if (binaryFile == null)
-                    binaryFile = new MSG_File();
+                {
+                    binaryFile = new MSG_File
+                    {
+                        unicode_msg = xmlFile.unicode_msg,
+                        unicode_names = xmlFile.unicode_names
+                    };
+                    fileManager.AddParsedFile(installPath, binaryFile);
+                }
 
                 //Parse bindings
                 bindingManager.ParseProperties(xmlFile.MSG_Entries, binaryFile.MSG_Entries, installPath);
@@ -1845,6 +1890,27 @@ namespace LB_Mod_Installer.Installer
 #endif
         }
 
+       private void Install_IKD(string xmlPath, string installPath, bool isXml, bool useSkipBindings)
+       {
+#if !DEBUG
+            try
+#endif
+            {
+                  IKD_File xmlFile = (isXml) ? zipManager.DeserializeXmlFromArchive_Ext<IKD_File>(GeneralInfo.GetPathInZipDataDir(xmlPath)) : IKD_File.Parse(zipManager.GetFileFromArchive(GeneralInfo.GetPathInZipDataDir(xmlPath)));
+                  IKD_File binaryFile = (IKD_File)GetParsedFile<IKD_File>(installPath);
+
+                  //Install entries
+                  InstallEntries(xmlFile.Entries, binaryFile.Entries, installPath, Sections.IKD_Entry, useSkipBindings);
+            }
+#if !DEBUG
+            catch (Exception ex)
+            {
+               string error = string.Format("Failed at IKD install phase ({0}).", xmlPath);
+               throw new Exception(error, ex);
+            }
+#endif
+        }
+      
         private void Install_VLC(string xmlPath, string installPath, bool isXml, bool useSkipBindings)
         {
 #if !DEBUG
@@ -1960,6 +2026,48 @@ namespace LB_Mod_Installer.Installer
             catch (Exception ex)
             {
                 string error = string.Format("Failed at OCO install phase ({0}).", xmlPath);
+                throw new Exception(error, ex);
+            }
+#endif
+        }
+
+        private void Install_OCT(string xmlPath, string installPath, bool isXml, bool useSkipBindings)
+        {
+#if !DEBUG
+            try
+#endif
+            {
+                OCT_File xmlFile = (isXml) ? zipManager.DeserializeXmlFromArchive_Ext<OCT_File>(GeneralInfo.GetPathInZipDataDir(xmlPath)) : OCT_File.Load(zipManager.GetFileFromArchive(GeneralInfo.GetPathInZipDataDir(xmlPath)));
+                OCT_File binaryFile = (OCT_File)GetParsedFile<OCT_File>(installPath);
+
+                //Install entries
+                InstallSubEntries<OCT_SubEntry, OCT_TableEntry>(xmlFile.OctTableEntries, binaryFile.OctTableEntries, installPath, Sections.OCT_Entry, useSkipBindings);
+            }
+#if !DEBUG
+            catch (Exception ex)
+            {
+                string error = string.Format("Failed at OCT install phase ({0}).", xmlPath);
+                throw new Exception(error, ex);
+            }
+#endif
+        }
+
+        private void Install_OCP(string xmlPath, string installPath, bool isXml, bool useSkipBindings)
+        {
+#if !DEBUG
+            try
+#endif
+            {
+                OCP_File xmlFile = (isXml) ? zipManager.DeserializeXmlFromArchive_Ext<OCP_File>(GeneralInfo.GetPathInZipDataDir(xmlPath)) : OCP_File.Load(zipManager.GetFileFromArchive(GeneralInfo.GetPathInZipDataDir(xmlPath)));
+                OCP_File binaryFile = (OCP_File)GetParsedFile<OCP_File>(installPath);
+
+                //Install entries
+                InstallSubEntries<OCP_SubEntry, OCP_TableEntry>(xmlFile.TableEntries, binaryFile.TableEntries, installPath, Sections.OCP_Entry, useSkipBindings);
+            }
+#if !DEBUG
+            catch (Exception ex)
+            {
+                string error = string.Format("Failed at OCP install phase ({0}).", xmlPath);
                 throw new Exception(error, ex);
             }
 #endif
@@ -2156,6 +2264,36 @@ namespace LB_Mod_Installer.Installer
             catch (Exception ex)
             {
                 string error = string.Format("Failed at ODF install phase ({0}).", xmlPath);
+                throw new Exception(error, ex);
+            }
+#endif
+        }
+
+        private void Install_PSO(string xmlPath, string installPath, bool isXml, bool useSkipBindings)
+        {
+#if !DEBUG
+            try
+#endif
+            {
+                PSO_File xmlFile = (isXml) ? zipManager.DeserializeXmlFromArchive_Ext<PSO_File>(GeneralInfo.GetPathInZipDataDir(xmlPath)) : PSO_File.Read(zipManager.GetFileFromArchive(GeneralInfo.GetPathInZipDataDir(xmlPath)));
+                PSO_File binaryFile = (PSO_File)GetParsedFile<PSO_File>(installPath);
+
+                if (xmlFile.PsoEntries.Count != 1)
+                {
+                    MessageBox.Show("PSO: Invalid number of \"PsoEntries\" elements in XML file. There should only be 1.");
+                    return;
+                }
+
+                //Parse bindings
+                bindingManager.ParseProperties(xmlFile.PsoEntries[0].PsoSubEntries, binaryFile.PsoEntries[0].PsoSubEntries, installPath);
+
+                //Install entries
+                InstallEntries(xmlFile.PsoEntries[0].PsoSubEntries, binaryFile.PsoEntries[0].PsoSubEntries, installPath, Sections.ODF_Entry, useSkipBindings);
+            }
+#if !DEBUG
+            catch (Exception ex)
+            {
+                string error = string.Format("Failed at PSO install phase ({0}).", xmlPath);
                 throw new Exception(error, ex);
             }
 #endif
@@ -2493,6 +2631,8 @@ namespace LB_Mod_Installer.Installer
                     return OCS_File.Load(fileIO.GetFileFromGame(path, raiseEx, onlyFromCpk));
                 case ".oco":
                     return OCO_File.Load(fileIO.GetFileFromGame(path, raiseEx, onlyFromCpk));
+                case ".oct":
+                    return OCT_File.Load(fileIO.GetFileFromGame(path, raiseEx, onlyFromCpk));
                 case ".qml":
                     return QML_File.Load(fileIO.GetFileFromGame(path, raiseEx, onlyFromCpk));
                 case ".qbt":
@@ -2511,8 +2651,14 @@ namespace LB_Mod_Installer.Installer
                     return TNN_File.Parse(fileIO.GetFileFromGame(path, raiseEx, onlyFromCpk));
                 case ".odf":
                     return ODF_File.Read(fileIO.GetFileFromGame(path, raiseEx, onlyFromCpk));
-                case ".vlc":
+               case ".vlc":
                     return VLC_File.Parse(fileIO.GetFileFromGame(path, raiseEx, onlyFromCpk));
+                case ".pso":
+                    return PSO_File.Read(fileIO.GetFileFromGame(path, raiseEx, onlyFromCpk));
+                case ".ocp":
+                    return OCP_File.Load(fileIO.GetFileFromGame(path, raiseEx, onlyFromCpk));
+                case ".ikd":
+                    return IKD_File.Parse(fileIO.GetFileFromGame(path, raiseEx, onlyFromCpk));
                 default:
                     throw new InvalidDataException(String.Format("GetParsedFileFromGame: The filetype of \"{0}\" is not supported.", path));
             }
@@ -2607,6 +2753,8 @@ namespace LB_Mod_Installer.Installer
                     return ((OCS_File)data).SaveToBytes();
                 case ".oco":
                     return ((OCO_File)data).SaveToBytes();
+                case ".oct":
+                    return ((OCT_File)data).SaveToBytes();
                 case ".qml":
                     return ((QML_File)data).SaveToBytes();
                 case ".qbt":
@@ -2627,6 +2775,12 @@ namespace LB_Mod_Installer.Installer
                     return ((ODF_File)data).Write();
                 case ".vlc":
                     return ((VLC_File)data).SaveToBytes();
+                case ".pso":
+                    return ((PSO_File)data).Write();
+                case ".ocp":
+                    return ((OCP_File)data).SaveToBytes();
+                case ".ikd":
+                    return ((IKD_File)data).SaveToBytes();
                 case ".eepk":
                     return ((EEPK_File)data).SaveToBytes();
                 default:
@@ -2658,14 +2812,22 @@ namespace LB_Mod_Installer.Installer
             }));
         }
 
-        private void UpdateProgessBarText(string text, bool advanceProgress = true)
+        private void UpdateProgessBarText(string text, int currentProgress = -1, bool advanceProgress = true, bool overwriteShowProgress = false)
         {
+            double percentage = (double)(currentProgress - 0) / (Files.Count - 0) * 100;
             Parent.Dispatcher.BeginInvoke((System.Action)(() =>
             {
                 if (advanceProgress)
                     Parent.ProgressBar_Main.Value++;
 
+                if (currentProgress != -1 && !overwriteShowProgress && this.installerXml.UiOverrides.ProgressBarShowProgress)
+                {
+                    Parent.ProgressBar_Label.Content = $"Installing {percentage.ToString("0.00", CultureInfo.InvariantCulture)}%";
+                    return;
+                }
+
                 Parent.ProgressBar_Label.Content = text;
+
             }));
         }
 

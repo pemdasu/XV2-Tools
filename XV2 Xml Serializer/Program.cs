@@ -322,9 +322,12 @@ namespace XV2_Xml_Serializer
                                 case ".ems":
                                     Xv2CoreLib.EMS.EMS_File.CreateXml(fileLocation);
                                     break;
-                                case ".vlc":
-                                    Xv2CoreLib.VLC.VLC_File.Parse(fileLocation, true);
+                               case ".vlc":
+                                    Xv2CoreLib.VLC.VLC_File.Parse(fileLocation, true);3
                                     break;
+                               case ".ikd":
+                                    Xv2CoreLib.IKD.IKD_File.Parse(fileLocation, true);
+                                   break;
                                 case ".xml":
                                     LoadXmlInitial(fileLocation);
                                     break;
@@ -615,8 +618,11 @@ namespace XV2_Xml_Serializer
                     case ".ems":
                         Xv2CoreLib.EMS.EMS_File.SaveXml(fileLocation);
                         break;
-                    case ".vlc":
+                   case ".vlc":
                         Xv2CoreLib.VLC.VLC_File.Write(fileLocation);
+                        break;
+                   case ".ikd":
+                        Xv2CoreLib.IKD.IKD_File.Write(fileLocation);
                         break;
                     default:
                         FileTypeNotSupported(fileLocation);
