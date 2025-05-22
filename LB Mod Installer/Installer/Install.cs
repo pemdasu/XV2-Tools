@@ -238,6 +238,17 @@ namespace LB_Mod_Installer.Installer
                         UpdateProgessBarText(string.Format("_EPatch \"{0}\"...", Path.GetFileNameWithoutExtension(File.SourcePath)), true, currentProgress, false);
                         fileManager.AddStreamFile($"../XV2PATCHER/Epatches/{File.SourcePath}", zipManager.GetZipEntry(string.Format("Epatches/{0}", File.SourcePath)), true);
                         break;
+                    case FileType.LuaEngineFile:
+                        UpdateProgessBarText(string.Format("_Lua Engine \"{0}\"...", Path.GetFileNameWithoutExtension(File.SourcePath)), true, currentProgress, false);
+                        if (!IsJungleFileBlacklisted(File.SourcePath))
+                        {
+                            fileManager.AddStreamFile($"../bin/{File.SourcePath}", zipManager.GetZipEntry(string.Format("luaEngine/{0}", File.SourcePath)), true);
+                        }
+                        break;
+                    case FileType.LuaScript:
+                        UpdateProgessBarText(string.Format("_Lua Script \"{0}\"...", Path.GetFileNameWithoutExtension(File.SourcePath)), true, currentProgress, false);
+                        fileManager.AddStreamFile($"../bin/scripts/{File.SourcePath}", zipManager.GetZipEntry(string.Format("luaScripts/{0}", File.SourcePath)), true);
+                        break;
                     default:
                         MessageBox.Show($"Unknown File.Type: {type}");
                         break;
