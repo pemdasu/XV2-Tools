@@ -191,8 +191,15 @@ namespace LB_Mod_Installer
             "BTL_CMN2.tbind.emb",
             "BTL_CMN2.trc.emb",
             "BTL_CMN2.tbind.emm",
-            "BTL_CMN2.cbind.emb"
-
+            "BTL_CMN2.cbind.emb",
+            "DBXV2.exe",
+            "xinput1_3.dll",
+            "xgcore.dll",
+            "steam_api64.dll",
+            "steam_appid.txt",
+            "render_pass_x64.dll",
+            "oo2core_6_win64.dll",
+            "iggy_w64.dll"
         };
         public static TrackingXml Tracker { get; set; }
         public static SpecialFailStates SpecialFailState = SpecialFailStates.None;
