@@ -1133,7 +1133,9 @@ namespace LB_Mod_Installer.Installer
         AudioPackage,
         Binding,
         SkillDir,
-        EPatch
+        EPatch,
+        LuaEngineFile,
+        LuaScript
     }
 
     //Localisation
