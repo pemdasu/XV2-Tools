@@ -5,11 +5,11 @@ using System.Windows;
 // General Information about an assembly is controlled through the following
 // set of attributes. Change these attribute values to modify the information
 // associated with an assembly.
-[assembly: AssemblyTitle("LB Mod Installer")]
-[assembly: AssemblyDescription("")]
+[assembly: AssemblyTitle("Revamp Xenoverse 2 Installer")]
+[assembly: AssemblyDescription("Fork of the LB Mod Installer with changes made for Revamp Xenoverse 2, original installer by LazyBone152")]
 [assembly: AssemblyConfiguration("")]
-[assembly: AssemblyCompany("")]
-[assembly: AssemblyProduct("LB Mod Installer")]
+[assembly: AssemblyCompany("Lazybone, Revamp Xenoverse 2")]
+[assembly: AssemblyProduct("Revamp Xenoverse 2 Installer")]
 [assembly: AssemblyCopyright("Copyright ©  2017")]
 [assembly: AssemblyTrademark("")]
 [assembly: AssemblyCulture("")]
@@ -49,5 +49,5 @@ using System.Windows;
 // You can specify all the values or you can default the Build and Revision Numbers
 // by using the '*' as shown below:
 // [assembly: AssemblyVersion("1.0.*")]
-[assembly: AssemblyVersion("3.32.0.0")]
-[assembly: AssemblyFileVersion("3.32.0.0")]
+[assembly: AssemblyVersion("5.1.0.0")]
+[assembly: AssemblyFileVersion("5.1.0.0")]
