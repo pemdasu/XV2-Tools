@@ -24,7 +24,7 @@ namespace Xv2CoreLib.FMP
 
             obj.Flags = (ObjectFlags)21; //Unsure what this is, but if its not 21 and the object has custom collision, the game will crash
 
-            FMP_CollisionGroup collisionGroup = CreateCollisionGroup(emd, esk, externalFlags, obj.Name, out Dictionary<int, FMP_Transform> matrices, out Dictionary<int, MeshFlags[]> flags);
+            FMP_CollisionGroup collisionGroup = CreateCollisionGroup(emd, esk, externalFlags, obj.Index, out Dictionary<int, FMP_Transform> matrices, out Dictionary<int, MeshFlags[]> flags);
             FMP_CollisionGroup existingGroup = null;
 
             if(obj.CollisionGroupInstance?.CollisionGroupIndex != ushort.MaxValue)
@@ -33,7 +33,7 @@ namespace Xv2CoreLib.FMP
             }
             else
             {
-                existingGroup = fmp.CollisionGroups.FirstOrDefault(x => x.Name == obj.Name);
+                existingGroup = fmp.CollisionGroups.FirstOrDefault(x => x.Name == obj.Index);
             }
 
             if (existingGroup != null)
@@ -48,7 +48,7 @@ namespace Xv2CoreLib.FMP
                 {
                     if (otherMapObject.CollisionGroupInstance == null || otherMapObject == obj) continue;
 
-                    if (otherMapObject.CollisionGroupInstance.CollisionGroupIndex == existingGroup.Index)
+                    if (otherMapObject.CollisionGroupInstance.CollisionGroupIndex == ushort.Parse(existingGroup.Index))
                     {
                         otherMapObject.CollisionGroupInstance.CreateCollisionInstanceTree(collisionGroup, matrices, flags);
                     }
@@ -56,11 +56,11 @@ namespace Xv2CoreLib.FMP
             }
             else
             {
-                collisionGroup.Index = fmp.CollisionGroups.Count;
+                collisionGroup.Index = fmp.CollisionGroups.Count.ToString();
                 fmp.CollisionGroups.Add(collisionGroup);
             }
 
-            obj.CollisionGroupInstance = new FMP_CollisionGroupInstance() { CollisionGroupIndex = (ushort)collisionGroup.Index, CollisionGroup = collisionGroup };
+            obj.CollisionGroupInstance = new FMP_CollisionGroupInstance() { CollisionGroupIndex = ushort.Parse(collisionGroup.Index), CollisionGroup = collisionGroup };
             obj.CollisionGroupInstance.CreateCollisionInstanceTree(collisionGroup, matrices, flags);
 
         }
@@ -255,14 +255,14 @@ namespace Xv2CoreLib.FMP
 
             if (obj.CollisionGroupInstance == null || obj.CollisionGroupInstance?.CollisionGroupIndex == ushort.MaxValue) return null;
 
-            FMP_CollisionGroup collisionGroup = fmpFile.CollisionGroups.FirstOrDefault(x => x.Index == obj.CollisionGroupInstance.CollisionGroupIndex);
+            FMP_CollisionGroup collisionGroup = fmpFile.CollisionGroups.FirstOrDefault(x => ushort.Parse(x.Index) == obj.CollisionGroupInstance.CollisionGroupIndex);
 
             if (collisionGroup != null)
             {
                 if (!collisionGroup.HasHavokCollisionData())
                     return null;
 
-                Console.WriteLine($"Extracting collision from object \"{obj.Name}\"....");
+                Console.WriteLine($"Extracting collision from object \"{obj.Index}\"....");
 
                 EMD_File emd = new EMD_File();
                 ExportCollisionAsEmd(emd, obj.CollisionGroupInstance.ColliderInstances, collisionGroup.Colliders, Matrix4x4.Identity);

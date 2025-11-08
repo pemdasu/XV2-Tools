@@ -317,7 +317,7 @@ namespace Xv2CoreLib.FMP
                 {
                     foreach (var index in fragment.ObjectIndices)
                     {
-                        index.Object = Objects.FirstOrDefault(x => x.Index == index.Index);
+                        index.Object = Objects.FirstOrDefault(x => x.Idx == index.Index);
                     }
                 }
             }
@@ -326,7 +326,7 @@ namespace Xv2CoreLib.FMP
             {
                 if(obj.CollisionGroupInstance != null)
                 {
-                    obj.CollisionGroupInstance.CollisionGroup = CollisionGroups.FirstOrDefault(x => x.Index == obj.CollisionGroupInstance.CollisionGroupIndex);
+                    obj.CollisionGroupInstance.CollisionGroup = CollisionGroups.FirstOrDefault(x => ushort.Parse(x.Index) == obj.CollisionGroupInstance.CollisionGroupIndex);
                 }
             }
         }
@@ -739,10 +739,14 @@ namespace Xv2CoreLib.FMP
         }
     }
 
-    public class FMP_Section1
+    public class FMP_Section1 : IInstallable
     {
+        [YAXDontSerialize]
+        public int SortID { get { return 0; } } // No sorting is done for this type, but we must define a SortID regardless
+
+        [YAXSerializeAs("Name")]
         [YAXAttributeForClass]
-        public string Name { get; set; }
+        public string Index { get; set; }
 
         [CustomSerialize]
         public int I_04 { get; set; }
@@ -767,7 +771,7 @@ namespace Xv2CoreLib.FMP
         {
             List<byte> bytes = new List<byte>();
 
-            stringWriter.Add(new StringWriter.StringInfo() { Offset = fileSize, StringToWrite = Name });
+            stringWriter.Add(new StringWriter.StringInfo() { Offset = fileSize, StringToWrite = Index });
             bytes.AddRange(new byte[4]);
             bytes.AddRange(BitConverter.GetBytes(I_04));
             bytes.AddRange(BitConverter.GetBytes(F_08));
@@ -797,7 +801,7 @@ namespace Xv2CoreLib.FMP
         {
             return new FMP_Section1()
             {
-                Name = StringEx.GetString(bytes, BitConverter.ToInt32(bytes, offset)),
+                Index = StringEx.GetString(bytes, BitConverter.ToInt32(bytes, offset)),
                 I_04 = BitConverter.ToInt32(bytes, offset + 4),
                 F_08 = BitConverter.ToSingle(bytes, offset + 8),
                 F_12 = BitConverter.ToSingle(bytes, offset + 12),
@@ -807,10 +811,14 @@ namespace Xv2CoreLib.FMP
         }
     }
 
-    public class FMP_Section2
+    public class FMP_Section2 : IInstallable
     {
+        [YAXDontSerialize]
+        public int SortID { get { return 0; } } // No sorting is done for this type, but we must define a SortID regardless
+
+        [YAXSerializeAs("Name")]
         [YAXAttributeForClass]
-        public string Name { get; set; }
+        public string Index { get; set; }
 
         [CustomSerialize(isFloat: true)]
         public float F_04 { get; set; }
@@ -837,7 +845,7 @@ namespace Xv2CoreLib.FMP
         {
             List<byte> bytes = new List<byte>();
 
-            stringWriter.Add(new StringWriter.StringInfo() { Offset = fileSize, StringToWrite = Name });
+            stringWriter.Add(new StringWriter.StringInfo() { Offset = fileSize, StringToWrite = Index });
             bytes.AddRange(new byte[4]);
             bytes.AddRange(BitConverter.GetBytes(F_04));
             bytes.AddRange(BitConverter.GetBytes(F_08));
@@ -868,7 +876,7 @@ namespace Xv2CoreLib.FMP
         {
             return new FMP_Section2()
             {
-                Name = StringEx.GetString(bytes, BitConverter.ToInt32(bytes, offset)),
+                Index = StringEx.GetString(bytes, BitConverter.ToInt32(bytes, offset)),
                 F_04 = BitConverter.ToSingle(bytes, offset + 4),
                 F_08 = BitConverter.ToSingle(bytes, offset + 8),
                 F_12 = BitConverter.ToSingle(bytes, offset + 12),
@@ -879,10 +887,14 @@ namespace Xv2CoreLib.FMP
         }
     }
 
-    public class FMP_FragmentGroup
+    public class FMP_FragmentGroup : IInstallable
     {
+        [YAXDontSerialize]
+        public int SortID { get { return 0; } } // No sorting is done for this type, but we must define a SortID regardless
+
+        [YAXSerializeAs("Name")]
         [YAXAttributeForClass]
-        public string Name { get; set; }
+        public string Index { get; set; }
 
         [YAXCollection(YAXCollectionSerializationTypes.RecursiveWithNoContainingElement, EachElementName = "ObjectIndex")]
         [YAXAttributeFor("ObjectIndex")]
@@ -895,7 +907,7 @@ namespace Xv2CoreLib.FMP
             //Main body, 12 bytes each
             for (int i = 0; i < entries.Count; i++)
             {
-                stringWriter.Add(new StringWriter.StringInfo() { Offset = bytes.Count, StringToWrite = entries[i].Name });
+                stringWriter.Add(new StringWriter.StringInfo() { Offset = bytes.Count, StringToWrite = entries[i].Index });
                 bytes.AddRange(new byte[4]);
                 bytes.AddRange(BitConverter.GetBytes(entries[i].ObjectIndices != null ? entries[i].ObjectIndices.Count : 0));
                 bytes.AddRange(new byte[4]);
@@ -935,7 +947,7 @@ namespace Xv2CoreLib.FMP
         public static FMP_FragmentGroup Read(byte[] bytes, int offset)
         {
             FMP_FragmentGroup fragmentGroup = new FMP_FragmentGroup();
-            fragmentGroup.Name = StringEx.GetString(bytes, BitConverter.ToInt32(bytes, offset));
+            fragmentGroup.Index = StringEx.GetString(bytes, BitConverter.ToInt32(bytes, offset));
 
             int indexCount = BitConverter.ToInt32(bytes, offset + 4);
             int indexOffset = BitConverter.ToInt32(bytes, offset + 8);
@@ -962,21 +974,16 @@ namespace Xv2CoreLib.FMP
     [YAXSerializeAs("Object")]
     public class FMP_Object : IInstallable
     {
+        [YAXDontSerialize]
+        public int SortID { get { return 0; } } // No sorting is done for this type, but we must define a SortID regardless
+
         [YAXAttributeForClass]
         [YAXErrorIfMissed(YAXExceptionTypes.Ignore)]
-        public int Index { get; set; }
+        public int Idx { get; set; }
 
+        [YAXSerializeAs("Name")]
         [YAXAttributeForClass]
-        public string Name { get; set; }
-
-        [YAXDontSerialize]
-        public int SortID => Index;
-
-        string IInstallable.Index
-        {
-            get => Index.ToString();
-            set => Index = int.Parse(value);
-        }
+        public string Index { get; set; }
 
         [CustomSerialize(isHex: true)]
         public ushort I_04 { get; set; }
@@ -1007,7 +1014,7 @@ namespace Xv2CoreLib.FMP
             //Write main Object entries
             for (int i = 0; i < objects.Count; i++)
             {
-                stringWriter.Add(new StringWriter.StringInfo() { Offset = bytes.Count, StringToWrite = objects[i].Name });
+                stringWriter.Add(new StringWriter.StringInfo() { Offset = bytes.Count, StringToWrite = objects[i].Index });
                 bytes.AddRange(new byte[4]);
                 bytes.AddRange(BitConverter.GetBytes(objects[i].I_04));
                 bytes.AddRange(BitConverter.GetBytes(objects[i].InitialEntityIndex));
@@ -1129,8 +1136,8 @@ namespace Xv2CoreLib.FMP
         public static FMP_Object Read(int index, byte[] bytes, int offset, string[] depot1, string[] depot2, string[] depot3, string[] depot4, FMP_File fmpFile)
         {
             FMP_Object obj = new FMP_Object();
-            obj.Index = index;
-            obj.Name = StringEx.GetString(bytes, BitConverter.ToInt32(bytes, offset));
+            obj.Idx = index;
+            obj.Index = StringEx.GetString(bytes, BitConverter.ToInt32(bytes, offset));
             obj.I_04 = BitConverter.ToUInt16(bytes, offset + 4);
             obj.InitialEntityIndex = BitConverter.ToUInt16(bytes, offset + 6);
             obj.Flags = (ObjectFlags)BitConverter.ToUInt16(bytes, offset + 10);
@@ -1171,7 +1178,7 @@ namespace Xv2CoreLib.FMP
 
         public override string ToString()
         {
-            return $"{Name}";
+            return $"{Index}";
         }
     }
 
@@ -2369,7 +2376,7 @@ namespace Xv2CoreLib.FMP
         internal static FMP_CollisionGroupInstance Read(byte[] bytes, int offset, FMP_CollisionGroup hitboxGroup)
         {
             FMP_CollisionGroupInstance hitboxGroupInstance = new FMP_CollisionGroupInstance();
-            hitboxGroupInstance.CollisionGroupIndex = (ushort)hitboxGroup.Index;
+            hitboxGroupInstance.CollisionGroupIndex = ushort.Parse(hitboxGroup.Index);
 
             List<FMP_ColliderInstance> hitboxInstances = FMP_ColliderInstance.ReadAll(bytes, offset, hitboxGroup.UnorderedHitboxList.Count);
             hitboxGroupInstance.ColliderInstances = CreateHitboxTree(hitboxGroup, hitboxInstances, 0);
@@ -2426,7 +2433,7 @@ namespace Xv2CoreLib.FMP
             List<FMP_ColliderInstance> hitboxes = new List<FMP_ColliderInstance>();
             if (CollisionGroupIndex == ushort.MaxValue) return hitboxes;
 
-            FMP_CollisionGroup hitboxGroup = hitboxGroups.FirstOrDefault(x => x.Index == CollisionGroupIndex);
+            FMP_CollisionGroup hitboxGroup = hitboxGroups.FirstOrDefault(x => ushort.Parse(x.Index) == CollisionGroupIndex);
             int numColliders = hitboxGroup.ColliderCount;
 
             if ((ColliderInstances?.Count == 0 || ColliderInstances == null) && numColliders > 0)
@@ -2443,7 +2450,7 @@ namespace Xv2CoreLib.FMP
                     throw new Exception("HitboxInstanceGroup: Cannot find HitboxGroup with ID " + CollisionGroupIndex);
 
                 if (numColliders != hitboxes.Count)
-                    throw new Exception($"HitboxInstanceGroup: The amount of HitboxInstances does not match the number of Hitboxes in the connected HitboxGroup (Object: {parentObj.Name}, HitboxGroup: {hitboxGroup.Index})");
+                    throw new Exception($"HitboxInstanceGroup: The amount of HitboxInstances does not match the number of Hitboxes in the connected HitboxGroup (Object: {parentObj.Index}, HitboxGroup: {hitboxGroup.Index})");
 
                 return hitboxes;
             }
@@ -2798,19 +2805,13 @@ namespace Xv2CoreLib.FMP
     [YAXSerializeAs("CollisionGroup")]
     public class FMP_CollisionGroup : IInstallable
     {
+        [YAXDontSerialize]
+        public int SortID { get { return int.Parse(Index); } }
         [YAXAttributeForClass]
-        public int Index { get; set; }
+        [BindingAutoId()]
+        public string Index { get; set; }
         [YAXAttributeForClass]
         public string Name { get; set; }
-
-        [YAXDontSerialize]
-        public int SortID => Index;
-
-        string IInstallable.Index
-        {
-            get => Index.ToString();
-            set => Index = int.Parse(value);
-        }
 
         [YAXCollection(YAXCollectionSerializationTypes.RecursiveWithNoContainingElement, EachElementName = "Collider")]
         public List<FMP_Collider> Colliders { get; set; } = new List<FMP_Collider>();
@@ -2959,7 +2960,7 @@ namespace Xv2CoreLib.FMP
         public static FMP_CollisionGroup Read(byte[] bytes, int offset, int index, bool oldVersion)
         {
             FMP_CollisionGroup hitboxGroup = new FMP_CollisionGroup();
-            hitboxGroup.Index = index;
+            hitboxGroup.Index = index.ToString();
             hitboxGroup.Name = StringEx.GetString(bytes, BitConverter.ToInt32(bytes, offset));
 
             int hitboxCount = BitConverter.ToInt32(bytes, offset + 4);
