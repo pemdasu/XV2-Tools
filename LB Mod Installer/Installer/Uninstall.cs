@@ -1,65 +1,66 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
-using System.IO;
-using System.Windows;
-using System.Threading;
 using System.Globalization;
+using System.IO;
+using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
+using System.Windows;
 using Xv2CoreLib;
+using Xv2CoreLib.AIT;
+using Xv2CoreLib.AUR;
 using Xv2CoreLib.BAC;
+using Xv2CoreLib.BCM;
 using Xv2CoreLib.BCS;
 using Xv2CoreLib.BDM;
 using Xv2CoreLib.BEV;
 using Xv2CoreLib.BPE;
 using Xv2CoreLib.BSA;
+using Xv2CoreLib.CBS;
+using Xv2CoreLib.CDT;
+using Xv2CoreLib.CML;
 using Xv2CoreLib.CMS;
 using Xv2CoreLib.CNC;
 using Xv2CoreLib.CNS;
 using Xv2CoreLib.CSO;
+using Xv2CoreLib.CST;
 using Xv2CoreLib.CUS;
+using Xv2CoreLib.DML;
 using Xv2CoreLib.EAN;
-using Xv2CoreLib.ERS;
-using Xv2CoreLib.IDB;
-using Xv2CoreLib.MSG;
 using Xv2CoreLib.EffectContainer;
-using Xv2CoreLib.Resource;
-using Xv2CoreLib.PSC;
-using Xv2CoreLib.PUP;
-using Xv2CoreLib.AUR;
-using Xv2CoreLib.TSD;
-using Xv2CoreLib.TNL;
 using Xv2CoreLib.EMB_CLASS;
-using Xv2CoreLib.QXD;
+using Xv2CoreLib.EMS;
+using Xv2CoreLib.ERS;
+using Xv2CoreLib.Eternity;
+using Xv2CoreLib.FMP;
+using Xv2CoreLib.HCI;
+using Xv2CoreLib.IDB;
+using Xv2CoreLib.IKD;
+using Xv2CoreLib.MSG;
+using Xv2CoreLib.OCO;
+using Xv2CoreLib.OCP;
+using Xv2CoreLib.OCS;
+using Xv2CoreLib.OCT;
+using Xv2CoreLib.ODF;
 using Xv2CoreLib.PAL;
+using Xv2CoreLib.PSC;
+using Xv2CoreLib.PSO;
+using Xv2CoreLib.PUP;
+using Xv2CoreLib.QBT;
+using Xv2CoreLib.QED;
+using Xv2CoreLib.QML;
+using Xv2CoreLib.QSF;
+using Xv2CoreLib.QSL;
+using Xv2CoreLib.QXD;
+using Xv2CoreLib.Resource;
+using Xv2CoreLib.SDS;
+using Xv2CoreLib.SEV;
+using Xv2CoreLib.TNL;
+using Xv2CoreLib.TNN;
+using Xv2CoreLib.TSD;
 using Xv2CoreLib.TTB;
 using Xv2CoreLib.TTC;
-using Xv2CoreLib.SEV;
-using Xv2CoreLib.HCI;
-using Xv2CoreLib.CML;
-using Xv2CoreLib.Eternity;
-using Xv2CoreLib.CST;
-using Xv2CoreLib.OCS;
-using Xv2CoreLib.QML;
-using Xv2CoreLib.OCO;
-using Xv2CoreLib.DML;
-using Xv2CoreLib.QSF;
-using Xv2CoreLib.QED;
-using Xv2CoreLib.QSL;
-using Xv2CoreLib.QBT;
-using Xv2CoreLib.TNN;
-using Xv2CoreLib.ODF;
-using Xv2CoreLib.BCM;
 using Xv2CoreLib.VLC;
-using Xv2CoreLib.IKD;
-using Xv2CoreLib.OCT;
-using Xv2CoreLib.PSO;
-using Xv2CoreLib.OCP;
-using Xv2CoreLib.AIT;
-using Xv2CoreLib.CDT;
-using Xv2CoreLib.EMS;
-using Xv2CoreLib.CBS;
-using Xv2CoreLib.SDS;
 
 namespace LB_Mod_Installer.Installer
 {
@@ -385,6 +386,9 @@ namespace LB_Mod_Installer.Installer
                     break;
                 case ".ems":
                     Uninstall_EMS(path, file);
+                    break;
+                case ".map":
+                    Uninstall_FMP(path, file);
                     break;
                 default:
                     throw new Exception(string.Format("The filetype of \"{0}\" is unsupported. Uninstall failed.\n\nThis mod was likely installed by a newer version of the installer.", path));
@@ -1815,6 +1819,32 @@ namespace LB_Mod_Installer.Installer
             catch (Exception ex)
             {
                 string error = string.Format("Failed at EMS uninstall phase ({0}).", path);
+                throw new Exception(error, ex);
+            }
+        }
+
+        private void Uninstall_FMP(string path, _File file)
+        {
+            try
+            {
+                FMP_File binaryFile = (FMP_File)GetParsedFile<FMP_File>(path, false);
+                FMP_File cpkBinFile = (FMP_File)GetParsedFile<FMP_File>(path, true);
+
+                Section fragmentGroups = file.GetSection(Sections.FMP_FragmentGroup);
+                Section hitboxGroups = file.GetSection(Sections.FMP_CollisionGroup);
+                Section objects = file.GetSection(Sections.FMP_ObjectEntry);
+                Section section1 = file.GetSection(Sections.FMP_Section1Entry);
+                Section section2 = file.GetSection(Sections.FMP_Section2Entry);
+
+                UninstallEntries(binaryFile.FragmentGroups, (cpkBinFile != null) ? cpkBinFile.FragmentGroups : null, fragmentGroups.IDs);
+                UninstallEntries(binaryFile.CollisionGroups, (cpkBinFile != null) ? cpkBinFile.CollisionGroups : null, hitboxGroups.IDs);
+                UninstallEntries(binaryFile.Objects, (cpkBinFile != null) ? cpkBinFile.Objects : null, objects.IDs);
+                UninstallEntries(binaryFile.Section1List, (cpkBinFile != null) ? cpkBinFile.Section1List : null, section1.IDs);
+                UninstallEntries(binaryFile.Section2List, (cpkBinFile != null) ? cpkBinFile.Section2List : null, section2.IDs);
+            }
+            catch (Exception ex)
+            {
+                string error = string.Format("Failed at FMP uninstall phase ({0}).", path);
                 throw new Exception(error, ex);
             }
         }
