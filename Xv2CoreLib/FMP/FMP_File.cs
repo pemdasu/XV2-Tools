@@ -977,6 +977,7 @@ namespace Xv2CoreLib.FMP
         [YAXDontSerialize]
         public int SortID { get { return 0; } } // No sorting is done for this type, but we must define a SortID regardless
 
+        [YAXSerializeAs("Index")]
         [YAXAttributeForClass]
         [YAXErrorIfMissed(YAXExceptionTypes.Ignore)]
         public int Idx { get; set; }
