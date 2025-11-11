@@ -2876,6 +2876,8 @@ namespace LB_Mod_Installer.Installer
                     return EMS_File.Load(fileIO.GetFileFromGame(path, raiseEx, onlyFromCpk));
                 case ".emz":
                     return EMZ_File.LoadData(fileIO.GetFileFromGame(path, raiseEx, onlyFromCpk));
+                case ".map":
+                    return FMP_File.Load(fileIO.GetFileFromGame(path, raiseEx, onlyFromCpk));
                 default:
                     throw new InvalidDataException(String.Format("GetParsedFileFromGame: The filetype of \"{0}\" is not supported.", path));
             }
@@ -3006,6 +3008,8 @@ namespace LB_Mod_Installer.Installer
                     return ((CDT_File)data).SaveToBytes();
                 case ".ems":
                     return ((EMS_File)data).Write();
+                case ".map":
+                    return ((FMP_File)data).Write();
                 case ".emz":
                     if(data is EMB_File emb)
                     {
