@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.IO;
 using System.Linq;
 using Xv2CoreLib.CMS;
@@ -455,6 +456,31 @@ namespace Xv2CoreLib.CUS
             Flag7 = 0x80
         }
 
+        #region Helpers
+        private static ushort ParsePartSet(string? value)
+        {
+            var input = (value ?? string.Empty).Trim();
+
+            if (string.IsNullOrEmpty(input) || input == "-1")
+                return ushort.MaxValue;
+
+            if (input.StartsWith("0x", StringComparison.OrdinalIgnoreCase))
+            {
+                var hexPart = input.Substring(2);
+
+                if (ushort.TryParse(hexPart, NumberStyles.HexNumber,
+                                     CultureInfo.InvariantCulture, out var hex))
+                    return hex;
+            }
+
+            if (ushort.TryParse(input, NumberStyles.Integer,
+                                 CultureInfo.InvariantCulture, out var dec))
+                return dec;
+
+            throw new FormatException($"Invalid PartSet value: '{value}'");
+        }
+        #endregion
+
         #region WrapperProperties
         [YAXDontSerialize]
         public int SortID { get { return ID1; } }
@@ -585,17 +611,36 @@ namespace Xv2CoreLib.CUS
         public uint I_72 { get; set; }
 
         //New 1.25 format:
+        [YAXDontSerialize]
+        public ushort PartSet { get; set; } = ushort.MaxValue;
+        [YAXDontSerialize]
+        public ushort PartSet2 { get; set; } = ushort.MaxValue;
+        [YAXDontSerialize]
+        public ushort PartSet3 { get; set; } = ushort.MaxValue;
+
         [YAXAttributeFor("PartSet")]
         [YAXSerializeAs("value")]
-        public int PartSet { get; set; } = -1; //uint16
+        public string PartSet_Xml
+        {
+            get => PartSet == ushort.MaxValue ? "-1" : PartSet.ToString();
+            set => PartSet = ParsePartSet(value);
+        }
+
         [YAXAttributeFor("PartSet2")]
         [YAXSerializeAs("value")]
-        [YAXErrorIfMissed(YAXExceptionTypes.Ignore, DefaultValue = (short)-1)]
-        public int PartSet2 { get; set; } = -1; //uint16
+        public string PartSet2_Xml
+        {
+            get => PartSet2 == ushort.MaxValue ? "-1" : PartSet2.ToString();
+            set => PartSet2 = ParsePartSet(value);
+        }
+
         [YAXAttributeFor("PartSet3")]
         [YAXSerializeAs("value")]
-        [YAXErrorIfMissed(YAXExceptionTypes.Ignore, DefaultValue = (short)-1)]
-        public int PartSet3 { get; set; } = -1; //uint16
+        public string PartSet3_Xml
+        {
+            get => PartSet3 == ushort.MaxValue ? "-1" : PartSet3.ToString();
+            set => PartSet3 = ParsePartSet(value);
+        }
 
         [YAXAttributeFor("TransformCharaSwap")]
         [YAXSerializeAs("Chara_ID")]

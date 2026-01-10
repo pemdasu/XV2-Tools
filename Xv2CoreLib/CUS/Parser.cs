@@ -119,7 +119,7 @@ namespace Xv2CoreLib.CUS
                         I_12 = (CusRaceLock)rawBytes[offset + 12],
                         I_13 = rawBytes[offset + 13],
                         FilesLoadedFlags1 = (Skill.FilesLoadedFlags)BitConverter.ToUInt16(rawBytes, offset + 14),
-                        PartSet = BitConverter.ToUInt16(rawBytes, offset + 16),
+                        PartSet = (ushort)BitConverter.ToInt16(rawBytes, offset + 16),
                         I_18 = BitConverter.ToUInt16(rawBytes, offset + 18),
                         EanPath = StringEx.GetString(rawBytes, BitConverter.ToInt32(rawBytes, offset + 20), false),
                         CamEanPath = StringEx.GetString(rawBytes, BitConverter.ToInt32(rawBytes, offset + 24), false),
@@ -187,9 +187,9 @@ namespace Xv2CoreLib.CUS
                         //Updated values. Uncommented values are new in 1.25
                         NumTransformations = BitConverter.ToUInt16(rawBytes, offset + 60), //Changed offset (64 -> 60)
                         I_66 = BitConverter.ToUInt16(rawBytes, offset + 62), //Changed offset (66 -> 62)
-                        PartSet = BitConverter.ToUInt16(rawBytes, offset + 64), //Changed offset (16 -> 64)
-                        PartSet2 = BitConverter.ToUInt16(rawBytes, offset + 66),
-                        PartSet3 = BitConverter.ToUInt16(rawBytes, offset + 68),
+                        PartSet = (ushort)BitConverter.ToInt16(rawBytes, offset + 64), //Changed offset (16 -> 64)
+                        PartSet2 = (ushort)BitConverter.ToInt16(rawBytes, offset + 66),
+                        PartSet3 = (ushort)BitConverter.ToInt16(rawBytes, offset + 68),
                         CharaSwapId = BitConverter.ToUInt16(rawBytes, offset + 70), //Changed offset (60 -> 70)
                         CharaSwapId2 = BitConverter.ToUInt16(rawBytes, offset + 72),
                         CharaSwapId3 = BitConverter.ToUInt16(rawBytes, offset + 74),
