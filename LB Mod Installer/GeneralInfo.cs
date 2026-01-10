@@ -126,7 +126,6 @@ namespace LB_Mod_Installer
             "costume_bottom_item.idb",
             "accessory_item.idb",
             "chara_image.hci",
-            "CHARASELE.iggy",
             "CHARA01.emb",
             "cmn.bpe",
             "Common.bev",
