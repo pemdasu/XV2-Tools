@@ -231,7 +231,7 @@ namespace Xv2CoreLib.CST
             return null;
         }
 
-        public void InstallEntries(List<CST_CharaSlot> installSlots, List<string> installIDs)
+        public void InstallEntries(List<CST_CharaSlot> installSlots, List<string> installIDs, List<CstOrderNeighborEntry> slotOrderEntries = null, List<CstOrderNeighborEntry> costumeOrderEntries = null)
         {
             if (installSlots == null) return;
 
@@ -255,23 +255,66 @@ namespace Xv2CoreLib.CST
                     else
                         CharaSlots.Add(charaSlot);
                 }
+                else if (sortIndex != -1)
+                {
+                    int currentIndex = CharaSlots.IndexOf(charaSlot);
+                    if (currentIndex != -1 && currentIndex != sortIndex)
+                    {
+                        string slotId = GetSlotKey(charaSlot, installSlot.InstallID);
+                        string beforeId = currentIndex > 0 ? GetSlotKey(CharaSlots[currentIndex - 1]) : null;
+                        string afterId = currentIndex < CharaSlots.Count - 1 ? GetSlotKey(CharaSlots[currentIndex + 1]) : null;
+                        AddNeighborEntry(slotOrderEntries, slotId, beforeId, afterId);
+
+                        CharaSlots.RemoveAt(currentIndex);
+
+                        if (sortIndex > currentIndex)
+                            sortIndex--;
+
+                        if (sortIndex < 0) sortIndex = 0;
+                        if (sortIndex > CharaSlots.Count) sortIndex = CharaSlots.Count;
+
+                        CharaSlots.Insert(sortIndex, charaSlot);
+                    }
+                }
+
+                if (installSlot.CharaCostumeSlots == null || installSlot.CharaCostumeSlots.Count == 0)
+                    continue;
 
                 foreach (var installCostume in installSlot.CharaCostumeSlots)
                 {
                     int slotIdx = charaSlot.IndexOfSlot(installCostume.InstallID);
+                    bool wantsSorting = HasCostumeSorting(installCostume);
 
-                    if (slotIdx == -1)
-                    {
-                        //Costume slot doesn't exist
-                        installIDs.Add(installCostume.InstallID);
-                        charaSlot.CharaCostumeSlots.Add(installCostume);
-                    }
-                    else
+                    if (slotIdx != -1 && !wantsSorting)
                     {
                         //Costume slot already exists
                         installIDs.Add(installCostume.InstallID);
                         charaSlot.CharaCostumeSlots[slotIdx] = installCostume;
+                        continue;
                     }
+
+                    if (slotIdx != -1)
+                    {
+                        if (wantsSorting)
+                        {
+                            string beforeId = slotIdx > 0 ? charaSlot.CharaCostumeSlots[slotIdx - 1]?.InstallID : null;
+                            string afterId = slotIdx < charaSlot.CharaCostumeSlots.Count - 1 ? charaSlot.CharaCostumeSlots[slotIdx + 1]?.InstallID : null;
+                            AddNeighborEntry(costumeOrderEntries, installCostume.InstallID, beforeId, afterId);
+                        }
+                        charaSlot.CharaCostumeSlots.RemoveAt(slotIdx);
+                    }
+
+                    int insertIndex = GetCostumeSortIndex(charaSlot, installCostume);
+
+                    if (insertIndex == -1 && slotIdx != -1)
+                        insertIndex = Math.Min(slotIdx, charaSlot.CharaCostumeSlots.Count);
+
+                    installIDs.Add(installCostume.InstallID);
+
+                    if (insertIndex >= 0 && insertIndex <= charaSlot.CharaCostumeSlots.Count)
+                        charaSlot.CharaCostumeSlots.Insert(insertIndex, installCostume);
+                    else
+                        charaSlot.CharaCostumeSlots.Add(installCostume);
                 }
 
             }
@@ -341,6 +384,56 @@ namespace Xv2CoreLib.CST
             return -1;
         }
 
+        private static bool HasCostumeSorting(CST_CharaCostumeSlot costumeSlot)
+        {
+            if (costumeSlot == null) return false;
+            return (costumeSlot.InsertIndex.HasValue && costumeSlot.InsertIndex.Value >= 0) ||
+                   !string.IsNullOrWhiteSpace(costumeSlot.SortBefore) ||
+                   !string.IsNullOrWhiteSpace(costumeSlot.SortAfter);
+        }
+
+        private static int GetCostumeSortIndex(CST_CharaSlot charaSlot, CST_CharaCostumeSlot installCostume)
+        {
+            if (installCostume.InsertIndex.HasValue && installCostume.InsertIndex.Value >= 0)
+            {
+                if (installCostume.InsertIndex.Value > charaSlot.CharaCostumeSlots.Count)
+                    return charaSlot.CharaCostumeSlots.Count;
+
+                return installCostume.InsertIndex.Value;
+            }
+
+            int sortBefore = charaSlot.IndexOfSlot(installCostume.SortBefore);
+            if (sortBefore != -1)
+                return sortBefore;
+
+            int sortAfter = charaSlot.IndexOfSlot(installCostume.SortAfter);
+            if (sortAfter != -1)
+            {
+                int insertIndex = sortAfter + 1;
+                return insertIndex > charaSlot.CharaCostumeSlots.Count ? charaSlot.CharaCostumeSlots.Count : insertIndex;
+            }
+
+            return -1;
+        }
+
+        private static void AddNeighborEntry(List<CstOrderNeighborEntry> entries, string installId, string beforeId, string afterId)
+        {
+            if (entries == null || string.IsNullOrWhiteSpace(installId)) return;
+            if (string.IsNullOrWhiteSpace(beforeId)) beforeId = null;
+            if (string.IsNullOrWhiteSpace(afterId)) afterId = null;
+            if (beforeId == null && afterId == null) return;
+            if (entries.Any(x => x.InstallID == installId)) return;
+            entries.Add(new CstOrderNeighborEntry(installId, beforeId, afterId));
+        }
+
+        private static string GetSlotKey(CST_CharaSlot slot, string fallback = null)
+        {
+            if (slot == null) return fallback;
+            if (!string.IsNullOrWhiteSpace(slot.InstallID)) return slot.InstallID;
+            if (!string.IsNullOrWhiteSpace(fallback)) return fallback;
+            return slot.CharaCostumeSlots?.FirstOrDefault()?.InstallID;
+        }
+
 
         #endregion
 
@@ -364,6 +457,19 @@ namespace Xv2CoreLib.CST
                 {
                     if (costume.InstallID == installID) return costume;
                 }
+            }
+
+            return null;
+        }
+
+        public CST_CharaSlot GetCharaSlotContainingCostume(string installID)
+        {
+            if (string.IsNullOrWhiteSpace(installID)) return null;
+
+            foreach (var slot in CharaSlots)
+            {
+                if (slot?.CharaCostumeSlots == null) continue;
+                if (slot.CharaCostumeSlots.Any(x => x.InstallID == installID)) return slot;
             }
 
             return null;
@@ -432,6 +538,15 @@ namespace Xv2CoreLib.CST
     {
         [YAXDontSerialize]
         public string InstallID { get { return $"{CharaCode}_{Costume}_{Preset}"; } }
+
+        [YAXDontSerialize]
+        public int? InsertIndex { get; set; }
+
+        [YAXDontSerialize]
+        public string SortBefore { get; set; }
+
+        [YAXDontSerialize]
+        public string SortAfter { get; set; }
 
         //Copied from eternity source
 
@@ -510,6 +625,9 @@ namespace Xv2CoreLib.CST
             DlcFlag1 = slot.DLC_Flag1;
             DlcFlag2 = slot.DLC_Flag2;
             flag_cgk2 = (ushort)(slot.flag_cgk2 == true ? 1 : 0);
+            InsertIndex = slot.InsertIndex;
+            SortBefore = slot.SortBefore;
+            SortAfter = slot.SortAfter;
         }
 
         public static CST_CharaCostumeSlot Read(byte[] bytes, int offset, int version)
@@ -618,5 +736,19 @@ namespace Xv2CoreLib.CST
             };
         }
     };
+
+    public class CstOrderNeighborEntry
+    {
+        public string InstallID { get; set; }
+        public string BeforeID { get; set; }
+        public string AfterID { get; set; }
+
+        public CstOrderNeighborEntry(string installId, string beforeId, string afterId)
+        {
+            InstallID = installId;
+            BeforeID = beforeId;
+            AfterID = afterId;
+        }
+    }
 
 }

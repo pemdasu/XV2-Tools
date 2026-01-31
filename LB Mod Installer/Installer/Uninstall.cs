@@ -1338,6 +1338,11 @@ namespace LB_Mod_Installer.Installer
                 CharaSlotsFile charaSlotsFile = (CharaSlotsFile)GetParsedFile<CharaSlotsFile>(CharaSlotsFile.FILE_NAME_BIN, false, true);
                 CST_File cstFile = (CST_File)GetParsedFile<CST_File>(CST_File.CST_PATH, true, true);
                 CST_File x2sFileConverted = charaSlotsFile.ConvertToCst();
+                CST_File originalOrder = cstFile;
+
+                CharaSlotsFile defaultFile = CharaSlotsFile.DefaultFile;
+                if (defaultFile != null)
+                    originalOrder = defaultFile.ConvertToCst();
 
                 if (charaSlotsFile == null) return;
 
@@ -1346,6 +1351,8 @@ namespace LB_Mod_Installer.Installer
                 if (section != null)
                 {
                     x2sFileConverted.UninstallEntries(section.IDs, cstFile);
+                    RestoreCharaSlotOrder(x2sFileConverted, section, originalOrder);
+                    RestoreCharaCostumeOrder(x2sFileConverted, section, originalOrder);
                 }
 
                 //Convert back to X2S
@@ -1358,6 +1365,208 @@ namespace LB_Mod_Installer.Installer
                 string error = string.Format("Failed at CharaSlots uninstall phase ({0}).", CharaSlotsFile.FILE_NAME_BIN);
                 throw new Exception(error, ex);
             }
+        }
+
+        private void RestoreCharaSlotOrder(CST_File cstFile, Section section, CST_File originalOrder)
+        {
+            if (cstFile?.CharaSlots == null || section == null) return;
+
+            if (section.SlotOrderNeighbors == null || section.SlotOrderNeighbors.Count == 0) return;
+
+            IEnumerable<OrderNeighborEntry> ordered = section.SlotOrderNeighbors;
+            if (originalOrder != null)
+                ordered = ordered.OrderBy(x => GetOriginalSlotOrderIndex(originalOrder, x.ID));
+
+            foreach (var orderEntry in ordered)
+            {
+                RestoreSlotByNeighbors(cstFile, originalOrder, orderEntry);
+            }
+        }
+
+        private void RestoreCharaCostumeOrder(CST_File cstFile, Section section, CST_File originalOrder)
+        {
+            if (cstFile?.CharaSlots == null || section == null) return;
+
+            if (section.CostumeOrderNeighbors == null || section.CostumeOrderNeighbors.Count == 0) return;
+
+            IEnumerable<OrderNeighborEntry> ordered = section.CostumeOrderNeighbors;
+            if (originalOrder != null)
+                ordered = ordered.OrderBy(x => GetOriginalCostumeOrderIndex(originalOrder, x.ID));
+
+            foreach (var orderEntry in ordered)
+            {
+                RestoreCostumeByNeighbors(cstFile, originalOrder, orderEntry);
+            }
+        }
+
+        private void RestoreSlotByNeighbors(CST_File cstFile, CST_File originalOrder, OrderNeighborEntry orderEntry)
+        {
+            if (cstFile?.CharaSlots == null || orderEntry == null) return;
+            if (string.IsNullOrWhiteSpace(orderEntry.ID)) return;
+
+            CST_CharaSlot slot = cstFile.GetCharaSlotFromInstallID(orderEntry.ID);
+            if (slot == null) return;
+
+            int currentIndex = cstFile.CharaSlots.IndexOf(slot);
+            if (currentIndex == -1) return;
+
+            string beforeId = ResolveSlotBeforeId(cstFile, originalOrder, orderEntry);
+            string afterId = ResolveSlotAfterId(cstFile, originalOrder, orderEntry);
+
+            int targetIndex = GetTargetIndex(cstFile.CharaSlots.Select(GetInstallId).ToList(), orderEntry.ID, beforeId, afterId);
+            if (targetIndex == -1 || targetIndex == currentIndex) return;
+
+            cstFile.CharaSlots.RemoveAt(currentIndex);
+            if (targetIndex > currentIndex) targetIndex--;
+            if (targetIndex < 0) targetIndex = 0;
+            if (targetIndex > cstFile.CharaSlots.Count) targetIndex = cstFile.CharaSlots.Count;
+            cstFile.CharaSlots.Insert(targetIndex, slot);
+        }
+
+        private void RestoreCostumeByNeighbors(CST_File cstFile, CST_File originalOrder, OrderNeighborEntry orderEntry)
+        {
+            if (cstFile?.CharaSlots == null || orderEntry == null) return;
+            if (string.IsNullOrWhiteSpace(orderEntry.ID)) return;
+
+            CST_CharaSlot slot = cstFile.GetCharaSlotContainingCostume(orderEntry.ID);
+            if (slot == null || slot.CharaCostumeSlots == null) return;
+
+            int currentIndex = slot.IndexOfSlot(orderEntry.ID);
+            if (currentIndex == -1) return;
+
+            string beforeId = ResolveCostumeBeforeId(cstFile, originalOrder, orderEntry, slot);
+            string afterId = ResolveCostumeAfterId(cstFile, originalOrder, orderEntry, slot);
+
+            int targetIndex = GetTargetIndex(slot.CharaCostumeSlots.Select(x => x?.InstallID).ToList(), orderEntry.ID, beforeId, afterId);
+            if (targetIndex == -1 || targetIndex == currentIndex) return;
+
+            CST_CharaCostumeSlot costume = slot.CharaCostumeSlots[currentIndex];
+            slot.CharaCostumeSlots.RemoveAt(currentIndex);
+            if (targetIndex > currentIndex) targetIndex--;
+            if (targetIndex < 0) targetIndex = 0;
+            if (targetIndex > slot.CharaCostumeSlots.Count) targetIndex = slot.CharaCostumeSlots.Count;
+            slot.CharaCostumeSlots.Insert(targetIndex, costume);
+        }
+
+        private string ResolveSlotBeforeId(CST_File cstFile, CST_File originalOrder, OrderNeighborEntry orderEntry)
+        {
+            string beforeId = string.IsNullOrWhiteSpace(orderEntry.Before) ? null : orderEntry.Before;
+            if (!string.IsNullOrWhiteSpace(beforeId) && cstFile.GetCharaSlotFromInstallID(beforeId) != null) return beforeId;
+
+            return FindNeighborFromOriginal(orderEntry.ID, originalOrder?.CharaSlots, cstFile.CharaSlots, true);
+        }
+
+        private string ResolveSlotAfterId(CST_File cstFile, CST_File originalOrder, OrderNeighborEntry orderEntry)
+        {
+            string afterId = string.IsNullOrWhiteSpace(orderEntry.After) ? null : orderEntry.After;
+            if (!string.IsNullOrWhiteSpace(afterId) && cstFile.GetCharaSlotFromInstallID(afterId) != null) return afterId;
+
+            return FindNeighborFromOriginal(orderEntry.ID, originalOrder?.CharaSlots, cstFile.CharaSlots, false);
+        }
+
+        private string ResolveCostumeBeforeId(CST_File cstFile, CST_File originalOrder, OrderNeighborEntry orderEntry, CST_CharaSlot slot)
+        {
+            string beforeId = string.IsNullOrWhiteSpace(orderEntry.Before) ? null : orderEntry.Before;
+            if (!string.IsNullOrWhiteSpace(beforeId) && slot.IndexOfSlot(beforeId) != -1) return beforeId;
+
+            CST_CharaSlot originalSlot = originalOrder?.GetCharaSlotContainingCostume(orderEntry.ID);
+            return FindNeighborFromOriginal(orderEntry.ID, originalSlot?.CharaCostumeSlots, slot.CharaCostumeSlots, true);
+        }
+
+        private string ResolveCostumeAfterId(CST_File cstFile, CST_File originalOrder, OrderNeighborEntry orderEntry, CST_CharaSlot slot)
+        {
+            string afterId = string.IsNullOrWhiteSpace(orderEntry.After) ? null : orderEntry.After;
+            if (!string.IsNullOrWhiteSpace(afterId) && slot.IndexOfSlot(afterId) != -1) return afterId;
+
+            CST_CharaSlot originalSlot = originalOrder?.GetCharaSlotContainingCostume(orderEntry.ID);
+            return FindNeighborFromOriginal(orderEntry.ID, originalSlot?.CharaCostumeSlots, slot.CharaCostumeSlots, false);
+        }
+
+        private string FindNeighborFromOriginal<T>(string targetId, IList<T> originalList, IList<T> currentList, bool findBefore) where T : class
+        {
+            if (originalList == null || currentList == null) return null;
+
+            int originalIndex = GetIndexByInstallId(originalList, targetId);
+            if (originalIndex == -1) return null;
+
+            if (findBefore)
+            {
+                for (int i = originalIndex - 1; i >= 0; i--)
+                {
+                    string candidateId = GetInstallId(originalList[i]);
+                    if (string.IsNullOrWhiteSpace(candidateId)) continue;
+                    if (GetIndexByInstallId(currentList, candidateId) != -1) return candidateId;
+                }
+            }
+            else
+            {
+                for (int i = originalIndex + 1; i < originalList.Count; i++)
+                {
+                    string candidateId = GetInstallId(originalList[i]);
+                    if (string.IsNullOrWhiteSpace(candidateId)) continue;
+                    if (GetIndexByInstallId(currentList, candidateId) != -1) return candidateId;
+                }
+            }
+
+            return null;
+        }
+
+        private int GetTargetIndex(List<string> ids, string targetId, string beforeId, string afterId)
+        {
+            if (ids == null) return -1;
+
+            int beforeIndex = !string.IsNullOrWhiteSpace(beforeId) ? ids.IndexOf(beforeId) : -1;
+            int afterIndex = !string.IsNullOrWhiteSpace(afterId) ? ids.IndexOf(afterId) : -1;
+
+            if (beforeIndex != -1 && afterIndex != -1 && beforeIndex < afterIndex)
+                return beforeIndex + 1;
+            if (beforeIndex != -1)
+                return beforeIndex + 1;
+            if (afterIndex != -1)
+                return afterIndex;
+
+            return -1;
+        }
+
+        private int GetIndexByInstallId<T>(IList<T> list, string installId) where T : class
+        {
+            if (list == null || string.IsNullOrWhiteSpace(installId)) return -1;
+
+            for (int i = 0; i < list.Count; i++)
+            {
+                if (GetInstallId(list[i]) == installId) return i;
+            }
+
+            return -1;
+        }
+
+        private string GetInstallId<T>(T entry) where T : class
+        {
+            switch (entry)
+            {
+                case CST_CharaSlot slot:
+                    return !string.IsNullOrWhiteSpace(slot.InstallID) ? slot.InstallID : slot.CharaCostumeSlots?.FirstOrDefault()?.InstallID;
+                case CST_CharaCostumeSlot costume:
+                    return costume.InstallID;
+                default:
+                    return null;
+            }
+        }
+
+        private int GetOriginalSlotOrderIndex(CST_File originalOrder, string installId)
+        {
+            if (originalOrder?.CharaSlots == null) return int.MaxValue;
+            int index = GetIndexByInstallId(originalOrder.CharaSlots, installId);
+            return index == -1 ? int.MaxValue : index;
+        }
+
+        private int GetOriginalCostumeOrderIndex(CST_File originalOrder, string installId)
+        {
+            if (originalOrder == null || string.IsNullOrWhiteSpace(installId)) return int.MaxValue;
+
+            CST_CharaSlot slot = originalOrder.GetCharaSlotContainingCostume(installId);
+            int index = GetIndexByInstallId(slot?.CharaCostumeSlots, installId);
+            return index == -1 ? int.MaxValue : index;
         }
 
         private void Uninstall_StageSlots(_File file)

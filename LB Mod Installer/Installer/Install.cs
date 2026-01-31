@@ -1149,7 +1149,43 @@ namespace LB_Mod_Installer.Installer
                 CST_File cstSlots = slotsFile.ConvertToCst();
 
                 List<string> installIDs = new List<string>();
-                cstSlots.InstallEntries(cstXml.CharaSlots, installIDs);
+                List<CstOrderNeighborEntry> slotOrderEntries = new List<CstOrderNeighborEntry>();
+                List<CstOrderNeighborEntry> costumeOrderEntries = new List<CstOrderNeighborEntry>();
+
+                //Pre-track original slot neighbors for slot-only reorders (prefer resource default order if available)
+                CST_File originalOrder = CharaSlotsFile.DefaultFile?.ConvertToCst();
+                List<string> slotKeys = (originalOrder?.CharaSlots ?? cstSlots.CharaSlots)
+                    .Select(x => x?.InstallID ?? x?.CharaCostumeSlots?.FirstOrDefault()?.InstallID)
+                    .ToList();
+                foreach (var installSlot in cstXml.CharaSlots)
+                {
+                    if (installSlot == null) continue;
+                    if (string.IsNullOrWhiteSpace(installSlot.SortBefore) && string.IsNullOrWhiteSpace(installSlot.SortAfter)) continue;
+
+                    string key = installSlot.InstallID ?? installSlot.CharaCostumeSlots?.FirstOrDefault()?.InstallID;
+                    if (string.IsNullOrWhiteSpace(key)) continue;
+
+                    int idx = slotKeys.IndexOf(key);
+                    if (idx == -1 && originalOrder != null)
+                    {
+                        slotKeys = cstSlots.CharaSlots
+                            .Select(x => x?.InstallID ?? x?.CharaCostumeSlots?.FirstOrDefault()?.InstallID)
+                            .ToList();
+                        idx = slotKeys.IndexOf(key);
+                    }
+                    if (idx == -1) continue;
+
+                    string beforeId = idx > 0 ? slotKeys[idx - 1] : null;
+                    string afterId = idx < slotKeys.Count - 1 ? slotKeys[idx + 1] : null;
+
+                    if (beforeId != null || afterId != null)
+                    {
+                        if (!slotOrderEntries.Any(x => x.InstallID == key))
+                            slotOrderEntries.Add(new CstOrderNeighborEntry(key, beforeId, afterId));
+                    }
+                }
+
+                cstSlots.InstallEntries(cstXml.CharaSlots, installIDs, slotOrderEntries, costumeOrderEntries);
 
                 //Convert back to X2S, and preserve original file ref (needed for the file cache manager)
                 CharaSlotsFile tempSlotsFile = cstSlots.ConvertToPatcherSlotsFile();
@@ -1158,6 +1194,16 @@ namespace LB_Mod_Installer.Installer
                 foreach (var id in installIDs)
                 {
                     GeneralInfo.Tracker.AddID(CharaSlotsFile.FILE_NAME_BIN, Sections.CharaSlotEntry, id);
+                }
+
+                foreach (var orderEntry in slotOrderEntries)
+                {
+                    GeneralInfo.Tracker.AddSlotOrderNeighbor(CharaSlotsFile.FILE_NAME_BIN, Sections.CharaSlotEntry, orderEntry.InstallID, orderEntry.BeforeID, orderEntry.AfterID);
+                }
+
+                foreach (var orderEntry in costumeOrderEntries)
+                {
+                    GeneralInfo.Tracker.AddCostumeOrderNeighbor(CharaSlotsFile.FILE_NAME_BIN, Sections.CharaSlotEntry, orderEntry.InstallID, orderEntry.BeforeID, orderEntry.AfterID);
                 }
             }
 #if !DEBUG
