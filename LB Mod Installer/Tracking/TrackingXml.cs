@@ -92,6 +92,28 @@ namespace LB_Mod_Installer.Installer
             }
         }
 
+        public void AddSlotOrderNeighbor(string filePath, string sectionName, string id, string beforeId, string afterId)
+        {
+            AddOrderNeighborEntry(filePath, sectionName, id, beforeId, afterId, true);
+        }
+
+        public void AddCostumeOrderNeighbor(string filePath, string sectionName, string id, string beforeId, string afterId)
+        {
+            AddOrderNeighborEntry(filePath, sectionName, id, beforeId, afterId, false);
+        }
+
+        private void AddOrderNeighborEntry(string filePath, string sectionName, string id, string beforeId, string afterId, bool isSlot)
+        {
+            if (string.IsNullOrWhiteSpace(id)) return;
+            if (string.IsNullOrWhiteSpace(beforeId) && string.IsNullOrWhiteSpace(afterId)) return;
+
+            Section section = GetCurrentMod().GetFileEntry(filePath).GetSection(sectionName);
+            List<OrderNeighborEntry> entries = isSlot ? section.SlotOrderNeighbors : section.CostumeOrderNeighbors;
+
+            if (entries.Any(x => x.ID == id)) return;
+            entries.Add(new OrderNeighborEntry(id, beforeId, afterId));
+        }
+
         /// <summary>
         /// Removes a ID for use with this file.
         /// </summary>
@@ -311,7 +333,34 @@ namespace LB_Mod_Installer.Installer
         [YAXAttributeForClass]
         [YAXCollection(YAXCollectionSerializationTypes.Serially, SeparateBy = ",")]
         public List<string> IDs { get; set; } = new List<string>(); //IDs of ALL entries that have been installed in this section for this mod
+
+        [YAXCollection(YAXCollectionSerializationTypes.RecursiveWithNoContainingElement, EachElementName = "SlotOrderNeighbor")]
+        [YAXErrorIfMissed(YAXExceptionTypes.Ignore)]
+        public List<OrderNeighborEntry> SlotOrderNeighbors { get; set; } = new List<OrderNeighborEntry>();
+
+        [YAXCollection(YAXCollectionSerializationTypes.RecursiveWithNoContainingElement, EachElementName = "CostumeOrderNeighbor")]
+        [YAXErrorIfMissed(YAXExceptionTypes.Ignore)]
+        public List<OrderNeighborEntry> CostumeOrderNeighbors { get; set; } = new List<OrderNeighborEntry>();
         
+    }
+
+    public class OrderNeighborEntry
+    {
+        [YAXAttributeForClass]
+        public string ID { get; set; }
+        [YAXAttributeForClass]
+        public string Before { get; set; }
+        [YAXAttributeForClass]
+        public string After { get; set; }
+
+        public OrderNeighborEntry() { }
+
+        public OrderNeighborEntry(string id, string beforeId, string afterId)
+        {
+            ID = id;
+            Before = beforeId;
+            After = afterId;
+        }
     }
 
     public class SerializedAlias

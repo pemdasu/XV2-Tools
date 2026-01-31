@@ -169,6 +169,16 @@ namespace Xv2CoreLib.Properties {
         /// <summary>
         ///   Looks up a localized resource of type System.Byte[].
         /// </summary>
+        internal static byte[] XV2P_SLOTS {
+            get {
+                object obj = ResourceManager.GetObject("XV2P_SLOTS", resourceCulture);
+                return ((byte[])(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Byte[].
+        /// </summary>
         internal static byte[] XV2P_SLOTS_STAGE {
             get {
                 object obj = ResourceManager.GetObject("XV2P_SLOTS_STAGE", resourceCulture);
