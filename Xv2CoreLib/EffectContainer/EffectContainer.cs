@@ -679,7 +679,15 @@ namespace Xv2CoreLib.EffectContainer
 
                         if (container.LooseFiles || type == AssetType.EMO)
                         {
-                            fileBytes = LoadExternalFile(string.Format("{0}/{1}", Directory, file.FullFileName));
+                            string externalPath = string.Format("{0}/{1}", Directory, file.FullFileName);
+
+                            if (ShouldHideAndSkipMissingLooseAsset(type, container.Assets[i], file, externalPath))
+                            {
+                                container.Assets[i].HideInAssetLists = true;
+                                continue;
+                            }
+
+                            fileBytes = LoadExternalFile(externalPath);
                         }
                         else
                         {
@@ -771,6 +779,28 @@ namespace Xv2CoreLib.EffectContainer
             container.ValidateAssetNames();
 
             return container;
+        }
+
+        private bool ShouldHideAndSkipMissingLooseAsset(AssetType type, Asset asset, EffectFile file, string fullPath)
+        {
+            if (DoesFileExist(fullPath)) return false;
+
+            if (type == AssetType.EMO && file.Extension == ".emo")
+            {
+                // Some EEPKs in the SDBH arcade game declare bcgokb00.emo as a placeholder even though no real file exists beside the .eepk.
+                return string.Equals(file.FullFileName, "bcgokb00.emo", StringComparison.OrdinalIgnoreCase);
+            }
+
+            if (type == AssetType.PBIND && file.Extension == ".emp")
+            {
+                // Some SDBH arcade EEPKs reference loose PBIND EMP assets that are not shipped beside the .eepk.
+                if (Version == VersionEnum.SDBH || Version == (VersionEnum)1)
+                {
+                    return true;
+                }
+            }
+
+            return false;
         }
 
         /// <summary>
@@ -2131,6 +2161,11 @@ namespace Xv2CoreLib.EffectContainer
                 throw new FileNotFoundException(String.Format("Could not find the declared PBIND EMM file at \"{0}\".", string.Format("{0}/{1}", Directory, emm)));
             }
 
+            if (DoesFileExist(string.Format("{0}/{1}.emm", Directory, Name)))
+            {
+                return string.Format("{0}/{1}.emm", Directory, Name);
+            }
+
             if (DoesFileExist(string.Format("{0}/{1}_MTL.emm", Directory, Name)))
             {
                 return string.Format("{0}/{1}_MTL.emm", Directory, Name);
@@ -2150,6 +2185,11 @@ namespace Xv2CoreLib.EffectContainer
                 throw new FileNotFoundException(String.Format("Could not find the declared PBIND EMB file at \"{0}\".", string.Format("{0}/{1}", Directory, emb)));
             }
 
+            if (DoesFileExist(string.Format("{0}/{1}.emb", Directory, Name)))
+            {
+                return string.Format("{0}/{1}.emb", Directory, Name);
+            }
+
             if (DoesFileExist(string.Format("{0}/{1}_PIC.emb", Directory, Name)))
             {
                 return string.Format("{0}/{1}_PIC.emb", Directory, Name);
@@ -2164,6 +2204,11 @@ namespace Xv2CoreLib.EffectContainer
 
             foreach (var emp in Pbind.Assets)
             {
+                if (emp.HideInAssetLists || emp.Files.Count < 1 || emp.Files[0].EmpFile == null)
+                {
+                    continue;
+                }
+
                 Pbind.AddPbindDependencies(emp.Files[0].EmpFile);
             }
         }
@@ -2175,6 +2220,12 @@ namespace Xv2CoreLib.EffectContainer
                 int index = 0;
                 foreach (Asset empAsset in Pbind.Assets)
                 {
+                    if (empAsset.HideInAssetLists)
+                    {
+                        index++;
+                        continue;
+                    }
+
                     //Validation
                     if (empAsset.Files.Count < 1)
                     {
@@ -2225,7 +2276,19 @@ namespace Xv2CoreLib.EffectContainer
             {
                 if (empEntry.NodeType == ParticleNodeType.Emission)
                 {
-                    empEntry.EmissionNode.Texture.MaterialRef = (empEntry.EmissionNode.Texture.MaterialID != ushort.MaxValue) ? emmFile.GetEntry(empEntry.EmissionNode.Texture.MaterialID) : null;
+                    if (empEntry.EmissionNode.Texture.MaterialID == ushort.MaxValue)
+                    {
+                        empEntry.EmissionNode.Texture.MaterialRef = null;
+                    }
+                    else if (empEntry.EmissionNode.Texture.MaterialID < emmFile.Materials.Count)
+                    {
+                        empEntry.EmissionNode.Texture.MaterialRef = emmFile.GetEntry(empEntry.EmissionNode.Texture.MaterialID);
+                    }
+                    else
+                    {
+                        // Some SDBH arcade EEPKs reference a material index that does not exist in the paired EMM.
+                        empEntry.EmissionNode.Texture.MaterialRef = null;
+                    }
                 }
 
                 if (empEntry.ChildParticleNodes != null)
@@ -2709,7 +2772,7 @@ namespace Xv2CoreLib.EffectContainer
         {
             get
             {
-                return string.Format("{0}/--", Assets.Count);
+                return string.Format("{0}/--", Assets.Count(x => !x.HideInAssetLists));
             }
         }
 
@@ -2761,8 +2824,9 @@ namespace Xv2CoreLib.EffectContainer
         //Filter methods
         public bool AssetFilterCheck(object skill)
         {
-            if (String.IsNullOrWhiteSpace(AssetSearchFilter)) return true;
             var _asset = skill as Asset;
+            if (_asset?.HideInAssetLists == true) return false;
+            if (String.IsNullOrWhiteSpace(AssetSearchFilter)) return true;
             string flattenedSearchParam = AssetSearchFilter.ToLower();
 
             if (_asset != null)
@@ -3900,6 +3964,7 @@ namespace Xv2CoreLib.EffectContainer
         //So we can identify assets accross multiple instances (mainly for copy/paste)
         public Guid InstanceID = Guid.NewGuid();
 
+        public bool HideInAssetLists { get; set; } = false;
 
         public AssetType assetType { get; set; }
 
@@ -4117,6 +4182,7 @@ namespace Xv2CoreLib.EffectContainer
             Asset newAsset = new Asset();
             newAsset.I_00 = I_00;
             newAsset.Files = new AsyncObservableCollection<EffectFile>();
+            newAsset.HideInAssetLists = HideInAssetLists;
 
             foreach (var file in Files)
             {

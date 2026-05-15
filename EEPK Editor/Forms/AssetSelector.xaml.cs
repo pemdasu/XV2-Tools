@@ -209,26 +209,31 @@ namespace EEPK_Organiser.Forms
             {
                 foreach (var asset in effectContainerFile.Emo.Assets)
                 {
+                    if (asset.HideInAssetLists) continue;
                     MergedAssetList.Add(asset);
                 }
 
                 foreach (var asset in effectContainerFile.Pbind.Assets)
                 {
+                    if (asset.HideInAssetLists) continue;
                     MergedAssetList.Add(asset);
                 }
 
                 foreach (var asset in effectContainerFile.Tbind.Assets)
                 {
+                    if (asset.HideInAssetLists) continue;
                     MergedAssetList.Add(asset);
                 }
 
                 foreach (var asset in effectContainerFile.LightEma.Assets)
                 {
+                    if (asset.HideInAssetLists) continue;
                     MergedAssetList.Add(asset);
                 }
 
                 foreach (var asset in effectContainerFile.Cbind.Assets)
                 {
+                    if (asset.HideInAssetLists) continue;
                     MergedAssetList.Add(asset);
                 }
 
@@ -239,6 +244,7 @@ namespace EEPK_Organiser.Forms
                 {
                     foreach (var asset in effectContainerFile.Emo.Assets)
                     {
+                        if (asset.HideInAssetLists) continue;
                         MergedAssetList.Add(asset);
                     }
                 }
@@ -246,6 +252,7 @@ namespace EEPK_Organiser.Forms
                 {
                     foreach (var asset in effectContainerFile.Pbind.Assets)
                     {
+                        if (asset.HideInAssetLists) continue;
                         MergedAssetList.Add(asset);
                     }
                 }
@@ -253,6 +260,7 @@ namespace EEPK_Organiser.Forms
                 {
                     foreach (var asset in effectContainerFile.Tbind.Assets)
                     {
+                        if (asset.HideInAssetLists) continue;
                         MergedAssetList.Add(asset);
                     }
                 }
@@ -260,6 +268,7 @@ namespace EEPK_Organiser.Forms
                 {
                     foreach (var asset in effectContainerFile.LightEma.Assets)
                     {
+                        if (asset.HideInAssetLists) continue;
                         MergedAssetList.Add(asset);
                     }
                 }
@@ -267,6 +276,7 @@ namespace EEPK_Organiser.Forms
                 {
                     foreach (var asset in effectContainerFile.Cbind.Assets)
                     {
+                        if (asset.HideInAssetLists) continue;
                         MergedAssetList.Add(asset);
                     }
                 }
@@ -278,8 +288,9 @@ namespace EEPK_Organiser.Forms
 
         public bool AssetFilterCheck(object asset)
         {
-            if (String.IsNullOrWhiteSpace(SearchParameter)) return true;
             var _asset = asset as Asset;
+            if (_asset?.HideInAssetLists == true) return false;
+            if (String.IsNullOrWhiteSpace(SearchParameter)) return true;
 
             if (_asset != null)
             {
