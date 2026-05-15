@@ -128,7 +128,7 @@
 
                         <DataGrid.RowDetailsTemplate>
                             <DataTemplate>
-                                <ListBox Tag="{Binding DataContext, ElementName=rootGrid}" BorderBrush="{DynamicResource MahApps.Brushes.Accent2}" PreviewMouseWheel="ListBox_PreviewMouseWheel" BorderThickness="1" SelectionChanged="effectPart_SelectionChanged" MouseDoubleClick="EffectPart_DoubleClick" MouseLeftButtonUp="ListBox_MouseLeftButtonUp" MouseRightButtonUp="ListBox_MouseRightButtonUp" VirtualizingPanel.ScrollUnit="Pixel" ItemsSource="{Binding EffectParts.Binding}" SelectionMode="Extended" SelectedItem="{Binding SelectedEffectPart, UpdateSourceTrigger=PropertyChanged}" lbUtils:AttachedProperties.SelectedItems="{Binding SelectedEffectParts}">
+                                <ListBox Tag="{Binding DataContext, ElementName=rootGrid}" BorderBrush="{DynamicResource MahApps.Brushes.Accent2}" PreviewMouseWheel="ListBox_PreviewMouseWheel" BorderThickness="1" SelectionChanged="effectPart_SelectionChanged" MouseDoubleClick="EffectPart_DoubleClick" MouseLeftButtonUp="ListBox_MouseLeftButtonUp" MouseRightButtonUp="ListBox_MouseRightButtonUp" VirtualizingPanel.ScrollUnit="Pixel" ItemsSource="{Binding VisibleEffectParts}" SelectionMode="Extended" SelectedItem="{Binding SelectedEffectPart, UpdateSourceTrigger=PropertyChanged}" lbUtils:AttachedProperties.SelectedItems="{Binding SelectedEffectParts}">
 
                                     <ListBox.ItemTemplate>
                                         <DataTemplate>

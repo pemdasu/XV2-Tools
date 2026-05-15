@@ -9,6 +9,7 @@ using System.IO;
 using Xv2CoreLib.EffectContainer;
 using System.ComponentModel;
 using System.Collections.ObjectModel;
+using System.Windows.Data;
 using Xv2CoreLib.Resource.UndoRedo;
 using Xv2CoreLib.Resource;
 
@@ -454,12 +455,29 @@ namespace Xv2CoreLib.EEPK
 
         [NonSerialized]
         private ObservableCollection<EffectPart> _selectedEffectParts = new ObservableCollection<EffectPart>();
+        [NonSerialized]
+        private ListCollectionView _visibleEffectParts = null;
         [YAXDontSerialize]
         public ObservableCollection<EffectPart> SelectedEffectParts
         {
             get
             {
                 return this._selectedEffectParts;
+            }
+        }
+        [YAXDontSerialize]
+        public ListCollectionView VisibleEffectParts
+        {
+            get
+            {
+                if (_visibleEffectParts != null)
+                {
+                    return _visibleEffectParts;
+                }
+
+                _visibleEffectParts = new ListCollectionView(EffectParts.Binding);
+                _visibleEffectParts.Filter = new Predicate<object>(VisibleEffectPartFilter);
+                return _visibleEffectParts;
             }
         }
         [NonSerialized]
@@ -520,6 +538,20 @@ namespace Xv2CoreLib.EEPK
             {
                 part.AssetRefDetailsRefreash(asset);
             }
+
+            RefreshVisibleEffectParts();
+        }
+
+        public void RefreshVisibleEffectParts()
+        {
+            if (_visibleEffectParts == null) return;
+            _visibleEffectParts.Refresh();
+            NotifyPropertyChanged(nameof(VisibleEffectParts));
+        }
+
+        private bool VisibleEffectPartFilter(object effectPart)
+        {
+            return effectPart is EffectPart part && part.ShowInEffectList;
         }
     }
 
@@ -599,6 +631,8 @@ namespace Xv2CoreLib.EEPK
                 return !string.IsNullOrWhiteSpace(ESK) ? String.Format("[{1}] {0}  |  {2}", AssetRef.FileNamesPreview, AssetType, ESK) : AssetRefDetails;
             }
         }
+        [YAXDontSerialize]
+        public bool ShowInEffectList => AssetRef?.HideInAssetLists != true;
         private Asset _assetRef = null;
         [YAXDontSerialize]
         public Asset AssetRef
@@ -959,6 +993,7 @@ namespace Xv2CoreLib.EEPK
             NotifyPropertyChanged(nameof(AssetRefDetails));
             NotifyPropertyChanged(nameof(AssetRef));
             NotifyPropertyChanged(nameof(EffectPartDetails));
+            NotifyPropertyChanged(nameof(ShowInEffectList));
         }
 
         public void CopyValues(EffectPart effectPart, List<IUndoRedo> undos)
