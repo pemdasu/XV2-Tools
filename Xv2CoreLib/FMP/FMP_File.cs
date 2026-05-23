@@ -986,6 +986,13 @@ namespace Xv2CoreLib.FMP
         [YAXAttributeForClass]
         public string Index { get; set; }
 
+        [YAXDontSerialize]
+        public string Name
+        {
+            get => Index;
+            set => Index = value;
+        }
+
         [CustomSerialize(isHex: true)]
         public ushort I_04 { get; set; }
 
