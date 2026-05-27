@@ -60,6 +60,16 @@ namespace Xv2CoreLib.DEM
             }
         }
 
+        public Parser(byte[] bytes)
+        {
+            demFile = new DEM_File();
+            debugList = new List<DebugInfo>();
+            rawBytes = bytes;
+            this.bytes = rawBytes.ToList();
+
+            ParseDem();
+        }
+
         private void ParseDem()
         {
             //Validation

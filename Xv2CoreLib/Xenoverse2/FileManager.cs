@@ -33,6 +33,8 @@ using Xv2CoreLib.FMP;
 using Xv2CoreLib.NSK;
 using Xv2CoreLib.Eternity;
 using Xv2CoreLib.CBS;
+using Xv2CoreLib.DEM;
+using Xv2CoreLib.DML;
 
 namespace Xv2CoreLib
 {
@@ -277,6 +279,12 @@ namespace Xv2CoreLib
                         break;
                     case ".emb":
                         file = EMB_File.LoadEmb(GetBytesFromGame(path, onlyFromCpk, raiseEx));
+                        break;
+                    case ".dem":
+                        file = DEM_File.Load(GetBytesFromGame(path, onlyFromCpk, raiseEx));
+                        break;
+                    case ".dml":
+                        file = DML_File.Load(GetBytesFromGame(path, onlyFromCpk, raiseEx));
                         break;
                     case ".emm":
                         file = EMM_File.LoadEmm(GetBytesFromGame(path, onlyFromCpk, raiseEx));

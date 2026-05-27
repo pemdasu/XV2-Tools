@@ -24,6 +24,14 @@ namespace Xv2CoreLib.DEM
             File.WriteAllBytes(saveLocation, bytes.ToArray());
         }
 
+        public Deserializer(DEM_File demFile, string saveLocation)
+        {
+            this.saveLocation = saveLocation;
+            this.demFile = demFile;
+            WriteDem();
+            File.WriteAllBytes(saveLocation, bytes.ToArray());
+        }
+
         private void WriteDem()
         {
             //init

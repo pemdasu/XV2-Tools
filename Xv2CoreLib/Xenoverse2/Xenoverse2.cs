@@ -1211,7 +1211,14 @@ namespace Xv2CoreLib
                         bool borrowed = !Utils.CompareSplitString(csoEntry.SePath, '_', 2, cmsEntry.ShortName);
 
                         if (loadFiles)
-                            moveFiles.SeAcbFile.Add(new Xv2File<ACB_Wrapper>((ACB_Wrapper)FileManager.Instance.GetParsedFileFromGame(moveFiles.SeAcbPath, loadFromCpk), fileIO.PathInGameDir(moveFiles.SeAcbPath), borrowed, null, false, MoveFileTypes.SE_ACB, (int)csoEntry.Costume, isDefaultCostume, MoveType.Character));
+                        {
+                            ACB_Wrapper seAcb = (ACB_Wrapper)FileManager.Instance.GetParsedFileFromGame(moveFiles.SeAcbPath, loadFromCpk, false);
+
+                            if (seAcb != null)
+                            {
+                                moveFiles.SeAcbFile.Add(new Xv2File<ACB_Wrapper>(seAcb, fileIO.PathInGameDir(moveFiles.SeAcbPath), borrowed, null, false, MoveFileTypes.SE_ACB, (int)csoEntry.Costume, isDefaultCostume, MoveType.Character));
+                            }
+                        }
 
                         loadedFiles.Add(moveFiles.SeAcbPath);
                     }
