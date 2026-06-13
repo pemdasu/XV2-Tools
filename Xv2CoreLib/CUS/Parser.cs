@@ -208,22 +208,22 @@ namespace Xv2CoreLib.CUS
                 int idx = skillEntries.Count - 1;
 
                 if (skillEntries[idx].PartSet == ushort.MaxValue)
-                    skillEntries[idx].PartSet = -1;
+                    skillEntries[idx].PartSet = 65535;
 
                 if (skillEntries[idx].PartSet2 == ushort.MaxValue)
-                    skillEntries[idx].PartSet2 = -1;
+                    skillEntries[idx].PartSet2 = 65535;
 
                 if (skillEntries[idx].PartSet3 == ushort.MaxValue)
-                    skillEntries[idx].PartSet3 = -1;
+                    skillEntries[idx].PartSet3 = 65535;
 
                 if (skillEntries[idx].CharaSwapId == ushort.MaxValue)
-                    skillEntries[idx].CharaSwapId = -1;
+                    skillEntries[idx].CharaSwapId = 65535;
 
                 if (skillEntries[idx].CharaSwapId2 == ushort.MaxValue)
-                    skillEntries[idx].CharaSwapId2 = -1;
+                    skillEntries[idx].CharaSwapId2 = 65535;
 
                 if (skillEntries[idx].CharaSwapId3 == ushort.MaxValue)
-                    skillEntries[idx].CharaSwapId3 = -1;
+                    skillEntries[idx].CharaSwapId3 = 65535;
             }
 
             return skillEntries;
