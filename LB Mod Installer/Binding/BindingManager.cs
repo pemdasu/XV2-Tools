@@ -1217,6 +1217,19 @@ namespace LB_Mod_Installer.Binding
                                 //file.InstallPath = ParseString(file.InstallPath, GeneralInfo.InstallerXml, "InstallPath"); //We do this later, as the file is installed. This way we can access any aliases that have been set.
                             }
                         }
+
+                        if (option.HasChoices)
+                        {
+                            foreach (var choice in option.Choices.ChoiceList)
+                            {
+                                if (choice.Paths == null) continue;
+
+                                foreach (var file in choice.Paths)
+                                {
+                                    file.IsEnabled = ParseString(file.IsEnabled, GeneralInfo.InstallerXml, "File.IsEnabled");
+                                }
+                            }
+                        }
                     }
                 }
             }

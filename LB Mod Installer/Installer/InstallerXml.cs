@@ -194,6 +194,26 @@ namespace LB_Mod_Installer.Installer
                             }
                         }
                     }
+                    else if (InstallOptionSteps[i].StepType == InstallStep.StepTypes.Picker)
+                    {
+                        if (InstallOptionSteps[i].OptionList != null)
+                        {
+                            foreach (var option in InstallOptionSteps[i].OptionList.Where(x => x.IsSelected_OptionMultiSelect))
+                            {
+                                //Selected tiles install from their chosen sub-choice (Glow/No Glow) or their own Paths if there are no choices.
+                                List<FilePath> paths = option.EffectivePaths;
+                                if (paths == null) continue;
+
+                                foreach (var file in paths)
+                                {
+                                    if (file.GetInstallPriority() == priority)
+                                    {
+                                        files.Add(file);
+                                    }
+                                }
+                            }
+                        }
+                    }
                 }
             }
         }
@@ -231,6 +251,7 @@ namespace LB_Mod_Installer.Installer
                                 step.SelectedOptionBinding = step.SelectedOptions[0];
                                 break;
                             case InstallStep.StepTypes.OptionsMultiSelect:
+                            case InstallStep.StepTypes.Picker:
                                 step.SetSelectedOptions(step.SelectedOptions);
                                 break;
                         }
@@ -498,6 +519,12 @@ namespace LB_Mod_Installer.Installer
         [YAXDontSerializeIfNull]
         public string TitleBarFontColor { get; set; }
 
+        //Accent used for picker selection (tile frame, badge, summary headers). Defaults to a blue if unset.
+        [YAXAttributeFor("Accent")]
+        [YAXSerializeAs("Brush")]
+        [YAXDontSerializeIfNull]
+        public string AccentColor { get; set; }
+
         [YAXAttributeFor("ProgressBarColor")]
         [YAXSerializeAs("Brush")]
         [YAXDontSerializeIfNull]
@@ -542,7 +569,8 @@ namespace LB_Mod_Installer.Installer
         {
             Message,
             Options,
-            OptionsMultiSelect
+            OptionsMultiSelect,
+            Picker
         }
 
         #region Preset InstallSteps
@@ -673,6 +701,14 @@ namespace LB_Mod_Installer.Installer
         public Visibility OptionListVisibility { get { return (StepType == StepTypes.Options) ? Visibility.Visible : Visibility.Hidden; } }
         [YAXDontSerialize]
         public Visibility OptionMultiSelectListVisibility { get { return (StepType == StepTypes.OptionsMultiSelect) ? Visibility.Visible : Visibility.Hidden; } }
+        [YAXDontSerialize]
+        public Visibility PickerListVisibility { get { return (StepType == StepTypes.Picker) ? Visibility.Visible : Visibility.Hidden; } }
+
+        //Folder inside the archive to scan for .installoption tiles. Checked under both data/ and JUNGLE3/.
+        [YAXAttributeFor("ImportFolder")]
+        [YAXSerializeAs("value")]
+        [YAXDontSerializeIfNull]
+        public string ImportFolder { get; set; }
         
         [YAXDontSerialize]
         public int SelectedOptionBinding
@@ -1007,8 +1043,112 @@ namespace LB_Mod_Installer.Installer
         [YAXDontSerializeIfNull]
         public string Tooltip { get; set; }
 
+        //Picker tile preview image. Zip-root relative, like the background brushes.
+        [YAXAttributeFor("Image")]
+        [YAXSerializeAs("value")]
+        [YAXDontSerializeIfNull]
+        public string ImagePath { get; set; }
+
+        //Picker category. Tiles are grouped into accordions by this. Empty falls into the default group.
+        [YAXAttributeFor("Category")]
+        [YAXSerializeAs("value")]
+        [YAXDontSerializeIfNull]
+        public string Category { get; set; }
+
+        [YAXDontSerialize]
+        public string CategoryDisplay { get { return string.IsNullOrWhiteSpace(Category) ? "Options" : Category; } }
+
+        //Tiles sharing an ExclusiveGroup are mutually exclusive (at most one selected, like radio buttons).
+        [YAXAttributeFor("ExclusiveGroup")]
+        [YAXSerializeAs("value")]
+        [YAXDontSerializeIfNull]
+        public string ExclusiveGroup { get; set; }
+
+        //Optional Glow/No Glow style sub-choices. When present, the tile installs the selected choice instead of Paths.
+        [YAXDontSerializeIfNull]
+        public SubChoiceGroup Choices { get; set; }
+
         [YAXCollection(YAXCollectionSerializationTypes.RecursiveWithNoContainingElement, EachElementName = "File")]
+        [YAXDontSerializeIfNull]
         public List<FilePath> Paths { get; set; }
+
+        [YAXDontSerialize]
+        public bool HasChoices { get { return Choices?.ChoiceList?.Count > 0; } }
+        [YAXDontSerialize]
+        public Visibility ChoicesVisibility { get { return HasChoices ? Visibility.Visible : Visibility.Collapsed; } }
+
+        [YAXDontSerialize]
+        public bool HasImage { get { return !string.IsNullOrWhiteSpace(ImagePath); } }
+
+        [YAXDontSerialize]
+        private int _selectedChoiceIndex = -1;
+        [YAXDontSerialize]
+        public int SelectedChoiceIndex
+        {
+            get
+            {
+                if (_selectedChoiceIndex < 0 && HasChoices) return Choices.Default;
+                return _selectedChoiceIndex;
+            }
+            set
+            {
+                if (value != _selectedChoiceIndex)
+                {
+                    _selectedChoiceIndex = value;
+                    NotifyPropertyChanged("SelectedChoiceIndex");
+                    NotifyPropertyChanged("SelectedChoiceName");
+                    NotifyPropertyChanged("SummaryText");
+                }
+            }
+        }
+
+        //Name of the chosen sub-choice (Glow / No Glow / ...), or null when the tile has no choices. Used by the summary.
+        [YAXDontSerialize]
+        public string SelectedChoiceName
+        {
+            get
+            {
+                if (!HasChoices) return null;
+
+                int index = SelectedChoiceIndex;
+                if (index >= 0 && index < Choices.ChoiceList.Count)
+                    return Choices.ChoiceList[index].Name;
+
+                return null;
+            }
+        }
+
+        //Summary line: "Name" or "Name (Variant)".
+        [YAXDontSerialize]
+        public string SummaryText
+        {
+            get
+            {
+                string choice = SelectedChoiceName;
+                return string.IsNullOrEmpty(choice) ? Name : $"{Name} ({choice})";
+            }
+        }
+
+        /// <summary>
+        /// The files this tile installs: the selected sub-choice's Paths, or the tile's own Paths when it has no choices.
+        /// </summary>
+        [YAXDontSerialize]
+        public List<FilePath> EffectivePaths
+        {
+            get
+            {
+                if (HasChoices)
+                {
+                    int index = SelectedChoiceIndex;
+                    if (index >= 0 && index < Choices.ChoiceList.Count)
+                        return Choices.ChoiceList[index].Paths;
+
+                    return null;
+                }
+
+                return Paths;
+            }
+        }
 
         [YAXDontSerialize]
         public int PathCount
@@ -1020,6 +1160,30 @@ namespace LB_Mod_Installer.Installer
             }
         }
 
+    }
+
+    //A group of mutually exclusive sub-choices for a picker tile (e.g. Glow / No Glow).
+    [YAXSerializeAs("Choices")]
+    public class SubChoiceGroup
+    {
+        [YAXAttributeForClass]
+        [YAXErrorIfMissed(YAXExceptionTypes.Ignore, DefaultValue = 0)]
+        public int Default { get; set; }
+
+        [YAXCollection(YAXCollectionSerializationTypes.RecursiveWithNoContainingElement, EachElementName = "Choice")]
+        public List<SubChoice> ChoiceList { get; set; } = new List<SubChoice>();
+    }
+
+    [YAXSerializeAs("Choice")]
+    public class SubChoice
+    {
+        [YAXAttributeForClass]
+        [YAXSerializeAs("value")]
+        public string Name { get; set; }
+
+        [YAXCollection(YAXCollectionSerializationTypes.RecursiveWithNoContainingElement, EachElementName = "File")]
+        [YAXDontSerializeIfNull]
+        public List<FilePath> Paths { get; set; }
     }
     
     [YAXSerializeAs("File")]
@@ -1059,6 +1223,12 @@ namespace LB_Mod_Installer.Installer
         [YAXAttributeForClass]
         [YAXErrorIfMissed(YAXExceptionTypes.Ignore, DefaultValue = "True")]
         public string IsEnabled { get; set; }
+
+        //Which archive root to copy from, for CopyFile/CopyDir. Default keeps the existing behavior
+        //(CopyDir probes JUNGLE3/ then data/; CopyFile uses data/). Data or JUNGLE3 force a single root.
+        [YAXAttributeForClass]
+        [YAXErrorIfMissed(YAXExceptionTypes.Ignore, DefaultValue = FileSourceRoot.Default)]
+        public FileSourceRoot Root { get; set; }
 
         //For MSG files
         [YAXAttributeForClass]
@@ -1136,6 +1306,13 @@ namespace LB_Mod_Installer.Installer
         EPatch,
         LuaEngineFile,
         LuaScript
+    }
+
+    public enum FileSourceRoot
+    {
+        Default = 0,
+        Data,
+        JUNGLE3
     }
 
     //Localisation
