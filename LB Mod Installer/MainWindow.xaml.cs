@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Data;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using LB_Mod_Installer.Installer;
@@ -27,6 +28,19 @@ namespace LB_Mod_Installer
         UninstallPrompt, //Prompt before Uninstalling
         Installing, //Mod is installing
         Uninstalling, //Mod is uninstalling
+    }
+
+    //A picker accordion: a category name and the tiles in it.
+    public class PickerCategory
+    {
+        public string Name { get; }
+        public List<InstallOption> Options { get; }
+
+        public PickerCategory(string name, List<InstallOption> options)
+        {
+            Name = name;
+            Options = options;
+        }
     }
 
     /// <summary>
@@ -109,8 +123,109 @@ namespace LB_Mod_Installer
                 {
                     this._installStep = value;
                     NotifyPropertyChanged("CurrentInstallStep");
+                    BuildPickerViews(value);
                 }
             }
+        }
+
+        //Picker accordions (explicit category groups) + live selection summary. Rebuilt per Picker step.
+        private List<PickerCategory> _pickerCategories;
+        public List<PickerCategory> PickerCategories
+        {
+            get { return _pickerCategories; }
+            set { _pickerCategories = value; NotifyPropertyChanged("PickerCategories"); }
+        }
+        private ICollectionView _selectedSummaryView;
+        public ICollectionView SelectedSummaryView
+        {
+            get { return _selectedSummaryView; }
+            set { _selectedSummaryView = value; NotifyPropertyChanged("SelectedSummaryView"); }
+        }
+        private InstallStep _pickerViewStep;
+
+        private void BuildPickerViews(InstallStep step)
+        {
+            if (step == null || step.StepType != InstallStep.StepTypes.Picker)
+                return;
+
+            //Only build once per step.
+            if (_pickerViewStep == step) return;
+            _pickerViewStep = step;
+
+            List<InstallOption> options = step.OptionList ?? new List<InstallOption>();
+
+            //Explicit groups drive the accordions (reliable tile wrapping via a nested WrapPanel).
+            PickerCategories = options
+                .GroupBy(o => o.CategoryDisplay)
+                .Select(g => new PickerCategory(g.Key, g.ToList()))
+                .ToList();
+
+            //Filtered + grouped live summary of what is selected.
+            ListCollectionView summaryView = new ListCollectionView(options);
+            summaryView.Filter = o => ((InstallOption)o).IsSelected_OptionMultiSelect;
+            summaryView.GroupDescriptions.Add(new PropertyGroupDescription("CategoryDisplay"));
+            SelectedSummaryView = summaryView;
+
+            //Refresh the summary whenever a tile is toggled.
+            foreach (InstallOption option in options)
+            {
+                option.PropertyChanged -= PickerOption_PropertyChanged;
+                option.PropertyChanged += PickerOption_PropertyChanged;
+            }
+        }
+
+        private bool _syncingExclusive;
+
+        private void PickerOption_PropertyChanged(object sender, PropertyChangedEventArgs e)
+        {
+            if (e.PropertyName != "IsSelected_OptionMultiSelect") return;
+
+            InstallOption option = sender as InstallOption;
+
+            //Selecting a tile in an exclusive group deselects the others in that group.
+            if (!_syncingExclusive && option != null && option.IsSelected_OptionMultiSelect
+                && !string.IsNullOrWhiteSpace(option.ExclusiveGroup) && _pickerViewStep?.OptionList != null)
+            {
+                _syncingExclusive = true;
+                foreach (InstallOption other in _pickerViewStep.OptionList)
+                {
+                    if (other != option && other.IsSelected_OptionMultiSelect
+                        && string.Equals(other.ExclusiveGroup, option.ExclusiveGroup, StringComparison.OrdinalIgnoreCase))
+                    {
+                        other.IsSelected_OptionMultiSelect = false;
+                    }
+                }
+                _syncingExclusive = false;
+            }
+
+            SelectedSummaryView?.Refresh();
+        }
+
+        private void PickerPickAll_Click(object sender, RoutedEventArgs e)
+        {
+            SetCategorySelection(sender, true);
+        }
+
+        private void PickerClear_Click(object sender, RoutedEventArgs e)
+        {
+            SetCategorySelection(sender, false);
+        }
+
+        private void SetCategorySelection(object sender, bool selected)
+        {
+            PickerCategory category = (sender as FrameworkElement)?.DataContext as PickerCategory;
+            if (category == null) return;
+
+            foreach (InstallOption option in category.Options)
+            {
+                //Pick all skips exclusive-group tiles (they can't all be on at once). Clear still clears them.
+                if (selected && !string.IsNullOrWhiteSpace(option.ExclusiveGroup))
+                    continue;
+
+                option.IsSelected_OptionMultiSelect = selected;
+            }
+
+            GeneralInfo.InstallerXmlInfo?.StepCountUpdate();
         }
 
         private bool isInstalled = false;
@@ -351,6 +466,15 @@ namespace LB_Mod_Installer
                         case InstallStep.StepTypes.OptionsMultiSelect:
                             step.SetSelectedOptions(selectedOptions);
                             break;
+                        case InstallStep.StepTypes.Picker:
+                            step.SetSelectedOptions(selectedOptions);
+
+                            foreach (var choice in savedOptions.GetSelectedChoices(step.StepID))
+                            {
+                                if (choice.Key >= 0 && choice.Key < step.OptionList.Count && step.OptionList[choice.Key].HasChoices)
+                                    step.OptionList[choice.Key].SelectedChoiceIndex = choice.Value;
+                            }
+                            break;
                     }
 
                 }
@@ -370,6 +494,17 @@ namespace LB_Mod_Installer
                         break;
                     case InstallStep.StepTypes.OptionsMultiSelect:
                         savedOptions.SetSelectedOptions(step.StepID, step.GetSelectedOptions());
+                        break;
+                    case InstallStep.StepTypes.Picker:
+                        savedOptions.SetSelectedOptions(step.StepID, step.GetSelectedOptions());
+
+                        Dictionary<int, int> choices = new Dictionary<int, int>();
+                        for (int i = 0; i < step.OptionList.Count; i++)
+                        {
+                            if (step.OptionList[i].IsSelected_OptionMultiSelect && step.OptionList[i].HasChoices)
+                                choices[i] = step.OptionList[i].SelectedChoiceIndex;
+                        }
+                        savedOptions.SetSelectedChoices(step.StepID, choices);
                         break;
                 }
             }
@@ -407,6 +542,7 @@ namespace LB_Mod_Installer
 
                 //Load .installinfo
                 zipManager = new ZipReader(ZipFile.Open(path, ZipArchiveMode.Read));
+                GeneralInfo.ZipManager = zipManager;
 
                 //Load installerXml from .installinfo
                 if (!zipManager.Exists(GeneralInfo.InstallerXml))
@@ -416,6 +552,10 @@ namespace LB_Mod_Installer
                 }
 
                 InstallerInfo = zipManager.DeserializeXmlFromArchive_Ext<InstallerXml>(GeneralInfo.InstallerXml);
+
+                //Pull modular .installoption tiles into their Picker steps before Init so selections/UI see a complete OptionList.
+                OptionModuleImporter.ImportModules(InstallerInfo, zipManager);
+
                 InstallerInfo.Init();
                 GeneralInfo.InstallerXmlInfo = InstallerInfo;
 
@@ -474,6 +614,29 @@ namespace LB_Mod_Installer
             {
                 MessageBox.Show(String.Format("Failed loading the default background and font brushes (DefaultBackground={0}, DefaultFontColor={1}).", InstallerInfo.UiOverrides.DefaultBackgroundBrush, InstallerInfo.UiOverrides.DefaultFontColor), "Init Error", MessageBoxButton.OK, MessageBoxImage.Error);
             }
+
+            LoadAccentBrush();
+        }
+
+        //Picker selection accent (tile frame, badge, card tint, summary headers), configurable via UiOverrides.Accent.
+        private void LoadAccentBrush()
+        {
+            Color accent = Color.FromRgb(0x2E, 0x9B, 0xEB);
+
+            try
+            {
+                if (!string.IsNullOrWhiteSpace(InstallerInfo.UiOverrides.AccentColor))
+                    accent = (Color)ColorConverter.ConvertFromString(InstallerInfo.UiOverrides.AccentColor);
+            }
+            catch { }
+
+            SolidColorBrush accentBrush = new SolidColorBrush(accent);
+            accentBrush.Freeze();
+            SolidColorBrush tintBrush = new SolidColorBrush(Color.FromArgb(0x40, accent.R, accent.G, accent.B));
+            tintBrush.Freeze();
+
+            Resources["PickerAccentBrush"] = accentBrush;
+            Resources["PickerAccentTintBrush"] = tintBrush;
         }
 
         private void LoadTitleBarBrushes()

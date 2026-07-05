@@ -237,6 +237,8 @@ namespace LB_Mod_Installer
         }
 
         public static InstallerXml InstallerXmlInfo { get; set; }
+        //The loaded .installinfo archive. Used by the UI to load picker tile images on demand.
+        public static Xv2CoreLib.Resource.ZipReader ZipManager { get; set; }
 
         public static void LoadTracker()
         {

@@ -214,16 +214,29 @@ namespace LB_Mod_Installer.Installer
 
                         if (!IsJungleFileBlacklisted(File.InstallPath))
                         {
-                            fileManager.AddStreamFile(File.InstallPath, zipManager.GetZipEntry(string.Format("data/{0}", File.SourcePath)), File.Overwrite);
+                            //Root=JUNGLE3 copies from JUNGLE3/, otherwise from data/.
+                            string copyFileRoot = (File.Root == FileSourceRoot.JUNGLE3) ? JUNGLE3 : "data";
+                            fileManager.AddStreamFile(File.InstallPath, zipManager.GetZipEntry(string.Format("{0}/{1}", copyFileRoot, File.SourcePath)), File.Overwrite);
                         }
                         break;
                     case FileType.CopyDir:
                         {
                             UpdateProgessBarText($"_Copying {File.SourcePath}...", true, currentProgress, false);
 
-                            //Path can be in either data or JUNGLE3
-                            if (!ProcessJungle($"{JUNGLE3}/{File.SourcePath}", true, File.InstallPath, true))
-                                ProcessJungle($"data/{File.SourcePath}", true, File.InstallPath, true);
+                            switch (File.Root)
+                            {
+                                case FileSourceRoot.Data:
+                                    ProcessJungle($"data/{File.SourcePath}", true, File.InstallPath, true);
+                                    break;
+                                case FileSourceRoot.JUNGLE3:
+                                    ProcessJungle($"{JUNGLE3}/{File.SourcePath}", true, File.InstallPath, true);
+                                    break;
+                                default:
+                                    //Unset: path can be in either data or JUNGLE3.
+                                    if (!ProcessJungle($"{JUNGLE3}/{File.SourcePath}", true, File.InstallPath, true))
+                                        ProcessJungle($"data/{File.SourcePath}", true, File.InstallPath, true);
+                                    break;
+                            }
                         }
                         break;
                     case FileType.SkillDir:

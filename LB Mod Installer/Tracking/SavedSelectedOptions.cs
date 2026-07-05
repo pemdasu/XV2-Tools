@@ -81,16 +81,56 @@ namespace LB_Mod_Installer.Tracking
 
         public void SetSelectedOptions(string stepId, List<int> selectedOptions)
         {
+            GetOrCreateStep(stepId).SelectedOptions = selectedOptions;
+        }
+
+        /// <summary>
+        /// Returns the saved sub-choice index for each selected picker tile, keyed by option index.
+        /// </summary>
+        public Dictionary<int, int> GetSelectedChoices(string stepId)
+        {
+            return ParseChoices(SavedInstallSteps.FirstOrDefault(x => x.StepID == stepId)?.Choices);
+        }
+
+        public void SetSelectedChoices(string stepId, Dictionary<int, int> choices)
+        {
+            GetOrCreateStep(stepId).Choices = BuildChoices(choices);
+        }
+
+        private SavedInstallStep GetOrCreateStep(string stepId)
+        {
             SavedInstallStep step = SavedInstallSteps.FirstOrDefault(x => x.StepID == stepId);
 
-            if(step == null)
+            if (step == null)
             {
                 step = new SavedInstallStep();
                 step.StepID = stepId;
                 SavedInstallSteps.Add(step);
             }
 
-            step.SelectedOptions = selectedOptions;
+            return step;
+        }
+
+        //Choices are stored compactly as "optionIndex:choiceIndex" pairs, comma separated.
+        private static Dictionary<int, int> ParseChoices(string raw)
+        {
+            Dictionary<int, int> choices = new Dictionary<int, int>();
+            if (string.IsNullOrWhiteSpace(raw)) return choices;
+
+            foreach (string pair in raw.Split(','))
+            {
+                string[] parts = pair.Split(':');
+                if (parts.Length == 2 && int.TryParse(parts[0], out int option) && int.TryParse(parts[1], out int choice))
+                    choices[option] = choice;
+            }
+
+            return choices;
+        }
+
+        private static string BuildChoices(Dictionary<int, int> choices)
+        {
+            if (choices == null || choices.Count == 0) return null;
+            return string.Join(",", choices.Select(x => $"{x.Key}:{x.Value}"));
         }
 
         private static string GetPath(string name)
@@ -107,5 +147,8 @@ namespace LB_Mod_Installer.Tracking
         [YAXAttributeForClass]
         [YAXCollection(YAXCollectionSerializationTypes.Serially, SeparateBy = ",")]
         public List<int> SelectedOptions { get; set; } = new List<int>();
+        [YAXAttributeForClass]
+        [YAXDontSerializeIfNull]
+        public string Choices { get; set; }
     }
 }

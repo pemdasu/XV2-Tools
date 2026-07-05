@@ -1,20 +1,28 @@
-﻿<Controls:MetroWindow x:Name="Main_Window" x:Class="LB_Mod_Installer.MainWindow"
+<Controls:MetroWindow x:Name="Main_Window" x:Class="LB_Mod_Installer.MainWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:Controls="clr-namespace:MahApps.Metro.Controls;assembly=MahApps.Metro"
         xmlns:local="clr-namespace:LB_Mod_Installer"
+        xmlns:binding="clr-namespace:LB_Mod_Installer.Binding"
         xmlns:iconPacks="http://metro.mahapps.com/winfx/xaml/iconpacks"
         mc:Ignorable="d"
-        Title="{Binding InstallerInfo.InstallerNameWithVersion}" BorderThickness="0" ShowIconOnTitleBar="False" Height="400" Width="640" WindowStartupLocation="CenterScreen" ResizeMode="NoResize" Icon="Resources/DBXV2_101.ico">
+        Title="{Binding InstallerInfo.InstallerNameWithVersion}" BorderThickness="0" ShowIconOnTitleBar="False" Height="640" Width="1000" WindowStartupLocation="CenterScreen" ResizeMode="NoResize" Icon="Resources/DBXV2_101.ico">
+    <Controls:MetroWindow.Resources>
+        <binding:ZipImageConverter x:Key="ZipImageConverter"/>
+        <BooleanToVisibilityConverter x:Key="BoolToVis"/>
+        <!-- Picker selection accent. Overridden at runtime from UiOverrides.Accent. -->
+        <SolidColorBrush x:Key="PickerAccentBrush" Color="#2E9BEB"/>
+        <SolidColorBrush x:Key="PickerAccentTintBrush" Color="#402E9BEB"/>
+    </Controls:MetroWindow.Resources>
     <Grid Background="{Binding CurrentBackground}">
         <Grid x:Name="installStepGrid" Visibility="{Binding InstallStepCountVisibility}">
-            <Label x:Name="Label_StepNumber" Content="{Binding InstallerInfo.CurrentStepString}" Foreground="{Binding CurrentTextColor}" HorizontalAlignment="Left" Margin="507,0,0,0" VerticalAlignment="Top" Height="31" Width="89"/>
+            <Label x:Name="Label_StepNumber" Content="{Binding InstallerInfo.CurrentStepString}" Foreground="{Binding CurrentTextColor}" HorizontalAlignment="Right" Margin="0,8,20,0" VerticalAlignment="Top" Height="31" Width="120"/>
 
         </Grid>
         <Grid x:Name="generalGrid" Visibility="{Binding GeneralVisibility}">
-            <Button x:Name="button_About" HorizontalAlignment="Left" Margin="613,5,0,0" VerticalAlignment="Top" Width="20" Height="20" Style="{StaticResource ButtonNoGlow}" Click="Button_About_Click" ToolTip="View more information about this mod.">
+            <Button x:Name="button_About" HorizontalAlignment="Right" Margin="0,8,8,0" VerticalAlignment="Top" Width="20" Height="20" Style="{StaticResource ButtonNoGlow}" Click="Button_About_Click" ToolTip="View more information about this mod.">
                 <Grid>
                     <iconPacks:PackIconMaterialLight Kind="Information" Foreground="SkyBlue"/>
                 </Grid>
@@ -31,13 +39,19 @@
 
         </Grid>
 
-        <Grid x:Name="stepsGrid" Visibility="{Binding InstallStepVisibility}">
-            <Button x:Name="Button_Next" Content="Next" HorizontalAlignment="Left" Margin="355,285,0,0" VerticalAlignment="Top" Width="75" Click="Button_Next_Click"/>
-            <Button IsEnabled="{Binding CanGoBack}" x:Name="Button_Back" Content="Back" HorizontalAlignment="Left" Margin="209,285,0,0" VerticalAlignment="Top" Width="75" Click="Button_Back_Click"/>
-            <Label x:Name="Label_StepName" Content="{Binding CurrentInstallStep.Name}" Foreground="{Binding CurrentTextColor}" HorizontalAlignment="Left" Margin="118,8,0,0" VerticalAlignment="Top" Height="32" Width="398" FontSize="16" FontFamily="Segoe UI Semibold" RenderTransformOrigin="0.5,0.5" HorizontalContentAlignment="Center"/>
-            <TextBlock x:Name="Label_Message" Text="{Binding CurrentInstallStep.Message}" Foreground="{Binding CurrentTextColor}" TextWrapping="Wrap" HorizontalAlignment="Left" Margin="118,45,0,0" VerticalAlignment="Top" Height="95" Width="441"/>
+        <Grid x:Name="stepsGrid" Visibility="{Binding InstallStepVisibility}" Margin="30,44,30,72">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*"/>
+                <RowDefinition Height="Auto"/>
+            </Grid.RowDefinitions>
 
-            <ScrollViewer Margin="118,140,78.473,91.782" Visibility="{Binding CurrentInstallStep.OptionListVisibility}">
+            <Label x:Name="Label_StepName" Grid.Row="0" Content="{Binding CurrentInstallStep.Name}" Foreground="{Binding CurrentTextColor}" HorizontalContentAlignment="Center" Height="34" FontSize="18" FontFamily="Segoe UI Semibold" Margin="0,0,0,4"/>
+            <TextBlock x:Name="Label_Message" Grid.Row="1" Text="{Binding CurrentInstallStep.Message}" Foreground="{Binding CurrentTextColor}" TextWrapping="Wrap" MaxHeight="150" Margin="0,0,0,10"/>
+
+            <!-- Options: single-select radio buttons -->
+            <ScrollViewer Grid.Row="2" Visibility="{Binding CurrentInstallStep.OptionListVisibility}" VerticalScrollBarVisibility="Auto">
                 <ItemsControl ItemsSource="{Binding CurrentInstallStep.OptionList}">
                     <ItemsControl.ItemTemplate>
                         <DataTemplate>
@@ -47,7 +61,8 @@
                 </ItemsControl>
             </ScrollViewer>
 
-            <ScrollViewer Margin="118,140,78.473,91.782" Visibility="{Binding CurrentInstallStep.OptionMultiSelectListVisibility}" VerticalScrollBarVisibility="Auto">
+            <!-- OptionsMultiSelect: check boxes -->
+            <ScrollViewer Grid.Row="2" Visibility="{Binding CurrentInstallStep.OptionMultiSelectListVisibility}" VerticalScrollBarVisibility="Auto">
                 <ItemsControl ItemsSource="{Binding CurrentInstallStep.OptionList}">
                     <ItemsControl.ItemTemplate>
                         <DataTemplate>
@@ -56,22 +71,132 @@
                     </ItemsControl.ItemTemplate>
                 </ItemsControl>
             </ScrollViewer>
-            
+
+            <!-- Picker: category accordions (left) + live selection summary (right) -->
+            <Grid Grid.Row="2" Visibility="{Binding CurrentInstallStep.PickerListVisibility}">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="250"/>
+                </Grid.ColumnDefinitions>
+
+                <ScrollViewer Grid.Column="0" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+                    <ItemsControl ItemsSource="{Binding PickerCategories}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <Expander IsExpanded="True" Margin="0,0,6,10" Background="#73000000" BorderBrush="#40FFFFFF" BorderThickness="1" HorizontalContentAlignment="Stretch">
+                                    <Expander.Header>
+                                        <DockPanel LastChildFill="False" Margin="0,0,6,0">
+                                            <TextBlock DockPanel.Dock="Left" Text="{Binding Name}" FontSize="15" FontFamily="Segoe UI Semibold" VerticalAlignment="Center" Foreground="{Binding Path=CurrentTextColor, RelativeSource={RelativeSource AncestorType={x:Type Controls:MetroWindow}}}"/>
+                                            <Button DockPanel.Dock="Right" Content="Clear" Click="PickerClear_Click" Padding="8,1" Margin="6,0,0,0"/>
+                                            <Button DockPanel.Dock="Right" Content="Pick all" Click="PickerPickAll_Click" Padding="8,1" Margin="6,0,0,0"/>
+                                        </DockPanel>
+                                    </Expander.Header>
+                                    <ItemsControl ItemsSource="{Binding Options}" Margin="4,6,0,6">
+                                        <ItemsControl.ItemsPanel>
+                                            <ItemsPanelTemplate>
+                                                <WrapPanel Orientation="Horizontal"/>
+                                            </ItemsPanelTemplate>
+                                        </ItemsControl.ItemsPanel>
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate>
+                                                <Border Width="150" Margin="6" Padding="8,8,8,10" CornerRadius="6" ToolTip="{Binding Tooltip}">
+                                                    <Border.Style>
+                                                        <Style TargetType="Border">
+                                                            <Setter Property="Background" Value="#B2202020"/>
+                                                            <Style.Triggers>
+                                                                <DataTrigger Binding="{Binding IsSelected_OptionMultiSelect}" Value="True">
+                                                                    <Setter Property="Background" Value="{DynamicResource PickerAccentTintBrush}"/>
+                                                                </DataTrigger>
+                                                            </Style.Triggers>
+                                                        </Style>
+                                                    </Border.Style>
+                                                    <StackPanel>
+                                                        <ToggleButton IsChecked="{Binding IsSelected_OptionMultiSelect, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Checked="CheckBox_Checked" Unchecked="CheckBox_Checked" Cursor="Hand" HorizontalAlignment="Stretch" Background="Transparent" BorderThickness="0">
+                                                            <ToggleButton.Template>
+                                                                <ControlTemplate TargetType="ToggleButton">
+                                                                    <StackPanel Background="Transparent">
+                                                                        <Grid Width="104" Height="104" HorizontalAlignment="Center">
+                                                                            <Border x:Name="imgFrame" BorderThickness="2" BorderBrush="#777777" CornerRadius="4" Background="#1E1E1E">
+                                                                                <Image Source="{Binding ImagePath, Converter={StaticResource ZipImageConverter}}" Stretch="Uniform" Margin="4"/>
+                                                                            </Border>
+                                                                            <Border x:Name="badge" Width="26" Height="26" CornerRadius="13" Margin="0,4,4,0" HorizontalAlignment="Right" VerticalAlignment="Top" Background="{DynamicResource PickerAccentBrush}" Visibility="Collapsed">
+                                                                                <TextBlock Text="&#x2713;" FontWeight="Bold" Foreground="Black" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                                                            </Border>
+                                                                        </Grid>
+                                                                        <TextBlock Text="{Binding Name}" TextAlignment="Center" TextWrapping="Wrap" Margin="0,8,0,0" FontSize="12" Foreground="{Binding Path=CurrentTextColor, RelativeSource={RelativeSource AncestorType={x:Type Controls:MetroWindow}}}"/>
+                                                                    </StackPanel>
+                                                                    <ControlTemplate.Triggers>
+                                                                        <Trigger Property="IsMouseOver" Value="True">
+                                                                            <Setter TargetName="imgFrame" Property="BorderBrush" Value="#BBBBBB"/>
+                                                                        </Trigger>
+                                                                        <Trigger Property="IsChecked" Value="True">
+                                                                            <Setter TargetName="imgFrame" Property="BorderBrush" Value="{DynamicResource PickerAccentBrush}"/>
+                                                                            <Setter TargetName="imgFrame" Property="BorderThickness" Value="3"/>
+                                                                            <Setter TargetName="badge" Property="Visibility" Value="Visible"/>
+                                                                        </Trigger>
+                                                                    </ControlTemplate.Triggers>
+                                                                </ControlTemplate>
+                                                            </ToggleButton.Template>
+                                                        </ToggleButton>
+                                                        <ComboBox Margin="0,8,0,0" Visibility="{Binding ChoicesVisibility}" ItemsSource="{Binding Choices.ChoiceList}" DisplayMemberPath="Name" SelectedIndex="{Binding SelectedChoiceIndex, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"/>
+                                                    </StackPanel>
+                                                </Border>
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+                                </Expander>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </ScrollViewer>
+
+                <Border Grid.Column="1" Margin="10,0,0,0" CornerRadius="6" Background="#E61A1A1A" Padding="12,10">
+                    <DockPanel>
+                        <TextBlock DockPanel.Dock="Top" Text="Your Selection" FontSize="16" FontFamily="Segoe UI Semibold" Margin="0,0,0,10" Foreground="White"/>
+                        <ScrollViewer VerticalScrollBarVisibility="Auto">
+                            <ItemsControl ItemsSource="{Binding SelectedSummaryView}">
+                                <ItemsControl.GroupStyle>
+                                    <GroupStyle>
+                                        <GroupStyle.HeaderTemplate>
+                                            <DataTemplate>
+                                                <TextBlock Text="{Binding Name}" FontFamily="Segoe UI Semibold" FontSize="13" Margin="0,8,0,3" Foreground="{DynamicResource PickerAccentBrush}"/>
+                                            </DataTemplate>
+                                        </GroupStyle.HeaderTemplate>
+                                    </GroupStyle>
+                                </ItemsControl.GroupStyle>
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate>
+                                        <TextBlock Text="{Binding SummaryText}" Margin="10,1,0,1" TextWrapping="Wrap" Foreground="White"/>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </ScrollViewer>
+                    </DockPanel>
+                </Border>
+            </Grid>
+
+            <StackPanel Grid.Row="3" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,10,0,0">
+                <Button IsEnabled="{Binding CanGoBack}" x:Name="Button_Back" Content="Back" Width="90" Margin="0,0,12,0" Click="Button_Back_Click"/>
+                <Button x:Name="Button_Next" Content="Next" Width="90" Click="Button_Next_Click"/>
+            </StackPanel>
+
         </Grid>
 
 
         <Grid x:Name="progressBarGrid" Visibility="{Binding ProgressBarVisibility}">
-            <Controls:MetroProgressBar x:Name="ProgressBar_Main" Grid.ColumnSpan="3" HorizontalAlignment="Left" Height="31" Margin="80,124,0,0" VerticalAlignment="Top" Width="483"/>
-            <Label x:Name="ProgressBar_Label" Foreground="{Binding CurrentTextColor}" Content="" HorizontalAlignment="Left" Margin="80,174,0,0" VerticalAlignment="Top" Grid.ColumnSpan="3" Width="483" HorizontalContentAlignment="Center"/>
-            <Label x:Name="Label_MsgUnderProgressBar" Foreground="{Binding CurrentTextColor}" HorizontalAlignment="Left" Margin="258,154,0,0" VerticalAlignment="Top" Width="143" FontSize="14" HorizontalContentAlignment="Center"/>
-
+            <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center" Width="600">
+                <Controls:MetroProgressBar x:Name="ProgressBar_Main" Height="31"/>
+                <Label x:Name="Label_MsgUnderProgressBar" Foreground="{Binding CurrentTextColor}" Margin="0,20,0,0" FontSize="14" HorizontalContentAlignment="Center"/>
+                <Label x:Name="ProgressBar_Label" Foreground="{Binding CurrentTextColor}" Content="" Margin="0,6,0,0" HorizontalContentAlignment="Center"/>
+            </StackPanel>
         </Grid>
 
         <Grid x:Name="gameDirGrid" Visibility="{Binding GameDirVisibility}">
-            <TextBox x:Name="textBox_GameDirectory" Text="{Binding GameDir, UpdateSourceTrigger=PropertyChanged}" HorizontalAlignment="Left" Height="23" Margin="161,335,0,0" TextWrapping="NoWrap" AcceptsReturn="False" VerticalAlignment="Top" Width="336"/>
-            <Button x:Name="button_Browse" Content="Browse" HorizontalAlignment="Left" Margin="502,335,0,0" VerticalAlignment="Top" Width="75" Click="Button_BrowseForDirectory_Click"/>
-            <Label x:Name="label_GameDir" Foreground="{Binding CurrentTextColor}" Content="Game Directory" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="46,335,0,0" HorizontalContentAlignment="Right" Width="115" ToolTip="This is the path to the directory where Xenoverse 2 is installed. It should be named &quot;DB Xenoverse 2&quot;.&#x0d;&#x0a;&#x0d;&#x0a;If the directory cannot be automatically found then you will have to select the path manually."/>
-
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Bottom" Margin="0,0,0,30">
+                <Label x:Name="label_GameDir" Foreground="{Binding CurrentTextColor}" Content="Game Directory" VerticalAlignment="Center" HorizontalContentAlignment="Right" Width="115" ToolTip="This is the path to the directory where Xenoverse 2 is installed. It should be named &quot;DB Xenoverse 2&quot;.&#x0d;&#x0a;&#x0d;&#x0a;If the directory cannot be automatically found then you will have to select the path manually."/>
+                <TextBox x:Name="textBox_GameDirectory" Text="{Binding GameDir, UpdateSourceTrigger=PropertyChanged}" Height="23" TextWrapping="NoWrap" AcceptsReturn="False" VerticalAlignment="Center" Width="450"/>
+                <Button x:Name="button_Browse" Content="Browse" VerticalAlignment="Center" Margin="8,0,0,0" Width="75" Click="Button_BrowseForDirectory_Click"/>
+            </StackPanel>
         </Grid>
 
     </Grid>
