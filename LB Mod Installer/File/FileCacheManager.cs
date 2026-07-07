@@ -15,6 +15,9 @@ namespace LB_Mod_Installer.Installer
     public class FileCacheManager
     {
         public List<CachedFile> cachedFiles = new List<CachedFile>();
+        //Path -> CachedFile index so lookups are O(1) instead of scanning the whole list on every add.
+        //Ordinal to match the previous object.Equals(string, string) path comparison exactly.
+        private readonly Dictionary<string, CachedFile> cachedFileLookup = new Dictionary<string, CachedFile>(StringComparer.Ordinal);
         public string lastSaved;
         public InstallerXml installerXml;
 
@@ -74,7 +77,9 @@ namespace LB_Mod_Installer.Installer
             else
             {
                 //Doesn't exist., Add it.
-                cachedFiles.Add(new CachedFile(path, zipEntry, allowOverwrite));
+                CachedFile newFile = new CachedFile(path, zipEntry, allowOverwrite);
+                cachedFiles.Add(newFile);
+                cachedFileLookup[newFile.Path] = newFile;
 
                 if (allowOverwrite)
                 {
@@ -161,17 +166,14 @@ namespace LB_Mod_Installer.Installer
             }
 
             cachedFiles.Add(cachedFile);
+            cachedFileLookup[cachedFile.Path] = cachedFile;
         }
 
         private CachedFile GetCachedFile(string path)
         {
             path = Utils.SanitizePath(path);
-
-            foreach (var file in cachedFiles)
-            {
-                if (Path.Equals(file.Path, path)) return file;
-            }
-            return null;
+            cachedFileLookup.TryGetValue(path, out CachedFile file);
+            return file;
         }
 
         public void SaveParsedFiles(MainWindow parent)
@@ -179,8 +181,13 @@ namespace LB_Mod_Installer.Installer
             UpdateProgessBarText($"Saving parsed files...", false, 0, false, parent: parent);
             foreach (var file in cachedFiles)
             {
+                if (file.FileType != CachedFileType.Parsed) continue;
+
                 lastSaved = file.Path + " (xml)";
                 Directory.CreateDirectory(Path.GetDirectoryName(GeneralInfo.GetPathInGameDir(file.Path)));
+
+                //Mark before writing so a partial/failed write is still rolled back (backup was captured when cached).
+                file.wasWritten = true;
 
                 if (file.FileType == CachedFileType.Parsed && file.Data.GetType() == typeof(EffectContainerFile))
                 {
@@ -243,6 +250,10 @@ namespace LB_Mod_Installer.Installer
         {
             foreach (var file in this.cachedFiles)
             {
+                //Never written to disk (install failed before reaching it) - leave it alone.
+                if (!file.wasWritten)
+                    continue;
+
                 if (!file.alreadyExists && file.backupEffectContainerFile == null)
                 {
                     //File didn't exist previously, so delete it
@@ -285,15 +296,12 @@ namespace LB_Mod_Installer.Installer
 
         public void NukeEmptyDirectories(MainWindow parent)
         {
-            List<string> dirs = new List<string>();
+            HashSet<string> dirs = new HashSet<string>();
 
             int currentProgress = 0;
             foreach (var file in cachedFiles)
             {
-                string dir = Path.GetDirectoryName(file.Path);
-
-                if (!dirs.Contains(dir))
-                    dirs.Add(dir);
+                dirs.Add(Path.GetDirectoryName(file.Path));
 
                 UpdateProgessBarText($"Nuking empty directories...", false, currentProgress, false, parent: parent);
                 currentProgress++;
@@ -317,13 +325,25 @@ namespace LB_Mod_Installer.Installer
                 currentProgress++;
             }
         }
+        private int lastProgressTick;
+
         private void UpdateProgessBarText(string text, bool count = true, int currentProgress = -1, bool overwriteShowProgress = false, MainWindow parent = null)
         {
+            if (count)
+            {
+                //Throttle per-file label updates to ~25fps. Thousands of files would otherwise flood the
+                //UI thread with dispatcher calls. Phase messages (count == false) always post.
+                int now = Environment.TickCount;
+                if ((now - lastProgressTick) < 40) return;
+                lastProgressTick = now;
+            }
+
             double percentage = (double)currentProgress / cachedFiles.Count * 100;
+            string eta = count ? GeneralInfo.Eta.GetEtaText(currentProgress, cachedFiles.Count) : string.Empty;
             parent.Dispatcher.BeginInvoke((System.Action)(() =>
             {
                 if (count)
-                    parent.ProgressBar_Label.Content = $"_{text} ({currentProgress}/{cachedFiles.Count})";
+                    parent.ProgressBar_Label.Content = $"_{text} ({currentProgress}/{cachedFiles.Count}){eta}";
                 if (!count)
                     parent.ProgressBar_Label.Content = $"_{text}";
             }));
@@ -339,6 +359,7 @@ namespace LB_Mod_Installer.Installer
         public ZipArchiveEntry zipEntry;
 
         public bool alreadyExists = false; //If false and install fails, delete the file from disk
+        public bool wasWritten = false; //True once this file has actually been written to disk. Rollback only touches written files.
         public byte[] backupBytes = null; //If the file already exists, back it up into this array
         public EffectContainerFile backupEffectContainerFile = null;
         public ACB_File backupBgmFile = null;
@@ -385,10 +406,28 @@ namespace LB_Mod_Installer.Installer
 
         public void WriteStream()
         {
-            if (File.Exists(GeneralInfo.GetPathInGameDir(Path)) && !allowOverwrite) return;
-            Directory.CreateDirectory(System.IO.Path.GetDirectoryName(GeneralInfo.GetPathInGameDir(Path)));
+            string fullPath = GeneralInfo.GetPathInGameDir(Path);
 
-            zipEntry.ExtractToFile(GeneralInfo.GetPathInGameDir(Path), true);
+            if (File.Exists(fullPath) && !allowOverwrite) return;
+            Directory.CreateDirectory(System.IO.Path.GetDirectoryName(fullPath));
+
+            //Back up the existing file (if any) right before overwriting, so it can be restored if the install fails.
+            if (File.Exists(fullPath))
+            {
+                alreadyExists = true;
+
+                if (backupBytes == null && new FileInfo(fullPath).Length < 500000000)
+                    backupBytes = File.ReadAllBytes(fullPath);
+            }
+
+            //Mark before the write so a partial/failed write is still rolled back.
+            wasWritten = true;
+            zipEntry.ExtractToFile(fullPath, true);
+
+            //Overwrite=false files aren't tracked at add time (so a pre-existing file is never deleted on
+            //uninstall). But if we just created a brand new file here, record it so uninstall removes it.
+            if (!alreadyExists && !allowOverwrite)
+                GeneralInfo.Tracker.AddJungleFile(Path);
         }
     }
 

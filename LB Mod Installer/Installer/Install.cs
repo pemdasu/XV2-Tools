@@ -96,6 +96,10 @@ namespace LB_Mod_Installer.Installer
 
         private bool startedSaving = false;
 
+        //True only after the install fully completed and saved. The caller checks this before writing
+        //the tracker xml, so a failed install (which rolls back its files) does not leave a tracker behind.
+        public bool Success { get; private set; }
+
         public Install(InstallerXml _installerXml, ZipReader _zipManager, MainWindow parent, Xv2FileIO fileIO, FileCacheManager _fileManager)
         {
             installerXml = _installerXml;
@@ -127,6 +131,7 @@ namespace LB_Mod_Installer.Installer
                 GeneralInfo.Tracker.AddAliases(bindingManager.Aliases);
                 SaveFiles();
 
+                Success = true;
                 return;
             }
 
@@ -504,12 +509,62 @@ namespace LB_Mod_Installer.Installer
                 useJungle2 = true;
         }
 
+        //Archive entries sorted by name, built once, so ProcessJungle can binary-search a directory
+        //prefix. Order holds each entry's position in the archive.
+        private List<JungleEntry> _jungleEntryIndex;
+
+        private class JungleEntry
+        {
+            public string FullName;
+            public System.IO.Compression.ZipArchiveEntry Entry;
+            public int Order;
+        }
+
+        private void BuildJungleEntryIndex()
+        {
+            if (_jungleEntryIndex != null) return;
+
+            _jungleEntryIndex = new List<JungleEntry>();
+
+            int order = 0;
+            foreach (var entry in zipManager.archive.Entries)
+            {
+                _jungleEntryIndex.Add(new JungleEntry { FullName = entry.FullName, Entry = entry, Order = order });
+                order++;
+            }
+
+            _jungleEntryIndex.Sort((a, b) => string.CompareOrdinal(a.FullName, b.FullName));
+        }
+
         private bool ProcessJungle(string jungleDir, bool allowOverwrite, string gameDirPath = null, bool isDirCopy = false)
         {
+            BuildJungleEntryIndex();
+
+            //Binary-search to the start of the ordinal prefix range. Game/mod paths are ASCII, so this
+            //range holds every entry that starts with the prefix. The predicate below still runs on each.
+            int start = LowerBoundOrdinal(_jungleEntryIndex, jungleDir);
+
+            List<JungleEntry> matches = null;
+            for (int i = start; i < _jungleEntryIndex.Count; i++)
+            {
+                if (!_jungleEntryIndex[i].FullName.StartsWith(jungleDir, StringComparison.Ordinal))
+                    break;
+
+                if (matches == null) matches = new List<JungleEntry>();
+                matches.Add(_jungleEntryIndex[i]);
+            }
+
+            if (matches == null) return false;
+
+            //Process matches in archive order so files are staged and overwritten in a stable order.
+            matches.Sort((a, b) => a.Order.CompareTo(b.Order));
+
             bool exists = false;
 
-            foreach (var file in zipManager.archive.Entries)
+            foreach (var match in matches)
             {
+                var file = match.Entry;
+
                 if (file.FullName.StartsWith(jungleDir) && !string.IsNullOrEmpty(file.Name))
                 {
                     if (file.FullName.Length > jungleDir.Length + 1)
@@ -541,6 +596,24 @@ namespace LB_Mod_Installer.Installer
             }
 
             return exists;
+        }
+
+        private static int LowerBoundOrdinal(List<JungleEntry> entries, string prefix)
+        {
+            int lo = 0;
+            int hi = entries.Count;
+
+            while (lo < hi)
+            {
+                int mid = lo + (hi - lo) / 2;
+
+                if (string.CompareOrdinal(entries[mid].FullName, prefix) < 0)
+                    lo = mid + 1;
+                else
+                    hi = mid;
+            }
+
+            return lo;
         }
 
         private void InstallSkillFolder(FilePath fileInstance)
@@ -2937,6 +3010,8 @@ namespace LB_Mod_Installer.Installer
                     return EMZ_File.LoadData(fileIO.GetFileFromGame(path, raiseEx, onlyFromCpk));
                 case ".map":
                     return FMP_File.Load(fileIO.GetFileFromGame(path, raiseEx, onlyFromCpk));
+                case ".cbs":
+                    return CBS_File.Parse(fileIO.GetFileFromGame(path, raiseEx, onlyFromCpk));
                 default:
                     throw new InvalidDataException(String.Format("GetParsedFileFromGame: The filetype of \"{0}\" is not supported.", path));
             }
@@ -3069,6 +3144,8 @@ namespace LB_Mod_Installer.Installer
                     return ((EMS_File)data).Write();
                 case ".map":
                     return ((FMP_File)data).Write();
+                case ".cbs":
+                    return ((CBS_File)data).SaveToBytes();
                 case ".emz":
                     if(data is EMB_File emb)
                     {
@@ -3114,6 +3191,7 @@ namespace LB_Mod_Installer.Installer
         private void UpdateProgessBarText(string text, bool advanceProgress = true, int currentProgress = -1, bool overwriteShowProgress = false)
         {
             double percentage = (double)currentProgress / Files.Count * 100;
+            string eta = GeneralInfo.Eta.GetEtaText(currentProgress, Files.Count);
             Parent.Dispatcher.BeginInvoke((System.Action)(() =>
             {
                 if (advanceProgress)
@@ -3121,7 +3199,7 @@ namespace LB_Mod_Installer.Installer
 
                 if (currentProgress != -1 && !overwriteShowProgress && installerXml.UiOverrides.ProgressBarShowProgress)
                 {
-                    Parent.ProgressBar_Label.Content = $"Installing {percentage.ToString("0.00", CultureInfo.InvariantCulture)}%";
+                    Parent.ProgressBar_Label.Content = $"Installing {percentage.ToString("0.00", CultureInfo.InvariantCulture)}%{eta}";
                     return;
                 }
 

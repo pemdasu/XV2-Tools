@@ -403,23 +403,32 @@ namespace LB_Mod_Installer.Installer
 
                 if (currentMod.JungleFiles == null) return;
 
+                HashSet<string> touchedDirs = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
                 for (int i = currentMod.JungleFiles.Count - 1; i >= 0; i--)
                 {
                     if (!currentMod.JungleFiles[i].InstalledThisRun)
                     {
-                        if (Directory.Exists(GeneralInfo.GetPathInGameDir(currentMod.JungleFiles[i].filePath)))
+                        string fullPath = GeneralInfo.GetPathInGameDir(currentMod.JungleFiles[i].filePath);
+
+                        if (Directory.Exists(fullPath))
                         {
-                            Directory.Delete(GeneralInfo.GetPathInGameDir(currentMod.JungleFiles[i].filePath), true);
+                            touchedDirs.Add(Path.GetDirectoryName(fullPath));
+                            Directory.Delete(fullPath, true);
                         }
-                        else if (File.Exists(GeneralInfo.GetPathInGameDir(currentMod.JungleFiles[i].filePath)))
+                        else if (File.Exists(fullPath))
                         {
-                            File.Delete(GeneralInfo.GetPathInGameDir(currentMod.JungleFiles[i].filePath));
+                            touchedDirs.Add(Path.GetDirectoryName(fullPath));
+                            File.Delete(fullPath);
                         }
 
                         currentMod.JungleFiles.RemoveAt(i);
                     }
                 }
 
+                //Best-effort: remove folders the mod left empty. Only ever deletes a directory that is actually
+                //empty, so game files and other mods' files are never touched.
+                RemoveEmptyDirectories(touchedDirs);
             }
             catch (Exception ex)
             {
@@ -428,6 +437,48 @@ namespace LB_Mod_Installer.Installer
 
                 MessageBox.Show("Some installation changes cannot be reverted. The installer will now close.", "Uninstall Error", MessageBoxButton.OK, MessageBoxImage.Exclamation);
                 parent.ShutdownApp();
+            }
+        }
+
+        //Walks up from each directory that had a file removed, deleting directories that are now empty, up to
+        //(but never including) the game directory. Stops at the first non-empty directory, so nothing that
+        //still holds game or other-mod files is ever removed.
+        private void RemoveEmptyDirectories(HashSet<string> dirs)
+        {
+            string gameRoot;
+
+            try
+            {
+                gameRoot = Path.GetFullPath(GeneralInfo.GameDir);
+            }
+            catch
+            {
+                return;
+            }
+
+            foreach (string startDir in dirs)
+            {
+                string current = startDir;
+
+                while (!string.IsNullOrEmpty(current))
+                {
+                    try
+                    {
+                        string full = Path.GetFullPath(current);
+
+                        if (!full.StartsWith(gameRoot, StringComparison.OrdinalIgnoreCase)) break;
+                        if (string.Equals(full, gameRoot, StringComparison.OrdinalIgnoreCase)) break;
+                        if (!Directory.Exists(full)) break;
+                        if (Directory.EnumerateFileSystemEntries(full).Any()) break;
+
+                        Directory.Delete(full);
+                        current = Path.GetDirectoryName(full);
+                    }
+                    catch
+                    {
+                        break;
+                    }
+                }
             }
         }
 
