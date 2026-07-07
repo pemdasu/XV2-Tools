@@ -239,6 +239,8 @@ namespace LB_Mod_Installer
         public static InstallerXml InstallerXmlInfo { get; set; }
         //The loaded .installinfo archive. Used by the UI to load picker tile images on demand.
         public static Xv2CoreLib.Resource.ZipReader ZipManager { get; set; }
+        //Shared time-remaining estimator for the progress bar. One operation runs at a time.
+        public static ProgressEta Eta { get; } = new ProgressEta();
 
         public static void LoadTracker()
         {

@@ -994,6 +994,10 @@ namespace LB_Mod_Installer
                 //installer.Start();
                 await Task.Run(new Action(installer.Start));
 
+                //Install failed and rolled back its files (and is already shutting down). Do not save the
+                //tracker xml, or the next launch would think the mod is installed and prompt to reinstall.
+                if (!installer.Success) return;
+
                 //Uninstall jungle files that were not included in the new install.
                 if (isInstalled)
                 {
