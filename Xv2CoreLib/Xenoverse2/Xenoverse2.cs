@@ -1301,7 +1301,14 @@ namespace Xv2CoreLib
                 moveFiles.VoxAcbPath.Add(acbPath);
 
                 if (loadFiles)
-                    moveFiles.VoxAcbFile.Add(new Xv2File<ACB_Wrapper>((ACB_Wrapper)FileManager.Instance.GetParsedFileFromGame(acbPath, loadFromCpk), fileIO.PathInGameDir(acbPath), borrowed, null, english, MoveFileTypes.VOX_ACB, (int)csoEntry.Costume, csoEntry.Costume == 0, MoveType.Character));
+                {
+                    ACB_Wrapper voxAcb = (ACB_Wrapper)FileManager.Instance.GetParsedFileFromGame(acbPath, loadFromCpk, false);
+
+                    if (voxAcb != null)
+                    {
+                        moveFiles.VoxAcbFile.Add(new Xv2File<ACB_Wrapper>(voxAcb, fileIO.PathInGameDir(acbPath), borrowed, null, english, MoveFileTypes.VOX_ACB, (int)csoEntry.Costume, csoEntry.Costume == 0, MoveType.Character));
+                    }
+                }
 
                 loadedFiles.Add(acbPath);
             }
@@ -1324,7 +1331,12 @@ namespace Xv2CoreLib
 
             if (loadFiles)
             {
-                moveFiles.VoxAcbFile.Add(new Xv2File<ACB_Wrapper>((ACB_Wrapper)FileManager.Instance.GetParsedFileFromGame(acbPath, loadFromCpk), fileIO.PathInGameDir(acbPath), true, "HUM", english, MoveFileTypes.VOX_ACB, id, true, MoveType.Character));
+                ACB_Wrapper voxAcb = (ACB_Wrapper)FileManager.Instance.GetParsedFileFromGame(acbPath, loadFromCpk, false);
+
+                if (voxAcb != null)
+                {
+                    moveFiles.VoxAcbFile.Add(new Xv2File<ACB_Wrapper>(voxAcb, fileIO.PathInGameDir(acbPath), true, "HUM", english, MoveFileTypes.VOX_ACB, id, true, MoveType.Character));
+                }
             }
 
             loadedFiles.Add(acbPath);
@@ -1810,6 +1822,7 @@ namespace Xv2CoreLib
     {
         public int ID { get; private set; }
         public string Name { get; private set; }
+        public virtual string DisplayID => ID.ToString();
 
         public Xv2Item(int id, string name)
         {
