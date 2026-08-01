@@ -249,7 +249,7 @@ namespace Xv2CoreLib.CPK
             return cpk.Files.TryGetValue(file, out FileEntry fileEntry);
         }
         
-        public string[] GetFilesInDirectory(string directory)
+        public string[] GetFilesInDirectory(string directory, bool includeSubFolders = false)
         {
             List<string> files = new List<string>();
 
@@ -257,23 +257,24 @@ namespace Xv2CoreLib.CPK
             {
                 lock (_binaryReaders[i])
                 {
-                    files.AddRange(GetFilesinDirectoryFromCpk(_cpkFiles[i], directory));
+                    files.AddRange(GetFilesinDirectoryFromCpk(_cpkFiles[i], directory, includeSubFolders));
                 }
             }
 
             return files.ToArray();
         }
 
-        private string[] GetFilesinDirectoryFromCpk(CriPakTools.CPK cpk, string dir)
+        private string[] GetFilesinDirectoryFromCpk(CriPakTools.CPK cpk, string dir, bool includeSubFolders = false)
         {
             string dirToFind = Utils.SanitizePath(dir);
+            string subFolderPrefix = dirToFind + "/";
             List<string> files = new List<string>(64);
-            
+
             for(int i = 0; i < cpk.FileTable.Count; i++)
             {
                 FileEntry entry = cpk.FileTable[i];
 
-                if(Path.Equals(entry.DirName, dirToFind))
+                if(Path.Equals(entry.DirName, dirToFind) || (includeSubFolders && entry.DirName is string dirName && dirName.StartsWith(subFolderPrefix, StringComparison.OrdinalIgnoreCase)))
                 {
                     files.Add(string.Format("{0}/{1}", entry.DirName, entry.FileName));
                 }

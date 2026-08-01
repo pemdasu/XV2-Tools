@@ -241,17 +241,21 @@ namespace Xv2CoreLib.Resource
             //From game directory (data folder)
             if (Directory.Exists(PathInGameDir(directory)))
             {
-                foreach (string file in Directory.GetFiles(PathInGameDir(directory), $"*{extension}", includeSubFolders ? SearchOption.AllDirectories : SearchOption.TopDirectoryOnly))
+                string rootPath = PathInGameDir(directory);
+
+                foreach (string file in Directory.GetFiles(rootPath, $"*{extension}", includeSubFolders ? SearchOption.AllDirectories : SearchOption.TopDirectoryOnly))
                 {
                     if (Path.GetExtension(file) == extension)
                     {
-                        files.Add(Utils.GetRelativePath(string.Format("{0}/{1}", directory, Path.GetFileName(file))));
+                        //Keep the sub directories the file was found in, otherwise a nested file resolves to the wrong path.
+                        string subPath = Utils.SanitizePath(file.Substring(rootPath.Length).TrimStart('/', '\\'));
+                        files.Add(Utils.GetRelativePath(string.Format("{0}/{1}", directory, subPath)));
                     }
                 }
             }
 
             //From cpks
-            string[] cpkFiles = cpkReader.GetFilesInDirectory("data/" + directory);
+            string[] cpkFiles = cpkReader.GetFilesInDirectory("data/" + directory, includeSubFolders);
 
             foreach(var _file in cpkFiles)
             {
