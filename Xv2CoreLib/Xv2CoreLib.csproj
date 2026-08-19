@@ -282,6 +282,9 @@
     <Compile Include="IDB\IDB_File.cs" />
     <Compile Include="IDB\Parser.cs" />
     <Compile Include="Iggy\IggyFile.cs" />
+    <Compile Include="Iggy\IggySwf.cs" />
+    <Compile Include="Iggy\IggyIndexStream.cs" />
+    <Compile Include="IggyTexture\IggyTextureFile.cs" />
     <Compile Include="Interfaces\Interfaces.cs" />
     <Compile Include="ITimeLineItem.cs" />
     <Compile Include="LCP\LCP_File.cs" />

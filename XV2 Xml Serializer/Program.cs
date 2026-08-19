@@ -336,6 +336,10 @@ namespace XV2_Xml_Serializer
                                 case ".ems":
                                     Xv2CoreLib.EMS.EMS_File.CreateXml(fileLocation);
                                     break;
+                                case ".iggytex":
+                                case ".iggyted":
+                                    Xv2CoreLib.IggyTexture.IggyTextureFile.CreateXml(fileLocation);
+                                    break;
                                 case ".ikd":
                                     Xv2CoreLib.IKD.IKD_File.Parse(fileLocation, true);
                                     break;

@@ -23,6 +23,7 @@ using Xv2CoreLib.EMD;
 using Xv2CoreLib.PSC;
 using Xv2CoreLib.EMM;
 using Xv2CoreLib.EMB_CLASS;
+using Xv2CoreLib.IggyTexture;
 using Xv2CoreLib.EffectContainer;
 using Xv2CoreLib.Resource;
 using System.IO;
@@ -278,6 +279,10 @@ namespace Xv2CoreLib
                     case ".emb":
                         file = EMB_File.LoadEmb(GetBytesFromGame(path, onlyFromCpk, raiseEx));
                         break;
+                    case ".iggytex":
+                    case ".iggyted":
+                        file = IggyTextureFile.LoadIggyTexture(GetBytesFromGame(path, onlyFromCpk, raiseEx), Path.GetExtension(path));
+                        break;
                     case ".emm":
                         file = EMM_File.LoadEmm(GetBytesFromGame(path, onlyFromCpk, raiseEx));
                         break;
@@ -384,6 +389,9 @@ namespace Xv2CoreLib
                     return ((PSC_File)data).SaveToBytes();
                 case ".emb":
                     return ((EMB_File)data).SaveToBytes();
+                case ".iggytex":
+                case ".iggyted":
+                    return ((IggyTextureFile)data).SaveToBytes();
                 case ".emd":
                     return ((EMD_File)data).SaveToBytes();
                 case ".nsk":
