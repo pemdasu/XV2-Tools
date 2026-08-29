@@ -625,6 +625,7 @@ namespace Xv2CoreLib.CST
             DlcFlag1 = slot.DLC_Flag1;
             DlcFlag2 = slot.DLC_Flag2;
             flag_cgk2 = (ushort)(slot.flag_cgk2 == true ? 1 : 0);
+            I_56 = (ushort)(slot.flag_kfk == true ? 1 : 0);
             InsertIndex = slot.InsertIndex;
             SortBefore = slot.SortBefore;
             SortAfter = slot.SortAfter;
