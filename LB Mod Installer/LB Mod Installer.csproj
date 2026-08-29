@@ -33,7 +33,46 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\Xv2CoreLib\Xv2CoreLib.csproj" />
+    <ApplicationDefinition Include="App.xaml">
+      <Generator>MSBuild:Compile</Generator>
+      <SubType>Designer</SubType>
+    </ApplicationDefinition>
+    <Compile Include="Binding\AliasValue.cs" />
+    <Compile Include="Binding\AutoIdContext.cs" />
+    <Compile Include="Binding\BindingManager.cs" />
+    <Compile Include="Binding\BindingValue.cs" />
+    <Compile Include="Binding\X2MHelper.cs" />
+    <Compile Include="Binding\ZipImageConverter.cs" />
+    <Compile Include="Binding\XML\XmlParser.cs" />
+    <Compile Include="Binding\XML\ZipReaderExtensions.cs" />
+    <Compile Include="File\FileCacheManager.cs" />
+    <Compile Include="Installer\Install.cs" />
+    <Compile Include="Installer\InstallHelpers.cs" />
+    <Compile Include="Installer\LocaleResource.cs" />
+    <Compile Include="Installer\MsgComponentInstall.cs" />
+    <Compile Include="Installer\OptionModuleImporter.cs" />
+    <Compile Include="Installer\ProgressEta.cs" />
+    <Compile Include="Installer\ACB\AcbInstaller.cs" />
+    <Compile Include="Installer\ACB\AcbUninstaller.cs" />
+    <Compile Include="Installer\Uninstall.cs" />
+    <Compile Include="Tracking\GameDir.cs" />
+    <Compile Include="Tracking\SavedSelectedOptions.cs" />
+    <Compile Include="Tracking\Sections.cs" />
+    <Page Include="MainWindow.xaml">
+      <Generator>MSBuild:Compile</Generator>
+      <SubType>Designer</SubType>
+    </Page>
+    <Compile Include="App.xaml.cs">
+      <DependentUpon>App.xaml</DependentUpon>
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="GeneralInfo.cs" />
+    <Compile Include="Installer\InstallerXml.cs" />
+    <Compile Include="Tracking\TrackingXml.cs" />
+    <Compile Include="MainWindow.xaml.cs">
+      <DependentUpon>MainWindow.xaml</DependentUpon>
+      <SubType>Code</SubType>
+    </Compile>
   </ItemGroup>
 
   <ItemGroup>
