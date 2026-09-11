@@ -21,14 +21,14 @@
             <Button Command="{Binding ElementName=Window, Path=AddNewCommand}" HorizontalAlignment="Center" VerticalAlignment="Center" Width="30" Style="{DynamicResource MahApps.Styles.Button.Circle}" Height="30" Margin="0, 5">
                 <iconPacks:PackIconMaterialLight Kind="Plus"/>
             </Button>
-            <Button Command="{Binding ElementName=Window, Path=RemoveCommand}" HorizontalAlignment="Center" VerticalAlignment="Center" Width="30" Style="{DynamicResource MahApps.Styles.Button.Circle}" Height="30" Margin="0, 5">
+            <Button Command="{Binding ElementName=Window, Path=RemoveKeyCommand}" HorizontalAlignment="Center" VerticalAlignment="Center" Width="30" Style="{DynamicResource MahApps.Styles.Button.Circle}" Height="30" Margin="0, 5">
                 <iconPacks:PackIconMaterialLight Kind="Delete"/>
             </Button>
         </StackPanel>
 
-        <DataGrid Grid.Column="1" ItemsSource="{Binding ElementName=Window, Path=Keys.Keys.Binding}" SelectedItem="{Binding ElementName=Window, Path=SelectedKey}" AutoGenerateColumns="False" CanUserAddRows="False" CanUserDeleteRows="False" Style="{StaticResource MahApps.Styles.DataGrid.Azure}">
+        <DataGrid Grid.Column="1" ItemsSource="{Binding ElementName=Window, Path=Keys.Keys.Binding}" SelectedItem="{Binding ElementName=Window, Path=SelectedKey}" AutoGenerateColumns="False" CanUserAddRows="False" CanUserDeleteRows="False" Style="{StaticResource MahApps.Styles.DataGrid.Azure}" SelectionChanged="DataGrid_SelectionChanged">
             <DataGrid.InputBindings>
-                <KeyBinding Key="Delete" Command="{Binding ElementName=Window, Path=RemoveCommand}"/>
+                <KeyBinding Key="Delete" Command="{Binding ElementName=Window, Path=RemoveKeyCommand}"/>
             </DataGrid.InputBindings>
             <DataGrid.Columns>
                 <DataGridTextColumn Header="Name / Desc" Binding="{Binding Name}" MinWidth="200"/>

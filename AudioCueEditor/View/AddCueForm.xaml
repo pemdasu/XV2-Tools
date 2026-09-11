@@ -1,9 +1,10 @@
-﻿<Controls:MetroWindow x:Class="AudioCueEditor.View.AddCueForm"
+﻿<mvvm:AutoObservableWindow x:Class="AudioCueEditor.View.AddCueForm"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:Controls="clr-namespace:MahApps.Metro.Controls;assembly=MahApps.Metro"
+        xmlns:mvvm="clr-namespace:LB_Common.Mvvm;assembly=LB_Common"
         xmlns:local="clr-namespace:AudioCueEditor.View"
         mc:Ignorable="d"
         Title="Add Cue" TitleCharacterCasing="Normal" Height="340" Width="380" ResizeMode="NoResize" WindowStyle="ToolWindow" WindowStartupLocation="CenterOwner" Closing="MetroWindow_Closing">
@@ -50,4 +51,4 @@
 
         
     </Grid>
-</Controls:MetroWindow>
+</mvvm:AutoObservableWindow>

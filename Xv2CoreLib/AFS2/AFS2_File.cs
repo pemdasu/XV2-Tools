@@ -473,7 +473,7 @@ namespace Xv2CoreLib.AFS2
                     //Calculate hash
                     fs.Seek(0, SeekOrigin.Begin);
 
-                    using (MD5Cng md5 = new MD5Cng())
+                    using (MD5 md5 = MD5.Create())
                     {
                         md5hash = md5.ComputeHash(fs);
                     }

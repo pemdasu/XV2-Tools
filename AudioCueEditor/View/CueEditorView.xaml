@@ -1,4 +1,4 @@
-﻿<UserControl x:Class="AudioCueEditor.View.CueEditorView"
+﻿<mvvm:AutoObservableUserControl x:Class="AudioCueEditor.View.CueEditorView"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
@@ -8,12 +8,14 @@
              xmlns:Themes1="clr-namespace:Microsoft.Windows.Themes;assembly=PresentationFramework.Aero"
              xmlns:sys="clr-namespace:System;assembly=mscorlib"
              xmlns:acb="clr-namespace:Xv2CoreLib.ACB;assembly=Xv2CoreLib"
+             xmlns:mvvm="clr-namespace:LB_Common.Mvvm;assembly=LB_Common"
              mc:Ignorable="d"
              xmlns:Controls="clr-namespace:MahApps.Metro.Controls;assembly=MahApps.Metro"
              xmlns:iconPacks="http://metro.mahapps.com/winfx/xaml/iconpacks"
+             xmlns:lbUtils="clr-namespace:LB_Common.Utils;assembly=LB_Common"
              xmlns:Dialog="clr-namespace:MahApps.Metro.Controls.Dialogs;assembly=MahApps.Metro"
              Dialog:DialogParticipation.Register="{Binding}" d:DesignHeight="450" d:DesignWidth="800" x:Name="root">
-    <UserControl.Resources>
+    <mvvm:AutoObservableUserControl.Resources>
         <ObjectDataProvider x:Key="RefTypeEnum" MethodName="GetValues"
                         ObjectType="{x:Type sys:Enum}">
             <ObjectDataProvider.MethodParameters>
@@ -33,8 +35,11 @@
             </ObjectDataProvider.MethodParameters>
         </ObjectDataProvider>
 
-    </UserControl.Resources>
+    </mvvm:AutoObservableUserControl.Resources>
     <Grid x:Name="rootGrid">
+        <Grid.Resources>
+            <lbUtils:BindingProxy x:Key="proxy" Data="{Binding}"/>
+        </Grid.Resources>
         <Grid.ColumnDefinitions>
             <ColumnDefinition MinWidth="500" Width="500*"/>
             <ColumnDefinition Width="3"/>
@@ -52,13 +57,13 @@
             </DataGrid.Columns>
             <DataGrid.ContextMenu>
                 <ContextMenu>
-                    <MenuItem Header="Extract" Command="{Binding ExtractAwbTrackCommand}"/>
-                    <MenuItem Header="Replace" Command="{Binding ReplaceSelectedAwbTrackCommand}"/>
-                    <MenuItem Header="Edit Loop" Command="{Binding EditLoopAwbCommand}"/>
+                    <MenuItem Header="Extract" Command="{Binding ElementName=root, Path=ExtractSelectedAwbTrackCommand}"/>
+                    <MenuItem Header="Replace" Command="{Binding ElementName=root, Path=ReplaceSelectedAwbTrackCommand}"/>
+                    <MenuItem Header="Edit Loop" Command="{Binding ElementName=root, Path=EditLoopOnSelectedAwbTrackCommand}"/>
                 </ContextMenu>
             </DataGrid.ContextMenu>
             <DataGrid.InputBindings>
-                <KeyBinding Key="Return" Command="{Binding PlaySelectedAwbTrackCommand}"/>
+                <KeyBinding Key="Return" Command="{Binding ElementName=root, Path=PlaySelectedAwbTrackCommand}"/>
             </DataGrid.InputBindings>
         </DataGrid>
         
@@ -122,10 +127,10 @@
             </DataGrid.ContextMenu>
 
             <DataGrid.InputBindings>
-                <KeyBinding Key="Return" Command="{Binding PlaySelectedTrackCommand}"/>
-                <KeyBinding Key="C" Modifiers="Ctrl" Command="{Binding CopyCuesCommand}"/>
-                <KeyBinding Key="V" Modifiers="Ctrl" Command="{Binding PasteCuesCommand}"/>
-                <KeyBinding Key="Delete" Command="{Binding DeleteCueCommand}"/>
+                <KeyBinding Key="Return" Command="{Binding ElementName=root, Path=PlaySelectedTrackCommand}"/>
+                <KeyBinding Key="C" Modifiers="Ctrl" Command="{Binding ElementName=root, Path=CopyCuesCommand}"/>
+                <KeyBinding Key="V" Modifiers="Ctrl" Command="{Binding ElementName=root, Path=PasteCuesCommand}"/>
+                <KeyBinding Key="Delete" Command="{Binding ElementName=root, Path=DeleteCueCommand}"/>
             </DataGrid.InputBindings>
             <DataGrid.Columns>
                 <DataGridTextColumn x:Name="aliasColumn" Header="Alias" Width="*" Binding="{Binding UndoableAlias, UpdateSourceTrigger=LostFocus}" IsReadOnly="False" Visibility="Collapsed"/>
@@ -183,23 +188,23 @@
                         </ListBox.ItemTemplate>
 
                         <ListBox.InputBindings>
-                            <KeyBinding Key="C" Modifiers="Ctrl" Command="{Binding CopyTrackCommand}"/>
-                            <KeyBinding Key="V" Modifiers="Ctrl" Command="{Binding PasteTrackCommand}"/>
+                            <KeyBinding Key="C" Modifiers="Ctrl" Command="{Binding Path=Data.CopyTrackCommand, Source={StaticResource proxy}}"/>
+                            <KeyBinding Key="V" Modifiers="Ctrl" Command="{Binding Path=Data.PasteTrackCommand, Source={StaticResource proxy}}"/>
                         </ListBox.InputBindings>
                         <ListBox.ContextMenu>
                             <ContextMenu FontSize="12">
-                                <MenuItem Header="Play" Click="ListBoxEvent_PlaySelectedTrack"/>
-                                <MenuItem Header="Play (loop)" Click="ListBoxEvent_PlaySelectedTrackLoop"/>
+                                <MenuItem Header="Play" Command="{Binding Path=Data.PlaySelectedTrackCommand, Source={StaticResource proxy}}"/>
+                                <MenuItem Header="Play (loop)" Command="{Binding Path=Data.PlaySelectedTrackLoopCommand, Source={StaticResource proxy}}"/>
                                 <Separator/>
-                                <MenuItem Header="Replace" Click="ListBoxEvent_ReplaceSelectedTrack"/>
-                                <MenuItem Header="Extract" Click="ListBoxEvent_ExtractSelectedTrack"/>
+                                <MenuItem Header="Replace" Command="{Binding Path=Data.ReplaceSelectedTrackCommand, Source={StaticResource proxy}}"/>
+                                <MenuItem Header="Extract" Command="{Binding Path=Data.ExtractSelectedTrackCommand, Source={StaticResource proxy}}"/>
                                 <Separator/>
-                                <MenuItem Header="Edit Loop" Click="ListBoxEvent_EditLoop_Click"/>
-                                <MenuItem Header="Volume" Click="ListBoxEvent_EditVolumeOnTrack_Click"/>
+                                <MenuItem Header="Edit Loop" Command="{Binding Path=Data.EditLoopOnSelectedTrackCommand, Source={StaticResource proxy}}"/>
+                                <MenuItem Header="Volume" Command="{Binding Path=Data.EditVolumeCommand, Source={StaticResource proxy}}"/>
                                 <Separator/>
-                                <MenuItem Header="Copy" Command="{Binding CopyTrackCommand}"/>
-                                <MenuItem Header="Paste" Command="{Binding PasteTrackCommand}"/>
-                                <MenuItem Header="Delete" Command="{Binding DeleteTrackCommand}"/>
+                                <MenuItem Header="Copy" Command="{Binding Path=Data.CopyTrackCommand, Source={StaticResource proxy}}"/>
+                                <MenuItem Header="Paste" Command="{Binding Path=Data.PasteTrackCommand, Source={StaticResource proxy}}"/>
+                                <MenuItem Header="Delete" Command="{Binding Path=Data.DeleteTrackCommand, Source={StaticResource proxy}}"/>
 
                             </ContextMenu>
                         </ListBox.ContextMenu>
@@ -210,7 +215,7 @@
         </DataGrid>
         
         <!-- Audio playback controls. -->
-        <StackPanel Grid.Column="0" Orientation="Horizontal" HorizontalAlignment="Left" Height="50" Margin="10,9,0,0" VerticalAlignment="Top" Width="400">
+        <StackPanel Grid.Column="0" Orientation="Horizontal" HorizontalAlignment="Left" Height="50" Margin="10,9,0,0" VerticalAlignment="Top" Width="440">
             <StackPanel.Resources>
                 <Style TargetType="{x:Type StackPanel}">
                     <Setter Property="Margin" Value="10,0,0,0"/>
@@ -220,32 +225,32 @@
                 </Style>
             </StackPanel.Resources>
             <StackPanel VerticalAlignment="Center">
-                <Button Command="{Binding PlayCommand}" HorizontalAlignment="Left" VerticalAlignment="Center" Width="30" Style="{DynamicResource MahApps.Styles.Button.Circle}" Height="30">
+                <Button Command="{Binding ElementName=root, Path=PlayCommand}" HorizontalAlignment="Left" VerticalAlignment="Center" Width="30" Style="{DynamicResource MahApps.Styles.Button.Circle}" Height="30">
                     <iconPacks:PackIconMaterialLight Kind="Play" />
                 </Button>
                 <TextBlock Text="Play" HorizontalAlignment="Center" FontSize="10"/>
             </StackPanel>
             <StackPanel VerticalAlignment="Center">
-                <Button Command="{Binding PauseCommand}" HorizontalAlignment="Left" VerticalAlignment="Center" Width="30" Style="{DynamicResource MahApps.Styles.Button.Circle}" Height="30">
+                <Button Command="{Binding ElementName=root, Path=PauseCommand}" HorizontalAlignment="Left" VerticalAlignment="Center" Width="30" Style="{DynamicResource MahApps.Styles.Button.Circle}" Height="30">
                     <iconPacks:PackIconMaterialLight Kind="Pause" />
                 </Button>
                 <TextBlock Text="Pause" HorizontalAlignment="Center" FontSize="10"/>
             </StackPanel>
             <StackPanel VerticalAlignment="Center">
-                <Button Command="{Binding StopCommand}" HorizontalAlignment="Left" VerticalAlignment="Center" Width="30" Style="{DynamicResource MahApps.Styles.Button.Circle}" Height="30">
+                <Button Command="{Binding ElementName=root, Path=StopCommand}" HorizontalAlignment="Left" VerticalAlignment="Center" Width="30" Style="{DynamicResource MahApps.Styles.Button.Circle}" Height="30">
                     <iconPacks:PackIconMaterialLight Kind="Stop" />
                 </Button>
                 <TextBlock Text="Stop" HorizontalAlignment="Center" FontSize="10"/>
             </StackPanel>
 
             <StackPanel VerticalAlignment="Center">
-                <RepeatButton Command="{Binding RewindCommand}" ClickMode="Press" HorizontalAlignment="Left" VerticalAlignment="Center" Width="30" Style="{DynamicResource MahApps.Styles.Button.Circle}" Height="30">
+                <RepeatButton Command="{Binding ElementName=root, Path=RewindCommand}" ClickMode="Press" HorizontalAlignment="Left" VerticalAlignment="Center" Width="30" Style="{DynamicResource MahApps.Styles.Button.Circle}" Height="30">
                     <iconPacks:PackIconMaterialLight Kind="SeekPrevious" />
                 </RepeatButton>
                 <TextBlock Text="Rewind" HorizontalAlignment="Center" FontSize="10"/>
             </StackPanel>
             <StackPanel VerticalAlignment="Center">
-                <RepeatButton Command="{Binding FastForwardCommand}" ClickMode="Press" HorizontalAlignment="Left" VerticalAlignment="Center" Width="30" Style="{DynamicResource MahApps.Styles.Button.Circle}" Height="30">
+                <RepeatButton Command="{Binding ElementName=root, Path=FastForwardCommand}" ClickMode="Press" HorizontalAlignment="Left" VerticalAlignment="Center" Width="30" Style="{DynamicResource MahApps.Styles.Button.Circle}" Height="30">
                     <iconPacks:PackIconMaterialLight Kind="SeekNext" />
                 </RepeatButton>
                 <TextBlock Text="Forward" HorizontalAlignment="Center" FontSize="10"/>
@@ -268,21 +273,21 @@
 
 
             <StackPanel VerticalAlignment="Center">
-                <Button Command="{Binding AddNewCueCommand}" HorizontalAlignment="Center" VerticalAlignment="Center" Width="30" Style="{DynamicResource MahApps.Styles.Button.Circle}" Height="30">
+                <Button Command="{Binding ElementName=root, Path=AddNewCueCommand}" HorizontalAlignment="Center" VerticalAlignment="Center" Width="30" Style="{DynamicResource MahApps.Styles.Button.Circle}" Height="30">
                     <iconPacks:PackIconMaterialLight Kind="Plus"/>
                 </Button>
                 <TextBlock Text="New Cue" HorizontalAlignment="Center" FontSize="10"/>
             </StackPanel>
 
             <StackPanel VerticalAlignment="Center">
-                <Button Command="{Binding AddTrackToCueCommand}" HorizontalAlignment="Center" VerticalAlignment="Center" Width="30" Style="{DynamicResource MahApps.Styles.Button.Circle}" Height="30">
+                <Button Command="{Binding ElementName=root, Path=AddTrackToCueCommand}" HorizontalAlignment="Center" VerticalAlignment="Center" Width="30" Style="{DynamicResource MahApps.Styles.Button.Circle}" Height="30">
                     <iconPacks:PackIconMaterialLight Kind="Plus"/>
                 </Button>
                 <TextBlock Text="Add Track" HorizontalAlignment="Center" FontSize="10"/>
             </StackPanel>
 
             <StackPanel VerticalAlignment="Center">
-                <Button Command="{Binding AddActionToCueCommand}" HorizontalAlignment="Center" VerticalAlignment="Center" Width="30" Style="{DynamicResource MahApps.Styles.Button.Circle}" Height="30">
+                <Button Command="{Binding ElementName=root, Path=AddActionToCueCommand}" HorizontalAlignment="Center" VerticalAlignment="Center" Width="30" Style="{DynamicResource MahApps.Styles.Button.Circle}" Height="30">
                     <iconPacks:PackIconMaterialLight Kind="Plus"/>
                 </Button>
                 <TextBlock Text="Add Action" HorizontalAlignment="Center" FontSize="10"/>
@@ -375,4 +380,4 @@
         <Label Content="{Binding audioPlayer.PlaybackTime}" HorizontalContentAlignment="Right" HorizontalAlignment="Stretch" Margin="380,17,9.927,0" VerticalAlignment="Top" Height="27"/>
 
     </Grid>
-</UserControl>
+</mvvm:AutoObservableUserControl>

@@ -1,6 +1,6 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk.WindowsDesktop">
   <PropertyGroup>
-    <TargetFrameworks>net47;net10.0-windows</TargetFrameworks>
+    <TargetFrameworks>net48;net10.0-windows</TargetFrameworks>
     <OutputType>Library</OutputType>
     <RootNamespace>LB_Common</RootNamespace>
     <AssemblyName>LB_Common</AssemblyName>
@@ -11,12 +11,13 @@
   </PropertyGroup>
   
 	<PropertyGroup Condition="'$(TargetFramework)' == 'net10.0-windows'">
-    <LangVersion>latest</LangVersion>
+    <LangVersion>14</LangVersion>
 	</PropertyGroup>
 	
   <ItemGroup>
+    <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.2" />
     <PackageReference Include="ControlzEx" Version="4.4.0" />
-    <PackageReference Include="MahApps.Metro" Version="2.4.9" />
+    <PackageReference Include="MahApps.Metro" Version="2.4.11" />
     <PackageReference Include="MahApps.Metro.IconPacks.MaterialLight" Version="4.11.0" />
     <PackageReference Include="Microsoft.Xaml.Behaviors.Wpf" Version="1.1.19" />
     <PackageReference Include="System.ComponentModel.Annotations" Version="5.0.0" />
@@ -31,7 +32,7 @@
 	</ItemGroup>
 	
 	<!-- .NET Framework reference -->
-  <ItemGroup Condition="'$(TargetFramework)' == 'net47'">
+  <ItemGroup Condition="'$(TargetFramework)' == 'net48'">
     <Reference Include="YAXLib">
       <HintPath>..\DLLs\YAXLib.dll</HintPath>
     </Reference>

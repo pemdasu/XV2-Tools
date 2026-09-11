@@ -1,48 +1,38 @@
-﻿using AudioCueEditor.Audio;
-using GalaSoft.MvvmLight.CommandWpf;
-using MahApps.Metro.Controls;
-using Microsoft.Win32;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.IO;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
-using Xv2CoreLib.ACB;
-using MahApps.Metro.Controls.Dialogs;
-using xv2Utils = Xv2CoreLib.Utils;
-using Xv2CoreLib.Resource.UndoRedo;
-using Xv2CoreLib.AFS2;
-using VGAudio.Cli;
-using System.Runtime.ExceptionServices;
-using Xv2CoreLib.Resource.App;
-using AutoUpdater;
-using System.Diagnostics;
-using LB_Common.Utils;
-using ControlzEx.Theming;
 using System.Linq;
 using System.Globalization;
+using System.Diagnostics;
+using System.Runtime.ExceptionServices;
+using Microsoft.Win32;
+using MahApps.Metro.Controls;
+using VGAudio.Cli;
+using MahApps.Metro.Controls.Dialogs;
+using ControlzEx.Theming;
+using CommunityToolkit.Mvvm.Input;
+using AutoUpdater;
 using LB_Common.Forms;
+using LB_Common.Utils;
+using xv2Utils = Xv2CoreLib.Utils;
+using Xv2CoreLib.ACB;
+using Xv2CoreLib.AFS2;
+using Xv2CoreLib.Resource.UndoRedo;
+using Xv2CoreLib.Resource.App;
+using AudioCueEditor.Audio;
+using LB_Common.Mvvm;
 
 namespace AudioCueEditor
 {
     /// <summary>
     /// Interaction logic for MainWindow.xaml
     /// </summary>
-    public partial class MainWindow : MetroWindow, INotifyPropertyChanged
+    public partial class MainWindow : AutoObservableWindow
     {
-        #region NotifyPropertyChanged
-        public event PropertyChangedEventHandler PropertyChanged;
-        private void NotifyPropertyChanged(String propertyName = "")
-        {
-            if (PropertyChanged != null)
-            {
-                PropertyChanged(this, new PropertyChangedEventArgs(propertyName));
-            }
-        }
-        #endregion
-        
         private ACB_Wrapper _acbFile = null;
         public ACB_Wrapper AcbFile
         {
@@ -270,7 +260,7 @@ namespace AudioCueEditor
             }
         }
 
-        public RelayCommand NewAcbCommand => new RelayCommand(NewAcb);
+        [RelayCommand]
         private void NewAcb()
         {
             if(AcbFile != null)
@@ -287,8 +277,8 @@ namespace AudioCueEditor
             cueEditor.UpdateCueDataGridVisibilities();
         }
 
-        public RelayCommand LoadAcbCommand => new RelayCommand(LoadAcb);
-        private async void LoadAcb()
+        [RelayCommand]
+        private void LoadAcb()
         {
             OpenFileDialog openFile = new OpenFileDialog();
             openFile.Title = "Open ACB file...";
@@ -302,7 +292,7 @@ namespace AudioCueEditor
             }
         }
 
-        public RelayCommand ForceLoadAcbCommand => new RelayCommand(ForceLoadAcb);
+        [RelayCommand]
         private void ForceLoadAcb()
         {
             MessagePrompt.Show("WARNING: Force loading disables most validation done on the ACB file when loading, such as checks about if columns exist or not. This can allow some ACBs to load that normally give errors but can also cause major issues! Saving an ACB that is loaded this way is not recommended.", "Force Load", MessagePromptButtons.OK, MessagePromptIcon.Warning);
@@ -319,8 +309,8 @@ namespace AudioCueEditor
             }
         }
 
-        public RelayCommand LoadAwbCommand => new RelayCommand(LoadAwb);
-        private async void LoadAwb()
+        [RelayCommand]
+        private void LoadAwb()
         {
             OpenFileDialog openFile = new OpenFileDialog();
             openFile.Title = "Open AWB file...";
@@ -427,13 +417,13 @@ namespace AudioCueEditor
             cueEditor.UpdateCueDataGridVisibilities();
         }
 
-        public RelayCommand SaveAcbCommand => new RelayCommand(SaveAcb, CanSave);
+        [RelayCommand(CanExecute = nameof(CanSave))]
         private void SaveAcb()
         {
             Save(AcbPath);
         }
 
-        public RelayCommand SaveAsAcbCommand => new RelayCommand(SaveAsAcb, IsAcbLoaded);
+        [RelayCommand(CanExecute = nameof(IsAcbLoaded))]
         private void SaveAsAcb()
         {
             SaveFileDialog saveDialog = new SaveFileDialog();
@@ -489,7 +479,7 @@ namespace AudioCueEditor
 
         }
 
-        public RelayCommand SettingsCommand => new RelayCommand(OpenSettings);
+        [RelayCommand]
         private void OpenSettings()
         {
             Forms.Settings settingsForm = new Forms.Settings(this);
@@ -498,7 +488,7 @@ namespace AudioCueEditor
             InitTheme();
         }
 
-        public RelayCommand ExitCommand => new RelayCommand(Exit);
+        [RelayCommand]
         private void Exit()
         {
             if(AcbFile != null)
@@ -511,7 +501,7 @@ namespace AudioCueEditor
             Environment.Exit(0);
         }
 
-        public RelayCommand SetAcbFileAssociationCommand => new RelayCommand(SetAcbFileAssociation);
+        [RelayCommand]
         private void SetAcbFileAssociation()
         {
             if (MessageBox.Show(String.Format("This will associate the .acb extension with Audio Cue Editor and make that the default application for those files.\n\nPlease note that the association will be with \"{0}\" and if the executable is moved anywhere else you will have to re-associate it.", System.Reflection.Assembly.GetEntryAssembly().Location), "Associate Extension?", MessageBoxButton.YesNo, MessageBoxImage.Question) == MessageBoxResult.Yes)
@@ -521,7 +511,7 @@ namespace AudioCueEditor
             }
         }
 
-        public RelayCommand SetAwbFileAssociationCommand => new RelayCommand(SetAwbFileAssociation);
+        [RelayCommand]
         private void SetAwbFileAssociation()
         {
             if (MessageBox.Show(String.Format("This will associate the .awb extension with Audio Cue Editor and make that the default application for those files.\n\nPlease note that the association will be with \"{0}\" and if the executable is moved anywhere else you will have to re-associate it.", System.Reflection.Assembly.GetEntryAssembly().Location), "Associate Extension?", MessageBoxButton.YesNo, MessageBoxImage.Question) == MessageBoxResult.Yes)
@@ -531,7 +521,7 @@ namespace AudioCueEditor
             }
         }
 
-        public RelayCommand SetAudioPackageAssociationCommand => new RelayCommand(SetAudioPackageAssociation);
+        [RelayCommand]
         private void SetAudioPackageAssociation()
         {
             if (MessageBox.Show(String.Format("This will associate the {1} extension with Audio Cue Editor and make that the default application for those files.\n\nPlease note that the association will be with \"{0}\" and if the executable is moved anywhere else you will have to re-associate it.", System.Reflection.Assembly.GetEntryAssembly().Location, ACB_File.AUDIO_PACKAGE_EXTENSION.ToLower()), "Associate Extension?", MessageBoxButton.YesNo, MessageBoxImage.Question) == MessageBoxResult.Yes)
@@ -541,30 +531,30 @@ namespace AudioCueEditor
             }
         }
         
-        public RelayCommand ExtractAllTracksRawCommand => new RelayCommand(ExtractAllTracksRaw, IsAcbOrAwbLoaded);
-        private async void ExtractAllTracksRaw()
+        [RelayCommand(CanExecute = nameof(IsAcbOrAwbLoaded))]
+        private async Task ExtractAllTracksRaw()
         {
             var _browser = new Ookii.Dialogs.Wpf.VistaFolderBrowserDialog();
 
             if (_browser.ShowDialog() == true && Directory.Exists(_browser.SelectedPath))
             {
-                ExtractAllTracks(_browser.SelectedPath, false);
+                await ExtractAllTracks(_browser.SelectedPath, false);
             }
         }
 
-        public RelayCommand ExtractAllTracksWavCommand => new RelayCommand(ExtractAllTracksWav, IsAcbOrAwbLoaded);
-        private async void ExtractAllTracksWav()
+        [RelayCommand(CanExecute = nameof(IsAcbOrAwbLoaded))]
+        private async Task ExtractAllTracksWav()
         {
             var _browser = new Ookii.Dialogs.Wpf.VistaFolderBrowserDialog();
 
             if (_browser.ShowDialog() == true && Directory.Exists(_browser.SelectedPath))
             {
-                ExtractAllTracks(_browser.SelectedPath, true);
+                await ExtractAllTracks(_browser.SelectedPath, true);
             }
         }
 
-        public RelayCommand CreateAudioInstallerCommand => new RelayCommand(CreateAudioInstaller, IsAcbLoaded);
-        private async void CreateAudioInstaller()
+        [RelayCommand(CanExecute = nameof(IsAcbLoaded))]
+        private void CreateAudioInstaller()
         {
             if(AcbFile.AcbFile.AudioPackageType == AudioPackageType.AutoVoice)
             {
@@ -578,8 +568,8 @@ namespace AudioCueEditor
             if (form.Success)
                 MessageBox.Show($"Installer successfully created at \"{form.InstallInfoPath}\".\n\nThis file must be paired with an LB Mod Installer (v3.4 or greater) executable to be usable, which can be found at the same place as this tool was downloaded from. The executable should be renamed to match the installinfo file.", "Installer Created", MessageBoxButton.OK, MessageBoxImage.Information);
         }
-        
-        public RelayCommand EncryptKeysHcaCommand => new RelayCommand(EncryptKeysHca);
+
+        [RelayCommand]
         private void EncryptKeysHca()
         {
             ulong key = IsAcbLoaded() ? AcbFile.AcbFile.TryGetEncrpytionKey() : 0;
@@ -588,13 +578,13 @@ namespace AudioCueEditor
             form.ShowDialog();
         }
 
-        public RelayCommand RandomizeCueIDsCommand => new RelayCommand(RandomizeCueIDs, IsAcbLoaded);
-        private async void RandomizeCueIDs()
+        [RelayCommand(CanExecute = nameof(IsAcbLoaded))]
+        private void RandomizeCueIDs()
         {
             AcbFile.UndoableRandomizeCueIds();
         }
 
-        public RelayCommand FixSilentCuesCommand => new RelayCommand(FixSilentCues, CanFixSilentCues);
+        [RelayCommand(CanExecute = nameof(CanFixSilentCues))]
         private void FixSilentCues()
         {
             if (AcbFile != null)

@@ -1,49 +1,29 @@
-﻿using AudioCueEditor.Audio;
-using AudioCueEditor.Data;
-using GalaSoft.MvvmLight.CommandWpf;
-using LB_Common.Forms;
-using MahApps.Metro.Controls;
-using MahApps.Metro.Controls;
-using MahApps.Metro.Controls.Dialogs;
-using Microsoft.Win32;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.IO;
 using System.Linq;
-using System.Text;
-using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
-using System.Windows.Controls;
-using System.Windows.Data;
-using System.Windows.Documents;
-using System.Windows.Input;
-using System.Windows.Media;
-using System.Windows.Media.Imaging;
-using System.Windows.Shapes;
+using Microsoft.Win32;
+using MahApps.Metro.Controls;
+using MahApps.Metro.Controls.Dialogs;
+using CommunityToolkit.Mvvm.Input;
+using LB_Common.Forms;
+using LB_Common.Mvvm;
 using Xv2CoreLib.ACB;
 using Xv2CoreLib.AFS2;
 using Xv2CoreLib.Resource;
+using AudioCueEditor.Audio;
+using AudioCueEditor.Data;
 
 namespace AudioCueEditor.View
 {
     /// <summary>
     /// Interaction logic for AddTrackForm.xaml
     /// </summary>
-    public partial class AddTrackForm : MetroWindow, INotifyPropertyChanged
+    public partial class AddTrackForm : AutoObservableWindow
     {
-        #region NotifyPropertyChanged
-        public event PropertyChangedEventHandler PropertyChanged;
-        private void NotifyPropertyChanged(String propertyName = "")
-        {
-            if (PropertyChanged != null)
-            {
-                PropertyChanged(this, new PropertyChangedEventArgs(propertyName));
-            }
-        }
-        #endregion
-
         public List<EncodeType> EncodeTypes { get; private set; } = Helper.SupportedEncodeTypes;
 
         private EncodeType _encodeType = EncodeType.HCA;
@@ -159,8 +139,8 @@ namespace AudioCueEditor.View
         }
 
 
-        public RelayCommand DoneCommand => new RelayCommand(Done, ()=> File.Exists(AudioFilePath));
-        private async void Done()
+        [RelayCommand(CanExecute = nameof(AudioFileExists))]
+        private async Task Done()
         {
             //Close
             //Show progress bar
@@ -196,6 +176,10 @@ namespace AudioCueEditor.View
             
         }
 
+        private bool AudioFileExists()
+        {
+            return File.Exists(AudioFilePath);
+        }
 
         private void AddTrack_Browse_Click(object sender, RoutedEventArgs e)
         {

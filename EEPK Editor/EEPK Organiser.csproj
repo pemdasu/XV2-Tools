@@ -1,6 +1,6 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk.WindowsDesktop">
   <PropertyGroup>
-    <TargetFrameworks>net47</TargetFrameworks>
+    <TargetFrameworks>net48</TargetFrameworks>
     <OutputType>WinExe</OutputType>
     <RootNamespace>EEPK_Organiser</RootNamespace>
     <AssemblyName>EEPK Organiser</AssemblyName>
@@ -11,6 +11,7 @@
     <Deterministic>true</Deterministic>
     <LangVersion>latest</LangVersion>
     <PlatformTarget>x64</PlatformTarget>
+    <StartupObject>EEPK_Organiser.App</StartupObject>
   </PropertyGroup>
 
   <!-- NuGet packages -->
@@ -22,7 +23,7 @@
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
     <PackageReference Include="gong-wpf-dragdrop" Version="3.2.0" />
-    <PackageReference Include="MahApps.Metro" Version="2.4.9" />
+    <PackageReference Include="MahApps.Metro" Version="2.4.11" />
     <PackageReference Include="MahApps.Metro.IconPacks.Material" Version="4.11.0" />
     <PackageReference Include="MahApps.Metro.IconPacks.MaterialDesign" Version="4.11.0" />
     <PackageReference Include="MahApps.Metro.IconPacks.MaterialLight" Version="4.11.0" />

@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text;
-using UsefulThings;
 using Xv2CoreLib.EMB_CLASS;
 using Xv2CoreLib.EMZ;
 using YAXLib;

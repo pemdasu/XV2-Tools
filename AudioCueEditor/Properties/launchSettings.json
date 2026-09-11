@@ -1,0 +1,8 @@
+{
+  "profiles": {
+    "AudioCueEditor": {
+      "commandName": "Project",
+      "debugEngines": "managed"
+    }
+  }
+}

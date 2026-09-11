@@ -1,19 +1,7 @@
-﻿using MahApps.Metro.Controls;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using System.Windows;
-using System.Windows.Controls;
-using System.Windows.Data;
-using System.Windows.Documents;
-using System.Windows.Input;
-using System.Windows.Media;
-using System.Windows.Media.Imaging;
-using System.Windows.Shapes;
+﻿using System.Windows;
+using MahApps.Metro.Controls;
+using CommunityToolkit.Mvvm.Input;
 using AudioCueEditor.Data;
-using GalaSoft.MvvmLight.CommandWpf;
 
 namespace AudioCueEditor.Forms
 {
@@ -37,16 +25,17 @@ namespace AudioCueEditor.Forms
             InitializeComponent();
         }
 
-        public RelayCommand AddNewCommand => new RelayCommand(AddNew);
+        [RelayCommand]
         private void AddNew()
         {
             HcaEncryptionKeysManager.Instance.AddKey(0);
         }
 
-        public RelayCommand RemoveCommand => new RelayCommand(RemoveKey, CanRemoveKey);
+        [RelayCommand(CanExecute = nameof(CanRemoveKey))]
         private void RemoveKey()
         {
             Keys.Keys.Remove(SelectedKey);
+            RemoveKeyCommand.NotifyCanExecuteChanged();
         }
 
         private bool CanRemoveKey()
@@ -67,6 +56,11 @@ namespace AudioCueEditor.Forms
         private void Key_Copy(object sender, RoutedEventArgs e)
         {
             Clipboard.SetText(ThisAcbKey.ToString());
+        }
+
+        private void DataGrid_SelectionChanged(object sender, System.Windows.Controls.SelectionChangedEventArgs e)
+        {
+            RemoveKeyCommand.NotifyCanExecuteChanged();
         }
     }
 }

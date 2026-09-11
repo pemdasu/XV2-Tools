@@ -1,7 +1,4 @@
-﻿using AudioCueEditor.Audio;
-using AudioCueEditor.Data;
-using GalaSoft.MvvmLight.CommandWpf;
-using LB_Common.Forms;
+﻿using LB_Common.Forms;
 using Microsoft.Win32;
 using System;
 using System.Collections.Generic;
@@ -13,30 +10,22 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
+using CommunityToolkit.Mvvm.Input;
 using VGAudio.Cli;
 using Xv2CoreLib.ACB;
 using Xv2CoreLib.AFS2;
 using Xv2CoreLib.Resource.UndoRedo;
+using AudioCueEditor.Audio;
+using AudioCueEditor.Data;
+using LB_Common.Mvvm;
 
 namespace AudioCueEditor.View
 {
     /// <summary>
     /// Interaction logic for CueEditorView.xaml
     /// </summary>
-    public partial class CueEditorView : UserControl, INotifyPropertyChanged
+    public partial class CueEditorView : AutoObservableUserControl, INotifyPropertyChanged
     {
-        #region NotifyPropertyChanged
-        public event PropertyChangedEventHandler PropertyChanged;
-
-        private void NotifyPropertyChanged(String propertyName = "")
-        {
-            if (PropertyChanged != null)
-            {
-                PropertyChanged(this, new PropertyChangedEventArgs(propertyName));
-            }
-        }
-        #endregion
-
         #region DependencyProperty
         public static readonly DependencyProperty AcbFileProperty = DependencyProperty.Register(
             nameof(AcbWrapperDP), typeof(ACB_Wrapper), typeof(CueEditorView), new PropertyMetadata(OnAcbChanged));
@@ -167,38 +156,38 @@ namespace AudioCueEditor.View
         public List<CommandType> ActionCommandTypes { get; set; } = new List<CommandType>() { CommandType.Null, CommandType.Action_Play, CommandType.Action_Stop, CommandType.Wait };
 
         #region Commands
-        public RelayCommand PlayCommand => new RelayCommand(Play, CanPlayTrack);
-        private async void Play()
+        [RelayCommand(CanExecute = nameof(CanPlayTrack))]
+        private void Play()
         {
             audioPlayer.Play();
         }
 
-        public RelayCommand StopCommand => new RelayCommand(Stop, CanPlayTrack);
-        private async void Stop()
+        [RelayCommand(CanExecute = nameof(CanPlayTrack))]
+        private void Stop()
         {
             audioPlayer.Stop();
         }
 
-        public RelayCommand PauseCommand => new RelayCommand(Pause, CanPlayTrack);
-        private async void Pause()
+        [RelayCommand(CanExecute = nameof(CanPlayTrack))]
+        private void Pause()
         {
             audioPlayer.Pause();
         }
-        
-        public RelayCommand RewindCommand => new RelayCommand(Rewind, CanPlayTrack);
-        private async void Rewind()
+
+        [RelayCommand(CanExecute = nameof(CanPlayTrack))]
+        private void Rewind()
         {
             audioPlayer.Rewind();
         }
-        
-        public RelayCommand FastForwardCommand => new RelayCommand(FastForward, CanPlayTrack);
-        private async void FastForward()
+
+        [RelayCommand(CanExecute = nameof(CanPlayTrack))]
+        private void FastForward()
         {
             audioPlayer.FastForward();
         }
-        
-        public RelayCommand AddNewCueCommand => new RelayCommand(AddNewCue, IsFileLoaded);
-        private async void AddNewCue()
+
+        [RelayCommand(CanExecute = nameof(IsFileLoaded))]
+        private async Task AddNewCue()
         {
             AddCueForm form = new AddCueForm(Application.Current.MainWindow, AcbFile.AcbFile, string.Format("cue_{0}", AcbFile.AcbFile.GetFreeCueId()));
             form.ShowDialog();
@@ -277,8 +266,8 @@ namespace AudioCueEditor.View
         }
         
         //Actions
-        public RelayCommand ActionCommandAddCommand => new RelayCommand(ActionCommandAdd, CanAddActionCommand);
-        private async void ActionCommandAdd()
+        [RelayCommand(CanExecute = nameof(CanAddActionCommand))]
+        private void ActionCommandAdd()
         {
             var track = GetSelectedTrack(TrackType.ActionTrack);
             if (track != null)
@@ -289,8 +278,8 @@ namespace AudioCueEditor.View
             }
         }
 
-        public RelayCommand ActionCommandRemoveCommand => new RelayCommand(ActionCommandRemove, CanRemoveActionCommand);
-        private async void ActionCommandRemove()
+        [RelayCommand(CanExecute = nameof(CanRemoveActionCommand))]
+        private void ActionCommandRemove()
         {
             var track = GetSelectedTrack(TrackType.ActionTrack);
             if (track != null)
@@ -317,10 +306,16 @@ namespace AudioCueEditor.View
 
 
         //Cue/Track DataGrid
-        public RelayCommand PlaySelectedTrackCommand => new RelayCommand(PlaySelectedTrack, IsTrackSelected);
-        private async void PlaySelectedTrack()
+        [RelayCommand(CanExecute = nameof(IsTrackSelected))]
+        private void PlaySelectedTrack()
         {
             PlayTrack(false);
+        }
+
+        [RelayCommand(CanExecute = nameof(IsTrackSelected))]
+        private void PlaySelectedTrackLoop()
+        {
+            PlayTrack(true);
         }
 
         private async void PlayTrack(bool loop)
@@ -405,8 +400,8 @@ namespace AudioCueEditor.View
             }
         }
         
-        public RelayCommand ReplaceSelectedTrackCommand => new RelayCommand(ReplaceSelectedTrack, IsTrackSelected);
-        private async void ReplaceSelectedTrack()
+        [RelayCommand(CanExecute = nameof(IsTrackSelected))]
+        private async Task ReplaceSelectedTrack()
         {
             var track = GetSelectedTrack(TrackType.Track);
 
@@ -427,8 +422,8 @@ namespace AudioCueEditor.View
             }
         }
 
-        public RelayCommand ExtractTrackCommand => new RelayCommand(ExtractSelectedTrack, IsTrackSelected);
-        private async void ExtractSelectedTrack()
+        [RelayCommand(CanExecute = nameof(IsTrackSelected))]
+        private async Task ExtractSelectedTrack()
         {
             var track = GetSelectedTrack(TrackType.Track);
                 
@@ -443,8 +438,8 @@ namespace AudioCueEditor.View
             }
         }
 
-        public RelayCommand AddTrackToCueCommand => new RelayCommand(AddTrackToCue, IsCueSelected);
-        private async void AddTrackToCue()
+        [RelayCommand(CanExecute = nameof(IsCueSelected))]
+        private async Task AddTrackToCue()
         {
             var cue = GetSelectedCue();
 
@@ -462,13 +457,13 @@ namespace AudioCueEditor.View
             }
         }
 
-        public RelayCommand AddActionToCueCommand => new RelayCommand(AddActionToCue, CanAddActionToCue);
-        private async void AddActionToCue()
+        [RelayCommand(CanExecute = nameof(CanAddActionToCue))]
+        private void AddActionToCue()
         {
             GetSelectedCue().UndoableAddActionToCue();
         }
 
-        public RelayCommand EditLoopCommand => new RelayCommand(EditLoopOnSelectedTrack, IsTrackSelected);
+        [RelayCommand(CanExecute = nameof(IsTrackSelected))]
         private void EditLoopOnSelectedTrack()
         {
             var track = GetSelectedTrack(TrackType.Track);
@@ -487,8 +482,26 @@ namespace AudioCueEditor.View
             }
         }
 
-        public RelayCommand CopyCuesCommand => new RelayCommand(CopyCues, IsCueSelected);
-        private async void CopyCues()
+        [RelayCommand(CanExecute = nameof(IsTrackSelected))]
+        private void CopyTrack()
+        {
+            SelectedCue.CopyTrack();
+        }
+
+        [RelayCommand(CanExecute = nameof(CanPasteTrack))]
+        private void PasteTrack()
+        {
+            SelectedCue.PasteTrack();
+        }
+
+        [RelayCommand(CanExecute = nameof(IsTrackSelected))]
+        private void DeleteTrack()
+        {
+            SelectedCue.DeleteTrack();
+        }
+
+        [RelayCommand(CanExecute = nameof(IsCueSelected))]
+        private void CopyCues()
         {
             List<Cue_Wrapper> selectedCues = dataGrid.SelectedItems.Cast<Cue_Wrapper>().ToList();
 
@@ -498,8 +511,8 @@ namespace AudioCueEditor.View
             }
         }
 
-        public RelayCommand PasteCuesCommand => new RelayCommand(PasteCues, CanPasteOnCue);
-        private async void PasteCues()
+        [RelayCommand(CanExecute = nameof(CanPasteOnCue))]
+        private void PasteCues()
         {
             if (Clipboard.ContainsData(ACB_File.CLIPBOARD_ACB_CUES))
                 AcbFile.UndoablePasteCues();
@@ -509,7 +522,7 @@ namespace AudioCueEditor.View
                 AcbFile.UndoablePasteAction(GetSelectedCue());
         }
 
-        public RelayCommand EditVolumeCommand => new RelayCommand(EditVolume, IsCueSelected);
+        [RelayCommand(CanExecute = nameof(IsCueSelected))]
         private void EditVolume()
         {
             var cue = GetSelectedCue();
@@ -526,7 +539,7 @@ namespace AudioCueEditor.View
             }
         }
 
-        public RelayCommand EditCueLimitCommand => new RelayCommand(EditCueLimit, CanSetCueLimit);
+        [RelayCommand(CanExecute = nameof(CanSetCueLimit))]
         private void EditCueLimit()
         {
             var cue = GetSelectedCue();
@@ -543,7 +556,7 @@ namespace AudioCueEditor.View
             }
         }
 
-        public RelayCommand EditCueIdCommand => new RelayCommand(EditCueId, IsCueSelected);
+        [RelayCommand(CanExecute = nameof(IsCueSelected))]
         private void EditCueId()
         {
             var cue = GetSelectedCue();
@@ -562,12 +575,13 @@ namespace AudioCueEditor.View
             }
         }
 
-        public RelayCommand DeleteCueCommand => new RelayCommand(DeleteCue, IsCueSelected);
-        private async void DeleteCue()
+        [RelayCommand(CanExecute = nameof(IsCueSelected))]
+        private void DeleteCue()
         {
             List<Cue_Wrapper> selectedCues = dataGrid.SelectedItems.Cast<Cue_Wrapper>().ToList();
             AcbFile.UndoableDeleteCues(selectedCues);
         }
+
 
         private bool CanSetCueLimit()
         {
@@ -586,7 +600,14 @@ namespace AudioCueEditor.View
             if (AcbFile.CanPasteCues() || AcbFile.CanPasteAction() || AcbFile.CanPasteTrack()) return true;
             return false;
         }
-        
+
+        private bool CanPasteTrack()
+        {
+            if (!IsCueSelected() || !IsFileLoaded()) return false;
+            if (AcbFile.CanPasteAction() || AcbFile.CanPasteTrack()) return true;
+            return false;
+        }
+
         private bool CanAddActionToCue()
         {
             if (AcbFile == null) return false;
@@ -897,8 +918,8 @@ namespace AudioCueEditor.View
         #region AWB 
         public AFS2_Entry SelectedAwbEntry { get; set; }
 
-        public RelayCommand PlaySelectedAwbTrackCommand => new RelayCommand(PlaySelectedAwbTrack, IsAwbTrackSelected);
-        private async void PlaySelectedAwbTrack()
+        [RelayCommand(CanExecute = nameof(IsAwbTrackSelected))]
+        private void PlaySelectedAwbTrack()
         {
             if (SelectedAwbEntry?.HcaInfo == null || SelectedAwbEntry == null) return;
 
@@ -918,14 +939,14 @@ namespace AudioCueEditor.View
             audioPlayer.Play();
         }
 
-        public RelayCommand ExtractAwbTrackCommand => new RelayCommand(ExtractSelectedAwbTrack, IsAwbTrackSelected);
-        private async void ExtractSelectedAwbTrack()
+        [RelayCommand(CanExecute = nameof(IsAwbTrackSelected))]
+        private async Task ExtractSelectedAwbTrack()
         {
             await Task.Run(() => ExtractTrack(SelectedAwbEntry, string.Format("{0}.{1}", SelectedAwbEntry.ID, SelectedAwbEntry.HcaInfo.EncodeType.ToString().ToLower()), Helper.GetFileType(SelectedAwbEntry.HcaInfo.EncodeType)));
         }
 
-        public RelayCommand ReplaceSelectedAwbTrackCommand => new RelayCommand(ReplaceSelectedAwbTrack, IsAwbTrackSelected);
-        private async void ReplaceSelectedAwbTrack()
+        [RelayCommand(CanExecute = nameof(IsAwbTrackSelected))]
+        private async Task ReplaceSelectedAwbTrack()
         {
             var trackForm = new AddTrackForm(Application.Current.MainWindow, AwbFile.AwbFile);
             trackForm.ShowDialog();
@@ -942,7 +963,7 @@ namespace AudioCueEditor.View
             }
         }
 
-        public RelayCommand EditLoopAwbCommand => new RelayCommand(EditLoopOnSelectedAwbTrack, CanEditAwbLoop);
+        [RelayCommand(CanExecute = nameof(CanEditAwbLoop))]
         private void EditLoopOnSelectedAwbTrack()
         {
             if (SelectedAwbEntry.HcaInfo.EncodeType != EncodeType.HCA)

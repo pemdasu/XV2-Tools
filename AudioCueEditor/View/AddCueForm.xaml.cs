@@ -1,27 +1,28 @@
-﻿using AudioCueEditor.Audio;
-using GalaSoft.MvvmLight.CommandWpf;
-using MahApps.Metro.Controls;
-using Microsoft.Win32;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.IO;
+using System.Linq;
 using System.Threading.Tasks;
 using System.Windows;
-using Xv2CoreLib.ACB;
+using Microsoft.Win32;
+using MahApps.Metro.Controls;
 using MahApps.Metro.Controls.Dialogs;
-using AudioCueEditor.Data;
-using Xv2CoreLib.Resource;
-using System.Linq;
+using CommunityToolkit.Mvvm.Input;
 using LB_Common.Forms;
+using LB_Common.Mvvm;
+using Xv2CoreLib.ACB;
+using Xv2CoreLib.Resource;
+using AudioCueEditor.Audio;
+using AudioCueEditor.Data;
 
 namespace AudioCueEditor.View
 {
     /// <summary>
     /// Interaction logic for AddCueForm.xaml
     /// </summary>
-    public partial class AddCueForm : MetroWindow, INotifyPropertyChanged
+    public partial class AddCueForm : AutoObservableWindow, INotifyPropertyChanged
     {
         #region NotifyPropertyChanged
         public event PropertyChangedEventHandler PropertyChanged;
@@ -211,8 +212,8 @@ namespace AudioCueEditor.View
 
         }
 
-        public RelayCommand DoneCommand => new RelayCommand(Done);
-        private async void Done()
+        [RelayCommand]
+        private async Task Done()
         {
 #if !DEBUG
             try

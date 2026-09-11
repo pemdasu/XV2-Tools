@@ -5,9 +5,9 @@ using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Input;
 using System.Windows.Threading;
-using MahApps.Metro.Controls;
-using GalaSoft.MvvmLight.CommandWpf;
+using CommunityToolkit.Mvvm.Input;
 using LB_Common.Forms;
+using LB_Common.Mvvm;
 using Xv2CoreLib.ACB;
 using Xv2CoreLib.AFS2;
 using Xv2CoreLib.Resource.UndoRedo;
@@ -18,19 +18,8 @@ namespace AudioCueEditor.View
     /// <summary>
     /// Interaction logic for EditLoopForm.xaml
     /// </summary>
-    public partial class EditLoopForm : MetroWindow, INotifyPropertyChanged
+    public partial class EditLoopForm : AutoObservableWindow
     {
-        #region NotifyPropertyChanged
-        public event PropertyChangedEventHandler PropertyChanged;
-        private void NotifyPropertyChanged(String propertyName = "")
-        {
-            if (PropertyChanged != null)
-            {
-                PropertyChanged(this, new PropertyChangedEventArgs(propertyName));
-            }
-        }
-        #endregion
-
         public Waveform_Wrapper WaveformWrapper { get; set; }
         public AFS2_Entry AwbEntry { get; set; }
 
@@ -180,7 +169,7 @@ namespace AudioCueEditor.View
             return string.Format("{0}:{1}:{2}:{3}", time.Hours.ToString("00"), time.Minutes.ToString("00"), time.Seconds.ToString("00"), time.Milliseconds.ToString("0000"));
         }
 
-        public RelayCommand ApplyCommand => new RelayCommand(Apply, CanApply);
+        [RelayCommand(CanExecute = nameof(CanApply))]
         private void Apply()
         {
             try
@@ -208,8 +197,8 @@ namespace AudioCueEditor.View
             }
         }
 
-        public RelayCommand PlayPreviewCommand => new RelayCommand(PlayPreview, IsStreamLoaded);
-        private async void PlayPreview()
+        [RelayCommand(CanExecute = nameof(IsStreamLoaded))]
+        private async Task PlayPreview()
         {
 #if !DEBUG
             try
@@ -236,7 +225,7 @@ namespace AudioCueEditor.View
 
         }
 
-        public RelayCommand PausePreviewCommand => new RelayCommand(PausePreview, IsStreamLoaded);
+        [RelayCommand(CanExecute = nameof(IsStreamLoaded))]
         private void PausePreview()
         {
 #if !DEBUG
@@ -254,7 +243,7 @@ namespace AudioCueEditor.View
 
         }
 
-        public RelayCommand SkipPreviewCommand => new RelayCommand(SkipPreview, IsStreamLoaded);
+        [RelayCommand(CanExecute = nameof(IsStreamLoaded))]
         private void SkipPreview()
         {
             //If loop duration is longer than 5 seconds
@@ -264,28 +253,28 @@ namespace AudioCueEditor.View
             }
         }
 
-        public RelayCommand LoopStartIncreaseCommand => new RelayCommand(LoopStartIncrease);
+        [RelayCommand]
         private void LoopStartIncrease()
         {
             if(LoopStartMs + 1 < LoopEndMs && LoopStartMs + 1 < TrackLengthMs)
                 LoopStartMs++;
         }
 
-        public RelayCommand LoopStartDecreaseCommand => new RelayCommand(LoopStartDecrease);
+        [RelayCommand]
         private void LoopStartDecrease()
         {
             if (LoopStartMs - 1 >= 0)
                 LoopStartMs--;
         }
-        
-        public RelayCommand LoopEndIncreaseCommand => new RelayCommand(LoopEndIncrease);
+
+        [RelayCommand]
         private void LoopEndIncrease()
         {
             if (LoopEndMs + 1 <= TrackLengthMs)
                 LoopEndMs++;
         }
 
-        public RelayCommand LoopEndDecreaseCommand => new RelayCommand(LoopEndDecrease);
+        [RelayCommand]
         private void LoopEndDecrease()
         {
             if (LoopEndMs - 1 > LoopStartMs)

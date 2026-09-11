@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text;
-using UsefulThings;
 using Xv2CoreLib.UTF;
 using Xv2CoreLib.AFS2;
 using YAXLib;
@@ -66,160 +65,160 @@ namespace Xv2CoreLib.CPK
         {
             AWB_CPK cpk = new AWB_CPK();
 
-            using (MemoryStream stream = new MemoryStream(bytes, offset, length))
+            using (MemoryStream ms = new MemoryStream(bytes, offset, length))
             {
-                //CPK Header
-                if (stream.ReadInt32() != CPK_SIGNATURE)
-                    throw new InvalidDataException("CPK Signature not found.");
-
-                cpk.CPK_Unk1 = stream.ReadInt32();
-                ulong cpkTableSize = stream.ReadUInt32();
-                stream.Seek(4, SeekOrigin.Current);
-
-                cpk.CPK_Header = UTF_File.LoadUtfTable(stream.ReadBytes((int)cpkTableSize), (int)cpkTableSize);
-
-                //ITOC Header
-                if (cpk.CPK_Header.ColumnHasValue("ItocOffset"))
+                using (BinaryReader stream = new BinaryReader(ms))
                 {
-                    long itocOffset = (long)cpk.CPK_Header.GetValue<ulong>("ItocOffset", TypeFlag.UInt64, 0);
-                    if (itocOffset > 0)
+                    //CPK Header
+                    if (stream.ReadInt32() != CPK_SIGNATURE)
+                        throw new InvalidDataException("CPK Signature not found.");
+
+                    cpk.CPK_Unk1 = stream.ReadInt32();
+                    ulong cpkTableSize = stream.ReadUInt32();
+                    ms.Seek(4, SeekOrigin.Current);
+
+                    cpk.CPK_Header = UTF_File.LoadUtfTable(stream.ReadBytes((int)cpkTableSize), (int)cpkTableSize);
+
+                    //ITOC Header
+                    if (cpk.CPK_Header.ColumnHasValue("ItocOffset"))
                     {
-                        stream.Seek(itocOffset, SeekOrigin.Begin);
-
-                        if (stream.ReadInt32() != ITOC_SIGNATURE)
-                            throw new InvalidDataException("ITOC Signature not found.");
-
-                        cpk.ITOC_Unk1 = stream.ReadInt32();
-                        ulong itocTableSize = stream.ReadUInt32();
-                        stream.Seek(4, SeekOrigin.Current);
-
-                        cpk.ITOC = UTF_File.LoadUtfTable(stream.ReadBytes((int)itocTableSize), (int)itocTableSize);
-
-                        if (cpk.ITOC.TableName != "CpkItocInfo")
-                            throw new InvalidDataException($"Unexpected ITOC: {cpk.ITOC.TableName}. Cannot continue.");
-                    }
-                }
-
-                //TOC
-                if (cpk.CPK_Header.ColumnHasValue("TocOffset"))
-                {
-                    if (cpk.CPK_Header.GetValue<ulong>("TocOffset", TypeFlag.UInt64, 0) != 0)
-                    {
-                        throw new InvalidDataException($"This cpk has a TOC table, cannot continue.");
-                    }
-                }
-
-                //ETOC
-                if (cpk.CPK_Header.ColumnHasValue("EtocOffset"))
-                {
-                    if (cpk.CPK_Header.GetValue<ulong>("EtocOffset", TypeFlag.UInt64, 0) != 0)
-                    {
-                        throw new InvalidDataException($"This cpk has a ETOC table, cannot continue.");
-                    }
-                }
-
-                //Validate header
-                if (!cpk.CPK_Header.ColumnHasValue("Files"))
-                    throw new InvalidDataException("\"Files\" column not found or missing value.");
-
-                if (!cpk.CPK_Header.ColumnHasValue("Align"))
-                    throw new InvalidDataException("\"Align\" column not found or missing value.");
-
-                if (!cpk.CPK_Header.ColumnHasValue("ContentOffset"))
-                    throw new InvalidDataException("\"ContentOffset\" column not found or missing value.");
-
-                uint numFiles = cpk.CPK_Header.GetValue<uint>("Files", TypeFlag.UInt32, 0);
-                ulong contentOffset = cpk.CPK_Header.GetValue<ulong>("ContentOffset", TypeFlag.UInt64, 0);
-                ushort align = cpk.CPK_Header.GetValue<ushort>("Align", TypeFlag.UInt16, 0);
-                ulong currentOffset = contentOffset;
-
-                //Validate ITOC
-                if (!cpk.ITOC.ColumnHasValue("FilesL") || !cpk.ITOC.ColumnHasValue("FilesH"))
-                {
-                    throw new InvalidDataException($"\"FilesL\" or \"FilesH\" column not found or missing value.");
-                }
-
-                int numH = (int)cpk.ITOC.GetValue<uint>("FilesH", TypeFlag.UInt32, 0);
-                int numL = (int)cpk.ITOC.GetValue<uint>("FilesL", TypeFlag.UInt32, 0);
-                UTF_File dataH = cpk.ITOC.GetColumnTable("DataH", true);
-                UTF_File dataL = cpk.ITOC.GetColumnTable("DataL", true);
-
-                if (numH + numL != numFiles)
-                {
-                    throw new InvalidDataException($"FilesH + FilesL does not equal Files. Cannot continue.");
-                }
-
-                //Load files
-                for(ushort id = 0; id < numFiles; id++)
-                {
-                    uint fileSize = 0;
-                    uint extractSize = 0;
-                    bool found = false;
-
-                    //DataL seems to be for files of less than 65535 bytes.
-                    for (int i = 0; i < numL; i++)
-                    {
-                        if (dataL.GetValue<ushort>("ID", TypeFlag.UInt16, i) != id)
-                            continue;
-
-                        fileSize = dataL.GetValue<ushort>("FileSize", TypeFlag.UInt16, i);
-                        extractSize = dataL.GetValue<ushort>("ExtractSize", TypeFlag.UInt16, i);
-                        found = true;
-                        break;
-                    }
-
-                    if (!found)
-                    {
-                        for (int i = 0; i < numH; i++)
+                        long itocOffset = (long)cpk.CPK_Header.GetValue<ulong>("ItocOffset", TypeFlag.UInt64, 0);
+                        if (itocOffset > 0)
                         {
-                            if (dataH.GetValue<ushort>("ID", TypeFlag.UInt16, i) != id)
+                            ms.Seek(itocOffset, SeekOrigin.Begin);
+
+                            if (stream.ReadInt32() != ITOC_SIGNATURE)
+                                throw new InvalidDataException("ITOC Signature not found.");
+
+                            cpk.ITOC_Unk1 = stream.ReadInt32();
+                            ulong itocTableSize = stream.ReadUInt32();
+                            ms.Seek(4, SeekOrigin.Current);
+
+                            cpk.ITOC = UTF_File.LoadUtfTable(stream.ReadBytes((int)itocTableSize), (int)itocTableSize);
+
+                            if (cpk.ITOC.TableName != "CpkItocInfo")
+                                throw new InvalidDataException($"Unexpected ITOC: {cpk.ITOC.TableName}. Cannot continue.");
+                        }
+                    }
+
+                    //TOC
+                    if (cpk.CPK_Header.ColumnHasValue("TocOffset"))
+                    {
+                        if (cpk.CPK_Header.GetValue<ulong>("TocOffset", TypeFlag.UInt64, 0) != 0)
+                        {
+                            throw new InvalidDataException($"This cpk has a TOC table, cannot continue.");
+                        }
+                    }
+
+                    //ETOC
+                    if (cpk.CPK_Header.ColumnHasValue("EtocOffset"))
+                    {
+                        if (cpk.CPK_Header.GetValue<ulong>("EtocOffset", TypeFlag.UInt64, 0) != 0)
+                        {
+                            throw new InvalidDataException($"This cpk has a ETOC table, cannot continue.");
+                        }
+                    }
+
+                    //Validate header
+                    if (!cpk.CPK_Header.ColumnHasValue("Files"))
+                        throw new InvalidDataException("\"Files\" column not found or missing value.");
+
+                    if (!cpk.CPK_Header.ColumnHasValue("Align"))
+                        throw new InvalidDataException("\"Align\" column not found or missing value.");
+
+                    if (!cpk.CPK_Header.ColumnHasValue("ContentOffset"))
+                        throw new InvalidDataException("\"ContentOffset\" column not found or missing value.");
+
+                    uint numFiles = cpk.CPK_Header.GetValue<uint>("Files", TypeFlag.UInt32, 0);
+                    ulong contentOffset = cpk.CPK_Header.GetValue<ulong>("ContentOffset", TypeFlag.UInt64, 0);
+                    ushort align = cpk.CPK_Header.GetValue<ushort>("Align", TypeFlag.UInt16, 0);
+                    ulong currentOffset = contentOffset;
+
+                    //Validate ITOC
+                    if (!cpk.ITOC.ColumnHasValue("FilesL") || !cpk.ITOC.ColumnHasValue("FilesH"))
+                    {
+                        throw new InvalidDataException($"\"FilesL\" or \"FilesH\" column not found or missing value.");
+                    }
+
+                    int numH = (int)cpk.ITOC.GetValue<uint>("FilesH", TypeFlag.UInt32, 0);
+                    int numL = (int)cpk.ITOC.GetValue<uint>("FilesL", TypeFlag.UInt32, 0);
+                    UTF_File dataH = cpk.ITOC.GetColumnTable("DataH", true);
+                    UTF_File dataL = cpk.ITOC.GetColumnTable("DataL", true);
+
+                    if (numH + numL != numFiles)
+                    {
+                        throw new InvalidDataException($"FilesH + FilesL does not equal Files. Cannot continue.");
+                    }
+
+                    //Load files
+                    for (ushort id = 0; id < numFiles; id++)
+                    {
+                        uint fileSize = 0;
+                        uint extractSize = 0;
+                        bool found = false;
+
+                        //DataL seems to be for files of less than 65535 bytes.
+                        for (int i = 0; i < numL; i++)
+                        {
+                            if (dataL.GetValue<ushort>("ID", TypeFlag.UInt16, i) != id)
                                 continue;
 
-                            fileSize = dataH.GetValue<uint>("FileSize", TypeFlag.UInt32, i);
-                            extractSize = dataH.GetValue<uint>("ExtractSize", TypeFlag.UInt32, i);
+                            fileSize = dataL.GetValue<ushort>("FileSize", TypeFlag.UInt16, i);
+                            extractSize = dataL.GetValue<ushort>("ExtractSize", TypeFlag.UInt16, i);
                             found = true;
                             break;
                         }
-                    }
 
-                    if (found)
-                    {
-                        if (fileSize == 0) continue; //null entry
-
-                        stream.Seek((long)currentOffset, SeekOrigin.Begin);
-
-                        byte[] data = stream.ReadBytes((int)fileSize);
-
-                        if (data.Length > 8)
+                        if (!found)
                         {
-                            string isComp = Encoding.ASCII.GetString(data.GetRange(0, 8));
-
-                            if (isComp == "CRILAYLA")
+                            for (int i = 0; i < numH; i++)
                             {
-                                int size = (int)((extractSize > fileSize) ? extractSize : fileSize);
-                                data = _cpk.DecompressCRILAYLA(data);
+                                if (dataH.GetValue<ushort>("ID", TypeFlag.UInt16, i) != id)
+                                    continue;
+
+                                fileSize = dataH.GetValue<uint>("FileSize", TypeFlag.UInt32, i);
+                                extractSize = dataH.GetValue<uint>("ExtractSize", TypeFlag.UInt32, i);
+                                found = true;
+                                break;
                             }
                         }
 
-                        cpk.Entries.Add(new CPK_Entry(id, data));
-
-                        //Increment offset
-                        currentOffset += fileSize;
-
-                        if ((currentOffset % align) != 0)
+                        if (found)
                         {
-                            currentOffset += (align - (currentOffset % align));
+                            if (fileSize == 0) continue; //null entry
+
+                            ms.Seek((long)currentOffset, SeekOrigin.Begin);
+
+                            byte[] data = stream.ReadBytes((int)fileSize);
+
+                            if (data.Length > 8)
+                            {
+                                string isComp = Encoding.ASCII.GetString(data.GetRange(0, 8));
+
+                                if (isComp == "CRILAYLA")
+                                {
+                                    int size = (int)((extractSize > fileSize) ? extractSize : fileSize);
+                                    data = _cpk.DecompressCRILAYLA(data);
+                                }
+                            }
+
+                            cpk.Entries.Add(new CPK_Entry(id, data));
+
+                            //Increment offset
+                            currentOffset += fileSize;
+
+                            if ((currentOffset % align) != 0)
+                            {
+                                currentOffset += (align - (currentOffset % align));
+                            }
+                        }
+                        else
+                        {
+                            throw new Exception($"Could not find the file for ID {id} in either \"DataL\" or \"DataH\".");
                         }
                     }
-                    else
-                    {
-                        throw new Exception($"Could not find the file for ID {id} in either \"DataL\" or \"DataH\".");
-                    }
-
                 }
-
             }
-
 
             return cpk;
         }

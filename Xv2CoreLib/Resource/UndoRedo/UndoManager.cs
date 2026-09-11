@@ -1,27 +1,23 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.ComponentModel;
+using System.Windows;
 
-#if !SaveEditor
-using GalaSoft.MvvmLight.CommandWpf;
-using System.Windows.Input;
+
+#if Xv2CoreLib
+using CommunityToolkit.Mvvm.Input;
 #endif
-
-
 
 namespace Xv2CoreLib.Resource.UndoRedo
 {
-    public sealed class UndoManager : INotifyPropertyChanged
+    public sealed partial class UndoManager : INotifyPropertyChanged
     {
 #region NotifyPropertyChanged
         public event PropertyChangedEventHandler PropertyChanged;
 
-        private void NotifyPropertyChanged(String propertyName = "")
+        private void NotifyPropertyChanged(string propertyName = "")
         {
-            if (PropertyChanged != null)
-            {
-                PropertyChanged(this, new PropertyChangedEventArgs(propertyName));
-            }
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
         }
 #endregion
 
@@ -126,12 +122,9 @@ namespace Xv2CoreLib.Resource.UndoRedo
             return false;
         }
 
-#if !SaveEditor
-        public RelayCommand RedoCommand => new RelayCommand(Redo, CanRedo);
-
-        public RelayCommand UndoCommand => new RelayCommand(Undo, CanUndo);
+#if Xv2CoreLib
+        [RelayCommand(CanExecute = nameof(CanUndo))]
 #endif
-
         public void Undo()
         {
             if (!CanUndo()) return;
@@ -153,6 +146,9 @@ namespace Xv2CoreLib.Resource.UndoRedo
 
         }
 
+#if Xv2CoreLib
+        [RelayCommand(CanExecute = nameof(CanRedo))]
+#endif
         public void Redo()
         {
             if (!CanRedo()) return;
@@ -201,8 +197,13 @@ namespace Xv2CoreLib.Resource.UndoRedo
         {
             NotifyPropertyChanged(nameof(UndoDescription));
             NotifyPropertyChanged(nameof(RedoDescription));
-#if !SaveEditor
-            CommandManager.InvalidateRequerySuggested();
+#if Xv2CoreLib
+            Application.Current.Dispatcher.Invoke(() =>
+            {
+                UndoCommand.NotifyCanExecuteChanged();
+                RedoCommand.NotifyCanExecuteChanged();
+            });
+            //System.Windows.Input.CommandManager.InvalidateRequerySuggested();
 #endif
         }
 

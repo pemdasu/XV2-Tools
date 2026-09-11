@@ -1,6 +1,6 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <TargetFrameworks>net47</TargetFrameworks>
+    <TargetFrameworks>net48</TargetFrameworks>
     <OutputType>Exe</OutputType>
     <RootNamespace>XV2_Serializer</RootNamespace>
     <AssemblyName>XV2 Xml Serializer</AssemblyName>

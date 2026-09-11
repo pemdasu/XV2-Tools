@@ -7,8 +7,6 @@ using System.Windows;
 using Xv2CoreLib.AFS2;
 using Xv2CoreLib.Resource.UndoRedo;
 using Xv2CoreLib.Resource;
-using GalaSoft.MvvmLight.CommandWpf;
-
 
 namespace Xv2CoreLib.ACB
 {
@@ -24,12 +22,9 @@ namespace Xv2CoreLib.ACB
     {
         #region NotifyPropertyChanged
         public event PropertyChangedEventHandler PropertyChanged;
-        private void NotifyPropertyChanged(String propertyName = "")
+        private void NotifyPropertyChanged(string propertyName = "")
         {
-            if (PropertyChanged != null)
-            {
-                PropertyChanged(this, new PropertyChangedEventArgs(propertyName));
-            }
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
         }
         #endregion
 
@@ -411,22 +406,19 @@ namespace Xv2CoreLib.ACB
     }
 
     [Serializable]
-    public class Cue_Wrapper : INotifyPropertyChanged
+    public partial class Cue_Wrapper : INotifyPropertyChanged
     {
         #region NotifyPropertyChanged
         public event PropertyChangedEventHandler PropertyChanged;
-        private void NotifyPropertyChanged(String propertyName = "")
+        private void NotifyPropertyChanged(string propertyName = "")
         {
-            if (PropertyChanged != null)
-            {
-                PropertyChanged(this, new PropertyChangedEventArgs(propertyName));
-            }
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
         }
         #endregion
 
         public ACB_Wrapper WrapperRoot;
         public ACB_Cue CueRef { get; set; }
-        public AsyncObservableCollection<Track_Wrapper> Tracks { get; set; } = AsyncObservableCollection<Track_Wrapper>.Create();
+        public AsyncObservableCollection<Track_Wrapper> Tracks { get; set; } = new AsyncObservableCollection<Track_Wrapper>();
 
         //Wrapped Values
         public ACB_Sequence SequenceRef
@@ -871,8 +863,7 @@ namespace Xv2CoreLib.ACB
 
         #endregion
 
-        public RelayCommand CopyTrackCommand => new RelayCommand(CopyTrack);
-        private void CopyTrack()
+        public void CopyTrack()
         {
             if(SelectedTrack != null)
             {
@@ -883,8 +874,8 @@ namespace Xv2CoreLib.ACB
             }
         }
 
-        public RelayCommand PasteTrackCommand => new RelayCommand(PasteTrack, CanPasteTrackOrAction);
-        private void PasteTrack()
+
+        public void PasteTrack()
         {
             if (Clipboard.ContainsData(ACB_File.CLIPBOARD_ACB_TRACK))
                 WrapperRoot.UndoablePasteTrack(this);
@@ -892,15 +883,13 @@ namespace Xv2CoreLib.ACB
                 WrapperRoot.UndoablePasteAction(this);
         }
 
-        public RelayCommand DeleteTrackCommand => new RelayCommand(DeleteTrack);
-        private void DeleteTrack()
+        public void DeleteTrack()
         {
             if (SelectedTrack != null)
             {
                 UndoableDeleteTrack(SelectedTrack);
             }
         }
-
 
         private bool CanPasteTrackOrAction()
         {
@@ -963,16 +952,13 @@ namespace Xv2CoreLib.ACB
     [Serializable]
     public class Track_Wrapper : INotifyPropertyChanged
     {
-#region NotifyPropertyChanged
+        #region NotifyPropertyChanged
         public event PropertyChangedEventHandler PropertyChanged;
-        private void NotifyPropertyChanged(String propertyName = "")
+        private void NotifyPropertyChanged(string propertyName = "")
         {
-            if (PropertyChanged != null)
-            {
-                PropertyChanged(this, new PropertyChangedEventArgs(propertyName));
-            }
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
         }
-#endregion
+        #endregion
 
         public ACB_Wrapper WrapperRoot;
         public Cue_Wrapper CueWrapper;
@@ -1205,16 +1191,13 @@ namespace Xv2CoreLib.ACB
     [Serializable]
     public class Waveform_Wrapper : INotifyPropertyChanged
     {
-#region NotifyPropertyChanged
+        #region NotifyPropertyChanged
         public event PropertyChangedEventHandler PropertyChanged;
-        private void NotifyPropertyChanged(String propertyName = "")
+        private void NotifyPropertyChanged(string propertyName = "")
         {
-            if (PropertyChanged != null)
-            {
-                PropertyChanged(this, new PropertyChangedEventArgs(propertyName));
-            }
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
         }
-#endregion
+        #endregion
 
         public ACB_Wrapper WrapperRoot;
         public ACB_Waveform WaveformRef { get; set; }
