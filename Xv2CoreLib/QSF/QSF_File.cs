@@ -51,10 +51,15 @@ namespace Xv2CoreLib.QSF
 
                 foreach(var installQuestGroup in installQuestType.QuestGroups)
                 {
-                    QSF_QuestGroup questGroup = questType.QuestGroups.FirstOrDefault(x => x.Index == installQuestGroup.Index);
+                    if (installQuestGroup.Index < 0)
+                        throw new ArgumentException($"QSF_File.InstallEntries: Invalid QuestGroup Index {installQuestGroup.Index} for QuestType {installQuestType.Type}. The index must be nonnegative.");
 
-                    if(questGroup == null)
-                        throw new ArgumentException($"QSF_File.InstallEntries: Invalid QuestGroup Index {installQuestGroup.Index}. No QuestGroup with this index was found.");
+                    while (questType.QuestGroups.Count <= installQuestGroup.Index)
+                    {
+                        questType.QuestGroups.Add(new QSF_QuestGroup { Index = questType.QuestGroups.Count });
+                    }
+
+                    QSF_QuestGroup questGroup = questType.QuestGroups[installQuestGroup.Index];
 
                     foreach(var installQuest in installQuestGroup.QuestEntries)
                     {
