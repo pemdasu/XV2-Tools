@@ -1,4 +1,5 @@
 ﻿using LB_Mod_Installer.Binding;
+using LB_Mod_Installer.Binding.Xml;
 using LB_Mod_Installer.Installer.ACB;
 using System;
 using System.Collections.Generic;
@@ -1616,7 +1617,13 @@ namespace LB_Mod_Installer.Installer
             try
 #endif
             {
-                BSA_File xmlFile = (isXml) ? zipManager.DeserializeXmlFromArchive_Ext<BSA_File>(GeneralInfo.GetPathInZipDataDir(xmlPath)) : BSA_File.Load(zipManager.GetFileFromArchive(GeneralInfo.GetPathInZipDataDir(xmlPath)));
+                string archivePath = GeneralInfo.GetPathInZipDataDir(xmlPath);
+                XDocument xmlDocument = isXml ? zipManager.GetXmlDocumentFromArchive(archivePath) : null;
+                BSA_File xmlFile = isXml ? null : BSA_File.Load(zipManager.GetFileFromArchive(archivePath));
+
+                if (isXml && xmlDocument == null)
+                    throw new FileNotFoundException($"Could not find the file \"{archivePath}\".");
+
                 BSA_File binaryFile = (BSA_File)GetParsedFile<BSA_File>(installPath, raiseEx: false);
 
                 if (binaryFile == null)
@@ -1625,8 +1632,35 @@ namespace LB_Mod_Installer.Installer
                     fileManager.AddParsedFile(installPath, binaryFile);
                 }
 
-                //Parse bindings
-                bindingManager.ParseProperties(xmlFile.BSA_Entries, binaryFile.BSA_Entries, installPath);
+                if (isXml)
+                {
+                    var entries = xmlDocument.Root.Elements("BSA_Entry")
+                        .Select(element => new
+                        {
+                            Element = element,
+                            Entry = new BSA_Entry { Index = (string)element.Attribute("ID") }
+                        })
+                        .ToList();
+                    List<BSA_Entry> idEntries = entries.Select(entry => entry.Entry).ToList();
+
+                    bindingManager.ParseProperties(idEntries, binaryFile.BSA_Entries, installPath);
+                    HashSet<BSA_Entry> parsedEntries = new HashSet<BSA_Entry>(idEntries);
+
+                    foreach (var entry in entries)
+                    {
+                        if (parsedEntries.Contains(entry.Entry))
+                            entry.Element.SetAttributeValue("ID", entry.Entry.Index);
+                        else
+                            entry.Element.Remove();
+                    }
+
+                    XmlParser parser = new XmlParser(xmlDocument, archivePath);
+                    parser.BeginParse();
+                    xmlFile = zipManager.DeserializeXmlFromArchive<BSA_File>(xmlDocument);
+                }
+
+                if (!isXml)
+                    bindingManager.ParseProperties(xmlFile.BSA_Entries, binaryFile.BSA_Entries, installPath);
 
                 //Install entries
                 InstallEntries(xmlFile.BSA_Entries, binaryFile.BSA_Entries, installPath, Sections.BSA_Entries, useSkipBindings);

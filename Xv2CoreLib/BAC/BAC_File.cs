@@ -359,6 +359,15 @@ namespace Xv2CoreLib.BAC
                             function.Param5 = newId;
                     }
                 }
+
+                if (entry.Type27 != null)
+                {
+                    foreach (var effect in entry.Type27)
+                    {
+                        if (effect.SkillID == 0xBACA)
+                            effect.SkillID = newId;
+                    }
+                }
             }
         }
         

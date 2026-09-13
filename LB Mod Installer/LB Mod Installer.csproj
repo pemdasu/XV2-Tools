@@ -39,5 +39,6 @@
 
   <ItemGroup>
     <EmbeddedResource Include="Resources\silence.hca" />
+    <Resource Include="Resources\DBXV2_101.ico" />
   </ItemGroup>
 </Project>
