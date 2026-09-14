@@ -1,28 +1,56 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <TargetFrameworks>net48</TargetFrameworks>
+    <TargetFrameworks>net48;net10.0-windows</TargetFrameworks>
     <OutputType>Exe</OutputType>
     <RootNamespace>XV2_Serializer</RootNamespace>
     <AssemblyName>XV2 Xml Serializer</AssemblyName>
     <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
-    <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
     <Deterministic>true</Deterministic>
-    <LangVersion>latest</LangVersion>
+    <LangVersion>8</LangVersion>
+		<Nullable>disable</Nullable>
+		<RuntimeIdentifier>win-x64</RuntimeIdentifier>
+    <PlatformTarget>x64</PlatformTarget>
   </PropertyGroup>
+	
+	<PropertyGroup Condition="'$(TargetFramework)' == 'net10.0-windows'">
+		<PublishSingleFile>true</PublishSingleFile>
+    <LangVersion>14</LangVersion>
+	</PropertyGroup>
+	
   <ItemGroup>
     <PackageReference Include="Costura.Fody" Version="6.2.0">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
   </ItemGroup>
-  <ItemGroup>
+	
+  <ItemGroup Condition="'$(TargetFramework)' == 'net10.0-windows'">
+    <Reference Include="YAXLib">
+      <HintPath>..\DLLs\net10\YAXLib.dll</HintPath>
+    </Reference>
+  </ItemGroup>
+	
+  <ItemGroup Condition="'$(TargetFramework)' == 'net48'">
     <Reference Include="YAXLib">
       <HintPath>..\DLLs\YAXLib.dll</HintPath>
     </Reference>
     <Reference Include="PresentationCore" />
     <Reference Include="WindowsBase" />
   </ItemGroup>
+	
   <ItemGroup>
     <ProjectReference Include="..\Xv2CoreLib\Xv2CoreLib.csproj" />
   </ItemGroup>
+	
+	<!-- Automated publish on release build. Merges all assemblies into one executable for .NET 10 (as Fody.Costura is not sufficent) -->
+	<!-- Release ready builds in {Configuration}/[TargetFramework}/{Platform} -->
+	<Target Name="SetNoBuild" Condition="'$(Configuration)' == 'Release'">
+		<PropertyGroup>
+			<NoBuild>true</NoBuild>
+		</PropertyGroup>
+	</Target>
+	<Target Name="PublishAfterBuild" AfterTargets="AfterBuild" DependsOnTargets="SetNoBuild;Publish" Condition="'$(Configuration)' == 'Release'" />
+	<Target Name="CleanAfterBuild" AfterTargets="AfterClean" Condition="'$(Configuration)' == 'Release'">
+		<RemoveDir Directories="$(PublishDir)" Condition="'$(PublishDir)' != ''" />
+	</Target>
 </Project>
