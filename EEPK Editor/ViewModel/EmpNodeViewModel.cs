@@ -1,14 +1,14 @@
-﻿using Xv2CoreLib;
+﻿using LB_Common.Mvvm;
+using LB_Common.Numbers;
+using Xv2CoreLib;
+using Xv2CoreLib.EMM;
 using Xv2CoreLib.EMP_NEW;
 using Xv2CoreLib.EMP_NEW.Keyframes;
 using Xv2CoreLib.Resource.UndoRedo;
-using LB_Common.Numbers;
-using GalaSoft.MvvmLight;
-using Xv2CoreLib.EMM;
 
 namespace EEPK_Organiser.ViewModel
 {
-    public class EmpNodeViewModel : ObservableObject
+    public class EmpNodeViewModel : AutoObservableObject
     {
         private EMP_File empFile;
         private ParticleNode node;

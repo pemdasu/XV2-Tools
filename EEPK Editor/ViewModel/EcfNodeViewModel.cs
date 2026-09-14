@@ -1,12 +1,12 @@
-﻿using Xv2CoreLib.ECF;
+﻿using LB_Common.Mvvm;
+using Xv2CoreLib.ECF;
 using Xv2CoreLib.EMP_NEW.Keyframes;
 using Xv2CoreLib.Resource.UndoRedo;
-using GalaSoft.MvvmLight;
 using static Xv2CoreLib.ECF.ECF_Node;
 
 namespace EEPK_Organiser.ViewModel
 {
-    public class EcfNodeViewModel : ObservableObject
+    public class EcfNodeViewModel : AutoObservableObject
     {
         private ECF_Node node;
 

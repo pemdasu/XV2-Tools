@@ -1,26 +1,14 @@
-﻿using System.ComponentModel;
+﻿using LB_Common.Mvvm;
 using System.Windows;
-using System.Windows.Controls;
-using Xv2CoreLib.EMP_NEW;
 using Xv2CoreLib.EMP_NEW.Keyframes;
-using GalaSoft.MvvmLight.CommandWpf;
 
 namespace EEPK_Organiser.View.Editors.EMP
 {
     /// <summary>
     /// Interaction logic for EmpKeyframeView.xaml
     /// </summary>
-    public partial class EmpKeyframeView : UserControl, INotifyPropertyChanged
+    public partial class EmpKeyframeView : AutoObservableUserControl
     {
-        #region NotifyPropChanged
-        public event PropertyChangedEventHandler PropertyChanged;
-
-        private void NotifyPropertyChanged(string propertyName = "")
-        {
-            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
-        }
-        #endregion
-
         #region DP
         public static readonly DependencyProperty KeyframeProperty = DependencyProperty.Register(
             nameof(Keyframe), typeof(KeyframeBaseValue), typeof(EmpKeyframeView), new PropertyMetadata(null, ValueInstanceChanged));

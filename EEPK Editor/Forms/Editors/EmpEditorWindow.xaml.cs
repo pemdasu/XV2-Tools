@@ -1,7 +1,7 @@
-﻿using GalaSoft.MvvmLight.CommandWpf;
-using MahApps.Metro.Controls;
+﻿using MahApps.Metro.Controls;
 using System.Windows;
 using System.Windows.Controls;
+using CommunityToolkit.Mvvm.Input;
 using Xv2CoreLib.EffectContainer;
 using Xv2CoreLib.EMP_NEW;
 
@@ -31,7 +31,7 @@ namespace EEPK_Organiser.Forms.Editors
             Title += $" ({empName})";
         }
 
-        public RelayCommand RefreshParticleSystemCommand => new RelayCommand(RefreshParticleSystem);
+        [RelayCommand]
         private void RefreshParticleSystem()
         {
             EmpFile.HasBeenEdited = true;

@@ -1,4 +1,4 @@
-﻿using GalaSoft.MvvmLight;
+﻿using LB_Common.Mvvm;
 using LB_Common.Numbers;
 using Xv2CoreLib;
 using Xv2CoreLib.EMM;
@@ -8,7 +8,7 @@ using Xv2CoreLib.Resource.UndoRedo;
 
 namespace EEPK_Organiser.ViewModel
 {
-    public class EtrNodeViewModel : ObservableObject
+    public class EtrNodeViewModel : AutoObservableObject
     {
         private ETR_Node node;
 

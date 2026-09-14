@@ -1,4 +1,6 @@
-﻿namespace EEPK_Organiser.Misc
+﻿using Xv2CoreLib.EEPK;
+
+namespace EEPK_Organiser.Misc
 {
     public static class ClipboardDataTypes
     {
@@ -14,5 +16,11 @@
         public static readonly string EtrMainEntry = "EEPK_ORGANISER_ETR_ENTRY";
         public static readonly string EtrTextureEntry = "EEPK_ORGANISER_ETR_TEXTURE_ENTRY";
         public static readonly string EcfEntry = "EEPK_ORGANISER_ECF_ENTRY";
+
+        public static string GetAssetFormat(AssetType assetType)
+        {
+            return Asset + assetType.ToString();
+        }
+
     }
 }

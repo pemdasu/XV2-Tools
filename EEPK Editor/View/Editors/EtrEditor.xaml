@@ -1,4 +1,4 @@
-﻿<UserControl x:Class="EEPK_Organiser.View.Editors.EtrEditor"
+﻿<mvvm:AutoObservableUserControl x:Class="EEPK_Organiser.View.Editors.EtrEditor"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
@@ -11,15 +11,16 @@
              xmlns:views="clr-namespace:EEPK_Organiser.View.Editors.EMP"
              xmlns:iconPacks="http://metro.mahapps.com/winfx/xaml/iconpacks"
              xmlns:lbUtils="clr-namespace:LB_Common.Utils;assembly=LB_Common"
+             xmlns:mvvm="clr-namespace:LB_Common.Mvvm;assembly=LB_Common"
              xmlns:local="clr-namespace:EEPK_Organiser.View.Editors"
              xmlns:empDic="clr-namespace:Xv2CoreLib.ValuesDictionary;assembly=Xv2CoreLib"
              xmlns:eepkControl="clr-namespace:EEPK_Organiser.View.Controls"
              mc:Ignorable="d" 
              Dialog:DialogParticipation.Register="{Binding}"
              d:DesignHeight="600" d:DesignWidth="1000" Name="UserControl">
-    <UserControl.Resources>
+    <mvvm:AutoObservableUserControl.Resources>
         <lbUtils:BindingProxy x:Key="Proxy" Data="{Binding}" />
-    </UserControl.Resources>
+    </mvvm:AutoObservableUserControl.Resources>
     <Grid>
         <Controls:MetroTabControl x:Name="tabItems" Controls:TabControlHelper.Underlined="TabPanel" Controls:TabControlHelper.UnderlineBrush="{DynamicResource MahApps.Brushes.SystemControlForegroundListMedium}">
             <Controls:MetroTabItem Header="Nodes" Controls:HeaderedControlHelper.HeaderFontSize="16">
@@ -70,8 +71,8 @@
                                 <MenuItem Header="Copy" Command="{Binding Source={StaticResource Proxy}, Path=Data.CopyNodeCommand}"/>
                                 <MenuItem Header="Paste" Command="{Binding Source={StaticResource Proxy}, Path=Data.PasteNodeCommand}"/>
                                 <Separator/>
-                                <MenuItem Header="Hue Adjustment" Command="{Binding Source={StaticResource Proxy}, Path=Data.HueAdjustment_Command}"/>
-                                <MenuItem Header="Hue Set" Command="{Binding Source={StaticResource Proxy}, Path=Data.HueSet_Command}"/>
+                                <MenuItem Header="Hue Adjustment" Command="{Binding Source={StaticResource Proxy}, Path=Data.HueAdjustmentCommand}"/>
+                                <MenuItem Header="Hue Set" Command="{Binding Source={StaticResource Proxy}, Path=Data.HueSetCommand}"/>
                             </ContextMenu>
                         </DataGrid.ContextMenu>
                         <DataGrid.InputBindings>
@@ -257,10 +258,10 @@
                                                     </Grid.ColumnDefinitions>
                                                     <Label Content="Texture"/>
                                                     <ComboBox Grid.Column="1" DisplayMemberPath="TextureName" SelectedItem="{Binding Path=SelectedNode.TextureEntryRef[0].UndoableTextureRef, ElementName=UserControl}" ItemsSource="{Binding ElementName=UserControl, Path=EtrFile.Textures.Binding}" Controls:TextBoxHelper.Watermark="No Texture Selected"/>
-                                                    <Button Grid.Column="2" Command="{Binding ElementName=UserControl, Path=Node_RemoveTextureCommand}" CommandParameter="0" HorizontalAlignment="Center" VerticalAlignment="Center" Style="{DynamicResource MahApps.Styles.Button.Circle}" Width="20" Height="20" ToolTip="Remove the selected texture from this node.">
+                                                    <Button Grid.Column="2" Command="{Binding ElementName=UserControl, Path=Node_RemoveTextureCommand}" CommandParameter="{Binding Converter={StaticResource StringToIntConverter},ConverterParameter=0}" HorizontalAlignment="Center" VerticalAlignment="Center" Style="{DynamicResource MahApps.Styles.Button.Circle}" Width="20" Height="20" ToolTip="Remove the selected texture from this node.">
                                                         <iconPacks:PackIconMaterialDesign Kind="RemoveCircleOutline"/>
                                                     </Button>
-                                                    <Button Grid.Column="3" Command="{Binding ElementName=UserControl, Path=Node_GotoTextureCommand}" CommandParameter="0" HorizontalAlignment="Center" VerticalAlignment="Center" Style="{DynamicResource MahApps.Styles.Button.Circle}" Width="20" Height="20" ToolTip="Jump to the selected texture.">
+                                                    <Button Grid.Column="3" Command="{Binding ElementName=UserControl, Path=Node_GotoTextureCommand}" CommandParameter="{Binding Converter={StaticResource StringToIntConverter},ConverterParameter=0}" HorizontalAlignment="Center" VerticalAlignment="Center" Style="{DynamicResource MahApps.Styles.Button.Circle}" Width="20" Height="20" ToolTip="Jump to the selected texture.">
                                                         <iconPacks:PackIconMaterialDesign Kind="KeyboardArrowRight"/>
                                                     </Button>
                                                 </Grid>
@@ -273,10 +274,10 @@
                                                     </Grid.ColumnDefinitions>
                                                     <Label Content="Texture (Secondary)" ToolTip="A secondary texture that trace nodes can use in some cases, depending on the shader used."/>
                                                     <ComboBox Grid.Column="1" DisplayMemberPath="TextureName" SelectedItem="{Binding Path=SelectedNode.TextureEntryRef[1].UndoableTextureRef, ElementName=UserControl}" ItemsSource="{Binding ElementName=UserControl, Path=EtrFile.Textures.Binding}" Controls:TextBoxHelper.Watermark="No Texture Selected"/>
-                                                    <Button Grid.Column="2" Command="{Binding ElementName=UserControl, Path=Node_RemoveTextureCommand}" CommandParameter="1" HorizontalAlignment="Center" VerticalAlignment="Center" Style="{DynamicResource MahApps.Styles.Button.Circle}" Width="20" Height="20" ToolTip="Remove the selected texture from this emission node.">
+                                                    <Button Grid.Column="2" Command="{Binding ElementName=UserControl, Path=Node_RemoveTextureCommand}" CommandParameter="{Binding Converter={StaticResource StringToIntConverter},ConverterParameter=1}" HorizontalAlignment="Center" VerticalAlignment="Center" Style="{DynamicResource MahApps.Styles.Button.Circle}" Width="20" Height="20" ToolTip="Remove the selected texture from this emission node.">
                                                         <iconPacks:PackIconMaterialDesign Kind="RemoveCircleOutline"/>
                                                     </Button>
-                                                    <Button Grid.Column="3" Command="{Binding ElementName=UserControl, Path=Node_GotoTextureCommand}" CommandParameter="1" HorizontalAlignment="Center" VerticalAlignment="Center" Style="{DynamicResource MahApps.Styles.Button.Circle}" Width="20" Height="20" ToolTip="Jump to the selected texture.">
+                                                    <Button Grid.Column="3" Command="{Binding ElementName=UserControl, Path=Node_GotoTextureCommand}" CommandParameter="{Binding Converter={StaticResource StringToIntConverter},ConverterParameter=1}" HorizontalAlignment="Center" VerticalAlignment="Center" Style="{DynamicResource MahApps.Styles.Button.Circle}" Width="20" Height="20" ToolTip="Jump to the selected texture.">
                                                         <iconPacks:PackIconMaterialDesign Kind="KeyboardArrowRight"/>
                                                     </Button>
                                                 </Grid>
@@ -472,4 +473,4 @@
             </Controls:MetroTabItem>
         </Controls:MetroTabControl>
     </Grid>
-    </UserControl>
+    </mvvm:AutoObservableUserControl>

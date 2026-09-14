@@ -2,31 +2,22 @@
 using System.ComponentModel;
 using System.Linq;
 using System.Windows;
-using System.Windows.Controls;
-using GalaSoft.MvvmLight.CommandWpf;
 using LB_Common.Forms;
 using Xv2CoreLib.EffectContainer;
 using Xv2CoreLib.EMP_NEW;
 using Xv2CoreLib.Resource.UndoRedo;
 using EEPK_Organiser.Misc;
 using EEPK_Organiser.ViewModel;
+using LB_Common.Mvvm;
+using CommunityToolkit.Mvvm.Input;
 
 namespace EEPK_Organiser.View.Editors.EMP
 {
     /// <summary>
     /// Interaction logic for EmpTextureView.xaml
     /// </summary>
-    public partial class EmpTextureView : UserControl, INotifyPropertyChanged
+    public partial class EmpTextureView : AutoObservableUserControl
     {
-        #region NotifyPropChanged
-        public event PropertyChangedEventHandler PropertyChanged;
-
-        private void NotifyPropertyChanged(string propertyName = "")
-        {
-            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
-        }
-        #endregion
-
         #region DependencyProperty
         public static readonly DependencyProperty ITextureProperty = DependencyProperty.Register(nameof(TextureFile), typeof(ITexture), typeof(EmpTextureView), new PropertyMetadata(null));
 
@@ -105,7 +96,7 @@ namespace EEPK_Organiser.View.Editors.EMP
         }
 
         #region Commands
-        public RelayCommand TextureRemoveCommand => new RelayCommand(TextureRemove, IsTextureSelected);
+        [RelayCommand(CanExecute = nameof(IsTextureSelected))]
         private void TextureRemove()
         {
             List<IUndoRedo> undos = new List<IUndoRedo>();
@@ -130,7 +121,7 @@ namespace EEPK_Organiser.View.Editors.EMP
             }
         }
 
-        public RelayCommand TextureAddCommand => new RelayCommand(TextureAdd);
+        [RelayCommand]
         private void TextureAdd()
         {
             EMP_TextureSamplerDef newTexture = EMP_TextureSamplerDef.GetNew();
@@ -141,7 +132,7 @@ namespace EEPK_Organiser.View.Editors.EMP
             UndoManager.Instance.AddUndo(new UndoableListAdd<EMP_TextureSamplerDef>(TextureFile.Textures, newTexture, $"Add Texture ({FileType})"));
         }
 
-        public RelayCommand TextureDuplicateCommand => new RelayCommand(TextureDuplicate, IsTextureSelected);
+        [RelayCommand(CanExecute = nameof(IsTextureSelected))]
         private void TextureDuplicate()
         {
             EMP_TextureSamplerDef newTexture = SelectedTexture.Clone();
@@ -151,14 +142,14 @@ namespace EEPK_Organiser.View.Editors.EMP
             SelectTexture(newTexture);
         }
 
-        public RelayCommand TextureCopyCommand => new RelayCommand(TextureCopy, IsTextureSelected);
+        [RelayCommand(CanExecute = nameof(IsTextureSelected))]
         private void TextureCopy()
         {
             AssetContainer.File3_Ref.SaveDdsImages();
             Clipboard.SetData(ClipboardDataTypes.EmpTextureEntry, SelectedTextures);
         }
 
-        public RelayCommand TexturePasteCommand => new RelayCommand(TexturePaste, CanPasteTexture);
+        [RelayCommand(CanExecute = nameof(CanPasteTexture))]
         private void TexturePaste()
         {
             List<EMP_TextureSamplerDef> copiedTextures = (List<EMP_TextureSamplerDef>)Clipboard.GetData(ClipboardDataTypes.EmpTextureEntry);
@@ -182,7 +173,7 @@ namespace EEPK_Organiser.View.Editors.EMP
             }
         }
 
-        public RelayCommand TexturePasteValuesCommand => new RelayCommand(TexturePasteValues, () => CanPasteTexture() && IsTextureSelected());
+        [RelayCommand(CanExecute = nameof(CanPasteTextureValues))]
         private void TexturePasteValues()
         {
             List<EMP_TextureSamplerDef> textures = (List<EMP_TextureSamplerDef>)Clipboard.GetData(ClipboardDataTypes.EmpTextureEntry);
@@ -203,7 +194,7 @@ namespace EEPK_Organiser.View.Editors.EMP
             }
         }
 
-        public RelayCommand TextureMergeCommand => new RelayCommand(TextureMerge, () => SelectedTextures?.Count >= 2);
+        [RelayCommand(CanExecute = nameof(CanMergeTextures))]
         private void TextureMerge()
         {
             EMP_TextureSamplerDef texture = SelectedTexture;
@@ -234,6 +225,16 @@ namespace EEPK_Organiser.View.Editors.EMP
         }
 
 
+        private bool CanMergeTextures()
+        {
+            return SelectedTextures?.Count >= 2;
+        }
+
+        private bool CanPasteTextureValues()
+        {
+            return CanPasteTexture() && IsTextureSelected();
+        }
+
         private bool IsTextureSelected()
         {
             return SelectedTexture != null;
@@ -246,27 +247,32 @@ namespace EEPK_Organiser.View.Editors.EMP
         #endregion
 
         #region TexturePropertyCommands
-        public RelayCommand UnassignTextureCommand => new RelayCommand(UnassignTexture, () => ViewModel?.SelectedEmbEntry != null);
+        [RelayCommand(CanExecute = nameof(IsEmbTextureSelected))]
         private void UnassignTexture()
         {
             ViewModel.SelectedEmbEntry = null;
         }
 
-        public RelayCommand GotoTextureCommand => new RelayCommand(GotoTexture, () => ViewModel?.SelectedEmbEntry != null);
+        [RelayCommand(CanExecute = nameof(IsEmbTextureSelected))]
         private void GotoTexture()
         {
-            Forms.EmbEditForm textureViewer = EepkEditor.PBIND_OpenTextureViewer(AssetContainer, AssetContainer.ContainerAssetType);
+            Forms.EmbEditForm textureViewer = EepkEditor.AssetContainerOpenTextureForm(AssetContainer, AssetContainer.ContainerAssetType);
 
             textureViewer.textureEditor.SelectedTexture = ViewModel.SelectedEmbEntry;
             textureViewer.textureEditor.textureDataGrid.ScrollIntoView(ViewModel.SelectedEmbEntry);
         }
 
+
+        private bool IsEmbTextureSelected()
+        {
+            return ViewModel?.SelectedEmbEntry != null;
+        }
         #endregion
 
         #region KeyframeCommands
         private List<EMP_ScrollKeyframe> SelectedKeyframes => keyframeDataGrid.SelectedItems.Cast<EMP_ScrollKeyframe>().ToList();
 
-        public RelayCommand AddKeyframeCommand => new RelayCommand(AddKeyframe, () => ViewModel?.ScrollType == EMP_ScrollState.ScrollTypeEnum.SpriteSheet);
+        [RelayCommand(CanExecute = nameof(IsSpriteSheet))]
         private void AddKeyframe()
         {
             EMP_ScrollKeyframe keyframe = new EMP_ScrollKeyframe();
@@ -275,7 +281,7 @@ namespace EEPK_Organiser.View.Editors.EMP
             UndoManager.Instance.AddUndo(new UndoableListAdd<EMP_ScrollKeyframe>(SelectedTexture.ScrollState.Keyframes, keyframe, $"{FileType} Texture -> Add Keyframe"));
         }
 
-        public RelayCommand DeleteKeyframeCommand => new RelayCommand(DeleteKeyframe, IsKeyframeSelected);
+        [RelayCommand(CanExecute = nameof(IsKeyframeSelected))]
         private void DeleteKeyframe()
         {
             List<EMP_ScrollKeyframe> keyframes = SelectedKeyframes;
@@ -291,13 +297,13 @@ namespace EEPK_Organiser.View.Editors.EMP
             UndoManager.Instance.AddCompositeUndo(undos, $"{FileType} Texture -> Delete Keyframe");
         }
 
-        public RelayCommand CopyKeyframeCommand => new RelayCommand(CopyKeyframe, IsKeyframeSelected);
+        [RelayCommand(CanExecute = nameof(IsKeyframeSelected))]
         private void CopyKeyframe()
         {
             Clipboard.SetData(EMP_File.CLIPBOARD_TEXTURE_KEYFRAME, SelectedKeyframes);
         }
 
-        public RelayCommand PasteKeyframeCommand => new RelayCommand(PasteKeyframe, () => Clipboard.ContainsData(EMP_File.CLIPBOARD_TEXTURE_KEYFRAME) && IsTextureSelected());
+        [RelayCommand(CanExecute = nameof(CanPasteKeyframe))]
         private void PasteKeyframe()
         {
             List<EMP_ScrollKeyframe> keyframes = (List<EMP_ScrollKeyframe>)Clipboard.GetData(EMP_File.CLIPBOARD_TEXTURE_KEYFRAME);
@@ -312,7 +318,7 @@ namespace EEPK_Organiser.View.Editors.EMP
             UndoManager.Instance.AddCompositeUndo(undos, $"{FileType} Texture -> Paste Keyframe");
         }
 
-        public RelayCommand DuplicateKeyframeCommand => new RelayCommand(DuplicateKeyframe, IsKeyframeSelected);
+        [RelayCommand(CanExecute = nameof(IsKeyframeSelected))]
         private void DuplicateKeyframe()
         {
             List<EMP_ScrollKeyframe> keyframes = SelectedKeyframes;
@@ -328,6 +334,16 @@ namespace EEPK_Organiser.View.Editors.EMP
             UndoManager.Instance.AddCompositeUndo(undos, $"{FileType} Texture -> Duplicate Keyframe");
         }
 
+
+        private bool CanPasteKeyframe()
+        {
+            return Clipboard.ContainsData(EMP_File.CLIPBOARD_TEXTURE_KEYFRAME) && IsTextureSelected();
+        }
+
+        private bool IsSpriteSheet()
+        {
+            return ViewModel?.ScrollType == EMP_ScrollState.ScrollTypeEnum.SpriteSheet;
+        }
 
         private bool IsKeyframeSelected()
         {

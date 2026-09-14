@@ -1773,7 +1773,7 @@ namespace Xv2CoreLib.EffectContainer
 
         #region Helpers
         //Misc
-        private AssetContainerTool GetAssetContainer(AssetType type)
+        public AssetContainerTool GetAssetContainer(AssetType type)
         {
             switch (type)
             {
@@ -1858,15 +1858,6 @@ namespace Xv2CoreLib.EffectContainer
                     throw new InvalidOperationException(String.Format("GetDefaultContainer: Unrecognized AssetType: {0}", type));
 
             }
-        }
-
-        public void RefreshAssetCounts()
-        {
-            Pbind.RefreshAssetCount();
-            Tbind.RefreshAssetCount();
-            Cbind.RefreshAssetCount();
-            Emo.RefreshAssetCount();
-            LightEma.RefreshAssetCount();
         }
 
         private void ValidateTextureContainers(AssetType type)
@@ -2697,11 +2688,18 @@ namespace Xv2CoreLib.EffectContainer
             {
                 if (value != this._assetsValue)
                 {
+                    if(value != null)
+                        value.CollectionChanged += Assets_CollectionChanged;
+                    
+                    if(_assetsValue != null)
+                        _assetsValue.CollectionChanged -= Assets_CollectionChanged;
+
                     this._assetsValue = value;
                     NotifyPropertyChanged(nameof(Assets));
                 }
             }
         }
+
 
         #region UiProperties
         //Count
@@ -2792,8 +2790,7 @@ namespace Xv2CoreLib.EffectContainer
         }
 
 
-        //Count Method
-        public void RefreshAssetCount()
+        private void Assets_CollectionChanged(object sender, System.Collections.Specialized.NotifyCollectionChangedEventArgs e)
         {
             NotifyPropertyChanged(nameof(AssetCount));
         }
@@ -3166,6 +3163,8 @@ namespace Xv2CoreLib.EffectContainer
             //Add asset
             Assets.Add(asset);
             undos.Add(new UndoableListAdd<Asset>(Assets, asset));
+
+            NotifyPropertyChanged(nameof(AssetCount));
         }
 
         public void AddAsset(Asset asset)

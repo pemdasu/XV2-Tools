@@ -7,26 +7,18 @@ using Xv2CoreLib.EMP_NEW;
 using Xv2CoreLib.EffectContainer;
 using System.Windows.Input;
 using Xv2CoreLib.Resource.UndoRedo;
-using GalaSoft.MvvmLight.CommandWpf;
 using Xv2CoreLib.Resource;
 using Xv2CoreLib;
+using LB_Common.Mvvm;
+using CommunityToolkit.Mvvm.Input;
 
 namespace EEPK_Organiser.View
 {
     /// <summary>
     /// Interaction logic for EmpEditor.xaml
     /// </summary>
-    public partial class EmpEditor : UserControl, INotifyPropertyChanged
+    public partial class EmpEditor : AutoObservableUserControl
     {
-        #region NotifyPropChanged
-        public event PropertyChangedEventHandler PropertyChanged;
-
-        private void NotifyPropertyChanged(String propertyName = "")
-        {
-            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
-        }
-        #endregion
-
         #region DependencyProperty
         public static readonly DependencyProperty EmpFileProperty = DependencyProperty.Register(nameof(EmpFile), typeof(EMP_File), typeof(EmpEditor), new PropertyMetadata(null));
 
@@ -117,30 +109,30 @@ namespace EEPK_Organiser.View
         }
 
         #region NodeCommands
-        public RelayCommand<int> NewNodeCommand => new RelayCommand<int>(NewNode);
-        private void NewNode(int nodeType)
+        [RelayCommand]
+        private void NewNode(NewNodeType nodeType)
         {
             if (EmpFile == null) return;
 
             AsyncObservableCollection<ParticleNode> nodes = EmpFile.GetParentList(SelectedNode);
-            ParticleNode newNode = ParticleNode.GetNew((NewNodeType)nodeType, nodes);
+            ParticleNode newNode = ParticleNode.GetNew(nodeType, nodes);
             nodes.Add(newNode);
 
             UndoManager.Instance.AddUndo(new UndoableListAdd<ParticleNode>(nodes, newNode, "New Node"));
         }
 
-        public RelayCommand<int> NewNodeChildCommand => new RelayCommand<int>(NewNodeChild);
-        private void NewNodeChild(int nodeType)
+        [RelayCommand]
+        private void NewNodeChild(NewNodeType nodeType)
         {
             if (SelectedNode == null) return;
             AsyncObservableCollection<ParticleNode> nodes = SelectedNode.ChildParticleNodes;
-            ParticleNode newNode = ParticleNode.GetNew((NewNodeType)nodeType, nodes);
+            ParticleNode newNode = ParticleNode.GetNew(nodeType, nodes);
             nodes.Add(newNode);
 
             UndoManager.Instance.AddUndo(new UndoableListAdd<ParticleNode>(nodes, newNode, "New Node"));
         }
 
-        public RelayCommand DuplicateNodeCommand => new RelayCommand(DuplicateNode, IsNodeSelected);
+        [RelayCommand(CanExecute = nameof(IsNodeSelected))]
         private void DuplicateNode()
         {
             AsyncObservableCollection<ParticleNode> nodes = EmpFile.GetParentList(SelectedNode);
@@ -151,7 +143,7 @@ namespace EEPK_Organiser.View
             UndoManager.Instance.AddUndo(new UndoableListAdd<ParticleNode>(nodes, newNode, "Duplicate Node"));
         }
 
-        public RelayCommand DeleteNodeCommand => new RelayCommand(DeleteNode, IsNodeSelected);
+        [RelayCommand(CanExecute = nameof(IsNodeSelected))]
         private void DeleteNode()
         {
             AsyncObservableCollection<ParticleNode> nodes = EmpFile.GetParentList(SelectedNode);
@@ -161,25 +153,25 @@ namespace EEPK_Organiser.View
             UndoManager.Instance.AddUndo(undo);
         }
 
-        public RelayCommand CopyNodeCommand => new RelayCommand(CopyNode, IsNodeSelected);
+        [RelayCommand(CanExecute = nameof(IsNodeSelected))]
         private void CopyNode()
         {
             Clipboard.SetData(EMP_File.CLIPBOARD_NODE, SelectedNode);
         }
 
-        public RelayCommand PasteNodeCommand => new RelayCommand(PasteNode, CanPasteNode);
+        [RelayCommand(CanExecute = nameof(CanPasteNode))]
         private void PasteNode()
         {
             PasteNode(EmpFile.GetParentList(SelectedNode));
         }
 
-        public RelayCommand PasteNodeChildCommand => new RelayCommand(PasteNodeChild, CanPasteNodeChild);
+        [RelayCommand(CanExecute = nameof(CanPasteNodeChild))]
         private void PasteNodeChild()
         {
             PasteNode(SelectedNode.ChildParticleNodes);
         }
 
-        public RelayCommand PasteNodeValuesCommand => new RelayCommand(PasteNodeValues, CanPasteNodeChild);
+        [RelayCommand(CanExecute = nameof(CanPasteNodeChild))]
         private void PasteNodeValues()
         {
             List<IUndoRedo> undos = new List<IUndoRedo>();
@@ -204,7 +196,7 @@ namespace EEPK_Organiser.View
             UndoManager.Instance.AddCompositeUndo(undos, "Paste Node");
         }
 
-        public RelayCommand HueAdjustment_Command => new RelayCommand(HueAdjustment, IsNodeSelected);
+        [RelayCommand(CanExecute = nameof(IsNodeSelected))]
         private void HueAdjustment()
         {
             Window empEditor = ((Grid)System.Windows.Media.VisualTreeHelper.GetParent(this)).DataContext as Window;
@@ -215,7 +207,7 @@ namespace EEPK_Organiser.View
                 recolor.ShowDialog();
         }
 
-        public RelayCommand HueSet_Command => new RelayCommand(HueSet, IsNodeSelected);
+        [RelayCommand(CanExecute = nameof(IsNodeSelected))]
         private void HueSet()
         {
             Window empEditor = ((Grid)System.Windows.Media.VisualTreeHelper.GetParent(this)).DataContext as Window;
@@ -226,7 +218,7 @@ namespace EEPK_Organiser.View
                 recolor.ShowDialog();
         }
 
-        public RelayCommand HideAll_Command => new RelayCommand(HideAll, IsEmpFileLoaded);
+        [RelayCommand(CanExecute = nameof(IsEmpFileLoaded))]
         private void HideAll()
         {
             foreach (var particleEffect in EmpFile.ParticleNodes)
@@ -235,13 +227,13 @@ namespace EEPK_Organiser.View
             }
         }
 
-        public RelayCommand HideAllSelected_Command => new RelayCommand(HideAllSelected, IsNodeSelected);
+        [RelayCommand(CanExecute = nameof(IsNodeSelected))]
         private void HideAllSelected()
         {
             SetHideStatus(SelectedNode, true);
         }
 
-        public RelayCommand ShowAll_Command => new RelayCommand(ShowAll, IsEmpFileLoaded);
+        [RelayCommand(CanExecute = nameof(IsEmpFileLoaded))]
         private void ShowAll()
         {
             foreach (var particleEffect in EmpFile.ParticleNodes)
@@ -250,7 +242,7 @@ namespace EEPK_Organiser.View
             }
         }
 
-        public RelayCommand ShowAllSelected_Command => new RelayCommand(ShowAllSelected, IsNodeSelected);
+        [RelayCommand(CanExecute = nameof(IsNodeSelected))]
         private void ShowAllSelected()
         {
             SetHideStatus(SelectedNode, false);
@@ -267,11 +259,6 @@ namespace EEPK_Organiser.View
         }
 
 
-
-        private bool IsEmpFileLoaded(int i)
-        {
-            return EmpFile != null;
-        }
         private bool IsEmpFileLoaded()
         {
             return EmpFile != null;

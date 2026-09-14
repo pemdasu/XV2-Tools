@@ -1,5 +1,4 @@
 ﻿using System;
-using System.ComponentModel;
 using System.Linq;
 using System.Collections.Generic;
 using System.Windows;
@@ -7,25 +6,17 @@ using System.Windows.Controls;
 using Xv2CoreLib.ECF;
 using Xv2CoreLib.Resource.UndoRedo;
 using EEPK_Organiser.ViewModel;
-using GalaSoft.MvvmLight.CommandWpf;
 using Xv2CoreLib.EffectContainer;
+using LB_Common.Mvvm;
+using CommunityToolkit.Mvvm.Input;
 
 namespace EEPK_Organiser.View.Editors
 {
     /// <summary>
     /// Interaction logic for EcfEditor.xaml
     /// </summary>
-    public partial class EcfEditor : UserControl, INotifyPropertyChanged
+    public partial class EcfEditor : AutoObservableUserControl
     {
-        #region NotifyPropChanged
-        public event PropertyChangedEventHandler PropertyChanged;
-
-        private void NotifyPropertyChanged(String propertyName = "")
-        {
-            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
-        }
-        #endregion
-
         #region DependencyProperty
         public static readonly DependencyProperty EcfFileProperty = DependencyProperty.Register(nameof(EcfFile), typeof(ECF_File), typeof(EcfEditor), new PropertyMetadata(null));
 
@@ -113,7 +104,7 @@ namespace EEPK_Organiser.View.Editors
         #region Commands
         private List<ECF_Node> SelectedNodes => ecfDataGrid.SelectedItems.Cast<ECF_Node>().ToList();
 
-        public RelayCommand AddNodeCommand => new RelayCommand(AddNode, IsEcfLoaded);
+        [RelayCommand(CanExecute = nameof(IsEcfLoaded))]
         private void AddNode()
         {
             ECF_Node node = new ECF_Node();
@@ -122,7 +113,7 @@ namespace EEPK_Organiser.View.Editors
             UndoManager.Instance.AddUndo(new UndoableListAdd<ECF_Node>(EcfFile.Nodes, node, "ECF -> Add Node"));
         }
 
-        public RelayCommand DeleteNodeCommand => new RelayCommand(DeleteNode, IsNodeSelected);
+        [RelayCommand(CanExecute = nameof(IsNodeSelected))]
         private void DeleteNode()
         {
             List<ECF_Node> nodes = SelectedNodes;
@@ -137,13 +128,13 @@ namespace EEPK_Organiser.View.Editors
             UndoManager.Instance.AddCompositeUndo(undos, "ECF -> Delete Node");
         }
 
-        public RelayCommand CopyNodeCommand => new RelayCommand(CopyNode, IsNodeSelected);
+        [RelayCommand(CanExecute = nameof(IsNodeSelected))]
         private void CopyNode()
         {
             Clipboard.SetData(ECF_Node.CLIPBOARD_ID, SelectedNodes);
         }
 
-        public RelayCommand PasteNodeCommand => new RelayCommand(PasteNode, () => Clipboard.ContainsData(ECF_Node.CLIPBOARD_ID) && IsEcfLoaded());
+        [RelayCommand(CanExecute = nameof(IsNodeInClipboard))]
         private void PasteNode()
         {
             List<ECF_Node> nodes = (List<ECF_Node>)Clipboard.GetData(ECF_Node.CLIPBOARD_ID);
@@ -158,7 +149,7 @@ namespace EEPK_Organiser.View.Editors
             UndoManager.Instance.AddCompositeUndo(undos, "ECF -> Paste Node");
         }
 
-        public RelayCommand DuplicateNodeCommand => new RelayCommand(DuplicateNode, IsNodeSelected);
+        [RelayCommand(CanExecute = nameof(IsNodeSelected))]
         private void DuplicateNode()
         {
             List<ECF_Node> nodes = SelectedNodes;
@@ -174,7 +165,7 @@ namespace EEPK_Organiser.View.Editors
             UndoManager.Instance.AddCompositeUndo(undos, "ECF -> Duplicate Node");
         }
 
-        public RelayCommand HueAdjustment_Command => new RelayCommand(HueAdjustment, IsNodeSelected);
+        [RelayCommand(CanExecute = nameof(IsNodeSelected))]
         private void HueAdjustment()
         {
             Window editorWindow = ((Grid)System.Windows.Media.VisualTreeHelper.GetParent(this)).DataContext as Window;
@@ -185,7 +176,7 @@ namespace EEPK_Organiser.View.Editors
                 recolor.ShowDialog();
         }
 
-        public RelayCommand HueSet_Command => new RelayCommand(HueSet, IsNodeSelected);
+        [RelayCommand(CanExecute = nameof(IsNodeSelected))]
         private void HueSet()
         {
             Window editorWindow = ((Grid)System.Windows.Media.VisualTreeHelper.GetParent(this)).DataContext as Window;
@@ -204,6 +195,11 @@ namespace EEPK_Organiser.View.Editors
         private bool IsNodeSelected()
         {
             return SelectedNode != null;
+        }
+        
+        private bool IsNodeInClipboard()
+        {
+            return Clipboard.ContainsData(ECF_Node.CLIPBOARD_ID) && IsEcfLoaded();
         }
         #endregion
     }

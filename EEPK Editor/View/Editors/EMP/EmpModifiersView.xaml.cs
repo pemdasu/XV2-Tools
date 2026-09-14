@@ -1,12 +1,9 @@
-﻿using GalaSoft.MvvmLight.CommandWpf;
+﻿using CommunityToolkit.Mvvm.Input;
+using LB_Common.Mvvm;
 using System;
 using System.Collections.Generic;
-using System.ComponentModel;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using System.Windows;
-using System.Windows.Controls;
 using Xv2CoreLib.EMP_NEW;
 using Xv2CoreLib.EMP_NEW.Keyframes;
 using Xv2CoreLib.Resource;
@@ -17,17 +14,8 @@ namespace EEPK_Organiser.View.Editors.EMP
     /// <summary>
     /// Interaction logic for EmpModifiersView.xaml
     /// </summary>
-    public partial class EmpModifiersView : UserControl, INotifyPropertyChanged
+    public partial class EmpModifiersView : AutoObservableUserControl
     {
-        #region NotifyPropChanged
-        public event PropertyChangedEventHandler PropertyChanged;
-
-        private void NotifyPropertyChanged(string propertyName = "")
-        {
-            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
-        }
-        #endregion
-
         #region DependencyProperty
         public static readonly DependencyProperty ModifiersProperty = DependencyProperty.Register(nameof(Modifiers), typeof(AsyncObservableCollection<EMP_Modifier>), typeof(EmpModifiersView), new PropertyMetadata(ModifiersChangedCallback));
 
@@ -169,18 +157,29 @@ namespace EEPK_Organiser.View.Editors.EMP
         #region Commands
         public List<EMP_Modifier> SelectedModifiers => dataGrid.SelectedItems.Cast<EMP_Modifier>().ToList();
 
-        public RelayCommand<int> AddModifierCommand => new RelayCommand<int>(AddModifier);
-        private void AddModifier(int modifierType)
+        [RelayCommand]
+        private void AddEmpModifier(EMP_Modifier.EmpModifierType modifierType)
+        {
+            AddModifier((byte)modifierType);
+        }
+
+        [RelayCommand]
+        private void AddEtrModifier(EMP_Modifier.EtrModifierType modifierType)
+        {
+            AddModifier((byte)modifierType);
+        }
+
+        private void AddModifier(byte modifierType)
         {
             if (!HasModifiers()) return;
 
-            EMP_Modifier modifier = new EMP_Modifier((byte)modifierType, IsEtr);
+            EMP_Modifier modifier = new EMP_Modifier(modifierType, IsEtr);
             Modifiers.Add(modifier);
 
             UndoManager.Instance.AddUndo(new UndoableListAdd<EMP_Modifier>(Modifiers, modifier, "Add Modifier"));
         }
 
-        public RelayCommand DeleteModifierCommand => new RelayCommand(DeleteModifier, IsModifierSelected);
+        [RelayCommand(CanExecute = nameof(IsModifierSelected))]
         private void DeleteModifier()
         {
             List<IUndoRedo> undos = new List<IUndoRedo>();
@@ -195,7 +194,7 @@ namespace EEPK_Organiser.View.Editors.EMP
             UndoManager.Instance.AddCompositeUndo(undos, "Delete Modifiers");
         }
 
-        public RelayCommand DuplicateModifierCommand => new RelayCommand(DuplicateModifier, IsModifierSelected);
+        [RelayCommand(CanExecute = nameof(IsModifierSelected))]
         private void DuplicateModifier()
         {
             List<IUndoRedo> undos = new List<IUndoRedo>();
@@ -211,13 +210,13 @@ namespace EEPK_Organiser.View.Editors.EMP
             UndoManager.Instance.AddCompositeUndo(undos, "Duplicate Modifiers");
         }
 
-        public RelayCommand CopyModifierCommand => new RelayCommand(CopyModifier, IsModifierSelected);
+        [RelayCommand(CanExecute = nameof(IsModifierSelected))]
         private void CopyModifier()
         {
             Clipboard.SetData(GetClipboardFormat(), SelectedModifiers);
         }
 
-        public RelayCommand PasteModifierCommand => new RelayCommand(PasteModifier, CanPasteModifier);
+        [RelayCommand(CanExecute = nameof(CanPasteModifier))]
         private void PasteModifier()
         {
             List<IUndoRedo> undos = new List<IUndoRedo>();

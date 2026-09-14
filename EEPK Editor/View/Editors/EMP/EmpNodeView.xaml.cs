@@ -1,8 +1,9 @@
-﻿using EEPK_Organiser.Forms;
+﻿using CommunityToolkit.Mvvm.Input;
+using EEPK_Organiser.Forms;
 using EEPK_Organiser.View.Controls;
 using EEPK_Organiser.ViewModel;
-using GalaSoft.MvvmLight.CommandWpf;
 using LB_Common.Forms;
+using LB_Common.Mvvm;
 using Microsoft.Win32;
 using System;
 using System.Collections.Generic;
@@ -24,17 +25,8 @@ namespace EEPK_Organiser.View.Editors.EMP
     /// <summary>
     /// Interaction logic for EmpNodeView.xaml
     /// </summary>
-    public partial class EmpNodeView : UserControl, INotifyPropertyChanged
+    public partial class EmpNodeView : AutoObservableUserControl
     {
-        #region NotifyPropChanged
-        public event PropertyChangedEventHandler PropertyChanged;
-
-        private void NotifyPropertyChanged(string propertyName = "")
-        {
-            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
-        }
-        #endregion
-
         #region DependencyProperty
         public static readonly DependencyProperty NodeProperty = DependencyProperty.Register(nameof(Node), typeof(ParticleNode), typeof(EmpNodeView), new PropertyMetadata(OnDpChanged));
 
@@ -251,22 +243,23 @@ namespace EEPK_Organiser.View.Editors.EMP
         }
 
         #region Texture
-        public RelayCommand TexturePart_RemoveMaterialCommand => new RelayCommand(Material_RemoveMaterialReference, HasMaterial);
-        private void Material_RemoveMaterialReference()
+        [RelayCommand(CanExecute = nameof(HasMaterial))]
+        private void TexturePart_RemoveMaterial()
         {
-            UndoManager.Instance.AddUndo(new UndoableProperty<ParticleTexture>(nameof(ParticleTexture.MaterialRef), Node.EmissionNode.Texture, Node.EmissionNode.Texture.MaterialRef, null, "Remove Material"));
-            Node.EmissionNode.Texture.MaterialRef = null;
+            //UndoManager.Instance.AddUndo(new UndoableProperty<ParticleTexture>(nameof(ParticleTexture.MaterialRef), Node.EmissionNode.Texture, Node.EmissionNode.Texture.MaterialRef, null, "Remove Material"));
+            //Node.EmissionNode.Texture.MaterialRef = null;
+            NodeViewModel.MaterialRef = null;
         }
 
-        public RelayCommand TexturePart_GotoMaterialCommand => new RelayCommand(Material_Goto, HasMaterial);
-        private void Material_Goto()
+        [RelayCommand(CanExecute = nameof(HasMaterial))]
+        private void TexturePart_GotoMaterial()
         {
-            MaterialsEditorForm emmForm = EepkEditor.PBIND_OpenMaterialEditor(AssetContainer, Xv2CoreLib.EEPK.AssetType.PBIND);
+            MaterialsEditorForm emmForm = EepkEditor.AssetContainerOpenMaterialForm(AssetContainer, Xv2CoreLib.EEPK.AssetType.PBIND);
             emmForm.materialsEditor.SelectedMaterial = Node.EmissionNode.Texture.MaterialRef;
             emmForm.materialsEditor.materialDataGrid.ScrollIntoView(Node.EmissionNode.Texture.MaterialRef);
         }
 
-        public RelayCommand<int> TexturePart_RemoveTextureCommand => new RelayCommand<int>(TexturePart_RemoveTexture);
+        [RelayCommand(CanExecute = nameof(HasTextureRef))]
         private void TexturePart_RemoveTexture(int textureIndex)
         {
             if (!HasTextureRef(textureIndex)) return;
@@ -275,7 +268,7 @@ namespace EEPK_Organiser.View.Editors.EMP
             textureRef.UndoableTextureRef = null;
         }
 
-        public RelayCommand<int> TexturePart_GotoTextureCommand => new RelayCommand<int>(TexturePart_GotoTexture);
+        [RelayCommand(CanExecute = nameof(HasTextureRef))]
         private void TexturePart_GotoTexture(int textureIndex)
         {
             if (!HasTextureRef(textureIndex)) return;
@@ -297,6 +290,7 @@ namespace EEPK_Organiser.View.Editors.EMP
 
         private bool HasTextureRef(int texIndex)
         {
+            return true;
             return IsNodeSelected() ? Node.EmissionNode.Texture.TextureEntryRef[texIndex].TextureRef != null : false;
         }
 
@@ -309,7 +303,7 @@ namespace EEPK_Organiser.View.Editors.EMP
         #region ShapeDraw
         public ShapePointRef SelectedShapeDrawPoint { get; set; } = new ShapePointRef();
 
-        public RelayCommand NewShapeDrawPointCommand => new RelayCommand(NewShapeDrawPoint, IsNodeSelected);
+        [RelayCommand(CanExecute = nameof(IsNodeSelected))]
         private void NewShapeDrawPoint()
         {
             ShapeDrawPoint newPoint = new ShapeDrawPoint();
@@ -320,7 +314,7 @@ namespace EEPK_Organiser.View.Editors.EMP
             SelectedShapeDrawPoint.Point = newPoint;
         }
 
-        public RelayCommand DeleteShapeDrawPointCommand => new RelayCommand(DeleteShapeDrawPoint, IsPointSelected);
+        [RelayCommand(CanExecute = nameof(IsPointSelected))]
         private void DeleteShapeDrawPoint()
         {
             List<ShapeDrawPoint> selectedPoints = shapeDrawPointDataGrid.SelectedItems.Cast<ShapeDrawPoint>().ToList();
@@ -337,14 +331,14 @@ namespace EEPK_Organiser.View.Editors.EMP
             UndoManager.Instance.AddCompositeUndo(undos, "Shape Draw -> Delete Point");
         }
 
-        public RelayCommand CopyShapeDrawPointCommand => new RelayCommand(CopyShapeDrawPoint, IsPointSelected);
+        [RelayCommand(CanExecute = nameof(IsPointSelected))]
         private void CopyShapeDrawPoint()
         {
             List<ShapeDrawPoint> selectedPoints = shapeDrawPointDataGrid.SelectedItems.Cast<ShapeDrawPoint>().ToList();
             Clipboard.SetData(EMP_File.CLIPBOARD_SHAP_DRAW_POINT, selectedPoints);
         }
 
-        public RelayCommand PasteShapeDrawPointCommand => new RelayCommand(PasteShapeDrawPoint, () => Clipboard.ContainsData(EMP_File.CLIPBOARD_SHAP_DRAW_POINT) && IsNodeSelected());
+        [RelayCommand(CanExecute = nameof(IsShapeDrawInClipboard))]
         private void PasteShapeDrawPoint()
         {
             List<ShapeDrawPoint> points = (List<ShapeDrawPoint>)Clipboard.GetData(EMP_File.CLIPBOARD_SHAP_DRAW_POINT);
@@ -364,7 +358,7 @@ namespace EEPK_Organiser.View.Editors.EMP
             }
         }
 
-        public RelayCommand PasteShapeDrawPointValuesCommand => new RelayCommand(PasteShapeDrawPointValues, () => Clipboard.ContainsData(EMP_File.CLIPBOARD_SHAP_DRAW_POINT) && IsPointSelected());
+        [RelayCommand(CanExecute = nameof(IsShapeDrawInClipboard))]
         private void PasteShapeDrawPointValues()
         {
             List<ShapeDrawPoint> points = (List<ShapeDrawPoint>)Clipboard.GetData(EMP_File.CLIPBOARD_SHAP_DRAW_POINT);
@@ -393,10 +387,14 @@ namespace EEPK_Organiser.View.Editors.EMP
             return SelectedShapeDrawPoint?.Point != null;
         }
 
+        private bool IsShapeDrawInClipboard()
+        {
+            return Clipboard.ContainsData(EMP_File.CLIPBOARD_SHAP_DRAW_POINT) && IsNodeSelected();
+        }
         #endregion
 
         #region Mesh
-        public RelayCommand Mesh_ImportMeshCommand => new RelayCommand(Mesh_ImportMesh, IsNodeSelected);
+        [RelayCommand(CanExecute = nameof(IsNodeSelected))]
         private void Mesh_ImportMesh()
         {
             OpenFileDialog openFile = new OpenFileDialog();
@@ -472,7 +470,7 @@ namespace EEPK_Organiser.View.Editors.EMP
             }
         }
 
-        public RelayCommand Mesh_ExportMeshCommand => new RelayCommand(Mesh_ExportMesh, () => Node?.EmissionNode?.Mesh?.EmgFile != null);
+        [RelayCommand(CanExecute = nameof(HasMeshData))]
         private void Mesh_ExportMesh()
         {
             SaveFileDialog saveFile = new SaveFileDialog();
@@ -489,13 +487,13 @@ namespace EEPK_Organiser.View.Editors.EMP
             }
         }
 
-        public RelayCommand Mesh_CopyMeshCommand => new RelayCommand(Mesh_CopyMesh, () => Node?.EmissionNode?.Mesh?.EmgFile != null);
+        [RelayCommand(CanExecute = nameof(HasMeshData))]
         private void Mesh_CopyMesh()
         {
             Clipboard.SetData(EMG_File.CLIPBOARD_ID, Node.EmissionNode.Mesh.EmgFile);
         }
 
-        public RelayCommand Mesh_PasteMeshCommand => new RelayCommand(Mesh_PasteMesh, () => Clipboard.ContainsData(EMG_File.CLIPBOARD_ID));
+        [RelayCommand(CanExecute = nameof(IsMeshInClipboard))]
         private void Mesh_PasteMesh()
         {
             EMG_File emg = (EMG_File)Clipboard.GetData(EMG_File.CLIPBOARD_ID);
@@ -503,6 +501,16 @@ namespace EEPK_Organiser.View.Editors.EMP
             UndoManager.Instance.AddUndo(new UndoablePropertyGeneric(nameof(ParticleStaticMesh.EmgFile), Node.EmissionNode.Mesh, Node.EmissionNode.Mesh.EmgFile, emg, "Paste Static Mesh"));
             Node.EmissionNode.Mesh.EmgFile = emg;
             NodeViewModel?.UpdateProperties();
+        }
+
+        private bool IsMeshInClipboard()
+        {
+            return Clipboard.ContainsData(EMG_File.CLIPBOARD_ID);
+        }
+
+        private bool HasMeshData()
+        {
+            return Node?.EmissionNode?.Mesh?.EmgFile != null;
         }
         #endregion
 
@@ -521,7 +529,7 @@ namespace EEPK_Organiser.View.Editors.EMP
             }
         }
 
-        public RelayCommand NewExtrudePointCommand => new RelayCommand(NewExtrudePoint, IsNodeSelected);
+        [RelayCommand(CanExecute = nameof(IsNodeSelected))]
         private void NewExtrudePoint()
         {
             ConeExtrudePoint newPoint = new ConeExtrudePoint();
@@ -532,7 +540,7 @@ namespace EEPK_Organiser.View.Editors.EMP
             SelectedExtrudePoint = newPoint;
         }
 
-        public RelayCommand DeleteExtrudePointCommand => new RelayCommand(DeleteExtrudePoint, CanDeleteExtrudePoint);
+        [RelayCommand(CanExecute = nameof(CanDeleteExtrudePoint))]
         private void DeleteExtrudePoint()
         {
             List<ConeExtrudePoint> selectedPoints = extrudeDataGrid.SelectedItems.Cast<ConeExtrudePoint>().ToList();
@@ -549,15 +557,14 @@ namespace EEPK_Organiser.View.Editors.EMP
             UndoManager.Instance.AddCompositeUndo(undos, "Cone Extrude -> Delete Point");
         }
 
-        public RelayCommand CopyExtrudePointCommand => new RelayCommand(CopyExtrudePoint, () => SelectedExtrudePoint != null);
+        [RelayCommand(CanExecute = nameof(IsExtrudePointSelected))]
         private void CopyExtrudePoint()
         {
             List<ConeExtrudePoint> selectedPoints = extrudeDataGrid.SelectedItems.Cast<ConeExtrudePoint>().ToList();
             Clipboard.SetData(EMP_File.CLIPBOARD_CONE_EXTRUSION, selectedPoints);
         }
 
-
-        public RelayCommand PasteExtrudePointCommand => new RelayCommand(PasteExtrudePoint, () => Clipboard.ContainsData(EMP_File.CLIPBOARD_CONE_EXTRUSION));
+        [RelayCommand(CanExecute = nameof(IsExtrudePointInClipboard))]
         private void PasteExtrudePoint()
         {
             List<ConeExtrudePoint> points = (List<ConeExtrudePoint>)Clipboard.GetData(EMP_File.CLIPBOARD_CONE_EXTRUSION);
@@ -581,6 +588,16 @@ namespace EEPK_Organiser.View.Editors.EMP
         {
             if (SelectedExtrudePoint == null || Node == null) return false;
             return Node.EmissionNode.ConeExtrude.Points.IndexOf(SelectedExtrudePoint) != 0;
+        }
+
+        private bool IsExtrudePointInClipboard()
+        {
+            return Clipboard.ContainsData(EMP_File.CLIPBOARD_CONE_EXTRUSION);
+        }
+
+        private bool IsExtrudePointSelected()
+        {
+            return SelectedExtrudePoint != null;
         }
         #endregion
     }

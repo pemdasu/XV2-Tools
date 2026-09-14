@@ -1,13 +1,13 @@
-﻿using System;
+﻿using LB_Common.Mvvm;
+using LB_Common.Numbers;
+using System;
 using System.Reflection;
 using Xv2CoreLib.EMM;
 using Xv2CoreLib.Resource.UndoRedo;
-using LB_Common.Numbers;
-using GalaSoft.MvvmLight;
 
 namespace EEPK_Organiser.ViewModel
 {
-    public class MaterialViewModel : ObservableObject, IDisposable
+    public class MaterialViewModel : AutoObservableObject, IDisposable
     {
         private static readonly DecompiledMaterial DefaultDecompiledMaterial = DecompiledMaterial.Default();
         private DecompiledMaterial _material;

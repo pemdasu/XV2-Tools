@@ -1,4 +1,4 @@
-﻿<UserControl x:Class="EEPK_Organiser.View.EepkEditor"
+﻿<mvvm:AutoObservableUserControl x:Class="EEPK_Organiser.View.EepkEditor"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
@@ -8,10 +8,12 @@
              xmlns:lbUtils="clr-namespace:LB_Common.Utils;assembly=LB_Common"
              xmlns:eepk="clr-namespace:Xv2CoreLib.EEPK;assembly=Xv2CoreLib"
              xmlns:sys="clr-namespace:System;assembly=mscorlib"
+             xmlns:mvvm="clr-namespace:LB_Common.Mvvm;assembly=LB_Common"
+             xmlns:forms="clr-namespace:EEPK_Organiser.Forms"
              xmlns:Controls="clr-namespace:MahApps.Metro.Controls;assembly=MahApps.Metro"
              mc:Ignorable="d" 
              d:DesignHeight="600" d:DesignWidth="1050" Dialog:DialogParticipation.Register="{Binding}" Name="UserControl">
-    <UserControl.Resources>
+    <mvvm:AutoObservableUserControl.Resources>
         <ObjectDataProvider x:Key="PlacementEnum" MethodName="GetValues" ObjectType="{x:Type sys:Enum}">
             <ObjectDataProvider.MethodParameters>
                 <x:Type TypeName="eepk:EffectPart+Attachment"/>
@@ -61,13 +63,13 @@
                 </Setter.Value>
             </Setter>
         </Style>
-    
-    </UserControl.Resources>
+
+    </mvvm:AutoObservableUserControl.Resources>
     <Grid x:Name="rootGrid">
         <Grid.Resources>
             <lbUtils:BindingProxy x:Key="proxy" Data="{Binding}"/>
         </Grid.Resources>
-        
+
         <TabControl x:Name="tabControl" SelectionChanged="TabControl_SelectionChanged" Controls:TabControlHelper.Underlined="TabItems" IsEnabled="{Binding IsFileLoaded}" Margin="0, 4">
 
             <Controls:MetroTabItem Header="EFFECT" Controls:HeaderedControlHelper.HeaderFontSize="14">
@@ -78,35 +80,37 @@
                         <ColumnDefinition Width="*" MinWidth="500" MaxWidth="800"/>
                     </Grid.ColumnDefinitions>
 
-                    <DataGrid x:Name="effectDataGrid" Grid.Column="1" Tag="{Binding DataContext, ElementName=rootGrid}" SelectionChanged="effectDataGrid_SelectionChanged" VirtualizingPanel.ScrollUnit="Pixel"
+                    <DataGrid x:Name="effectDataGrid" Grid.Column="1" Tag="{Binding DataContext, ElementName=rootGrid}" SelectionChanged="EffectDataGrid_SelectionChanged" VirtualizingPanel.ScrollUnit="Pixel"
                               ItemsSource="{Binding effectContainerFile.ViewEffects}" SelectedItem="{Binding SelectedEffect, UpdateSourceTrigger=PropertyChanged}" EnableRowVirtualization="True" 
                               EnableColumnVirtualization="True" SelectionMode="Extended" CanUserResizeRows="False" CanUserAddRows="False" 
-                              AutoGenerateColumns="False" CanUserDeleteRows="False" PreviewKeyDown="effectDataGrid_PreviewKeyDown" CellEditEnding="effectDataGrid_CellEditEnding"
+                              AutoGenerateColumns="False" CanUserDeleteRows="False" CellEditEnding="EffectDataGrid_CellEditEnding"
                               HeadersVisibility="Row" RowHeaderWidth="25" RowDetailsVisibilityMode="Collapsed" RowHeaderStyle="{DynamicResource ExpandableDataGridHeaderStyle}"
                               SelectionUnit="FullRow">
                         <DataGrid.InputBindings>
-                            <KeyBinding Key="Delete" Command="{Binding Effect_DeleteEffect_Command}"/>
-                            <KeyBinding Key="N" Modifiers="Ctrl" Command="{Binding EffectOptions_AddEffect_Command}"/>
-                            <KeyBinding Key="C" Modifiers="Ctrl" Command="{Binding Effect_Copy_Command}"/>
-                            <KeyBinding Key="V" Modifiers="Ctrl" Command="{Binding Effect_Paste_Command}"/>
-                            <KeyBinding Key="D" Modifiers="Ctrl" Command="{Binding Effect_Duplicate_Command}"/>
+                            <KeyBinding Key="Delete" Command="{Binding ElementName=UserControl, Path=Effect_DeleteEffectCommand}"/>
+                            <KeyBinding Key="N" Modifiers="Ctrl" Command="{Binding ElementName=UserControl, Path=EffectNewCommand}"/>
+                            <KeyBinding Key="C" Modifiers="Ctrl" Command="{Binding ElementName=UserControl, Path=Effect_CopyCommand}"/>
+                            <KeyBinding Key="V" Modifiers="Ctrl" Command="{Binding ElementName=UserControl, Path=Effect_PasteCommand}"/>
+                            <KeyBinding Key="D" Modifiers="Ctrl" Command="{Binding ElementName=UserControl, Path=Effect_DuplicateCommand}"/>
+                            <KeyBinding Key="F2" Command="{Binding ElementName=UserControl, Path=EffectRenameBeginCommand}"/>
+                            <KeyBinding Key="Return" Command="{Binding ElementName=UserControl, Path=EffectRenameCommitCommand}"/>
                         </DataGrid.InputBindings>
 
                         <DataGrid.ContextMenu>
                             <ContextMenu FontSize="12">
-                                <MenuItem Header="Rename" Command="{Binding PlacementTarget.Tag.Effect_Name_Command, RelativeSource={RelativeSource AncestorType=ContextMenu}}"/> 
-                                <MenuItem Header="Play" Command="{Binding PlacementTarget.Tag.Effect_Play_Command, RelativeSource={RelativeSource AncestorType=ContextMenu}}" Visibility="{Binding PlacementTarget.Tag.XenoKitVisible, RelativeSource={RelativeSource AncestorType=ContextMenu}}"/>
+                                <MenuItem Header="Rename" Command="{Binding PlacementTarget.Tag.EffectRenameBeginCommand, RelativeSource={RelativeSource AncestorType=ContextMenu}}"/>
+                                <MenuItem Header="Play" Command="{Binding PlacementTarget.Tag.PlaySelectedEffectCommand, RelativeSource={RelativeSource AncestorType=ContextMenu}}" Visibility="{Binding PlacementTarget.Tag.XenoKitVisible, RelativeSource={RelativeSource AncestorType=ContextMenu}}"/>
                                 <Separator/>
 
-                                <MenuItem Header="New Effect Part" Command="{Binding PlacementTarget.Tag.Effect_AddEffectPart_Command, RelativeSource={RelativeSource AncestorType=ContextMenu}}"/>
-                                <MenuItem Header="Paste Effect Part" Command="{Binding PlacementTarget.Tag.EffectPart_Paste_Command, RelativeSource={RelativeSource AncestorType=ContextMenu}}"/>
+                                <MenuItem Header="New Effect Part" Command="{Binding PlacementTarget.Tag.Effect_AddEffectPartCommand, RelativeSource={RelativeSource AncestorType=ContextMenu}}"/>
+                                <MenuItem Header="Paste Effect Part" Command="{Binding PlacementTarget.Tag.EffectPart_PasteCommand, RelativeSource={RelativeSource AncestorType=ContextMenu}}"/>
                                 <Separator/>
-                                <MenuItem Header="Copy" Command="{Binding PlacementTarget.Tag.Effect_Copy_Command, RelativeSource={RelativeSource AncestorType=ContextMenu}}"/>
-                                <MenuItem Header="Paste" Command="{Binding PlacementTarget.Tag.Effect_Paste_Command, RelativeSource={RelativeSource AncestorType=ContextMenu}}"/>
-                                <MenuItem Header="Delete" Command="{Binding PlacementTarget.Tag.Effect_DeleteEffect_Command, RelativeSource={RelativeSource AncestorType=ContextMenu}}"/>
-                                <MenuItem Header="Duplicate" Command="{Binding PlacementTarget.Tag.Effect_Duplicate_Command, RelativeSource={RelativeSource AncestorType=ContextMenu}}"/>
+                                <MenuItem Header="Copy" Command="{Binding PlacementTarget.Tag.Effect_CopyCommand, RelativeSource={RelativeSource AncestorType=ContextMenu}}"/>
+                                <MenuItem Header="Paste" Command="{Binding PlacementTarget.Tag.Effect_PasteCommand, RelativeSource={RelativeSource AncestorType=ContextMenu}}"/>
+                                <MenuItem Header="Delete" Command="{Binding PlacementTarget.Tag.Effect_DeleteEffectCommand, RelativeSource={RelativeSource AncestorType=ContextMenu}}"/>
+                                <MenuItem Header="Duplicate" Command="{Binding PlacementTarget.Tag.Effect_DuplicateCommand, RelativeSource={RelativeSource AncestorType=ContextMenu}}"/>
                                 <Separator/>
-                                <MenuItem Header="Export" Command="{Binding PlacementTarget.Tag.Effect_Export_Command, RelativeSource={RelativeSource AncestorType=ContextMenu}}"/>
+                                <MenuItem Header="Export" Command="{Binding PlacementTarget.Tag.Effect_ExportCommand, RelativeSource={RelativeSource AncestorType=ContextMenu}}"/>
                             </ContextMenu>
                         </DataGrid.ContextMenu>
                         <DataGrid.Columns>
@@ -128,7 +132,7 @@
 
                         <DataGrid.RowDetailsTemplate>
                             <DataTemplate>
-                                <ListBox Tag="{Binding DataContext, ElementName=rootGrid}" BorderBrush="{DynamicResource MahApps.Brushes.Accent2}" PreviewMouseWheel="ListBox_PreviewMouseWheel" BorderThickness="1" SelectionChanged="effectPart_SelectionChanged" MouseDoubleClick="EffectPart_DoubleClick" MouseLeftButtonUp="ListBox_MouseLeftButtonUp" MouseRightButtonUp="ListBox_MouseRightButtonUp" VirtualizingPanel.ScrollUnit="Pixel" ItemsSource="{Binding EffectParts.Binding}" SelectionMode="Extended" SelectedItem="{Binding SelectedEffectPart, UpdateSourceTrigger=PropertyChanged}" lbUtils:AttachedProperties.SelectedItems="{Binding SelectedEffectParts}">
+                                <ListBox Tag="{Binding DataContext, ElementName=rootGrid}" BorderBrush="{DynamicResource MahApps.Brushes.Accent2}" MouseDoubleClick="EffectPartListBox_MouseDoubleClick" PreviewMouseWheel="ListBox_PreviewMouseWheel" BorderThickness="1" SelectionChanged="EffectPart_SelectionChanged" VirtualizingPanel.ScrollUnit="Pixel" ItemsSource="{Binding EffectParts.Binding}" SelectionMode="Extended" SelectedItem="{Binding SelectedEffectPart, UpdateSourceTrigger=PropertyChanged}" lbUtils:AttachedProperties.SelectedItems="{Binding SelectedEffectParts}">
 
                                     <ListBox.ItemTemplate>
                                         <DataTemplate>
@@ -142,27 +146,28 @@
                                     </ListBox.ItemTemplate>
 
                                     <ListBox.InputBindings>
-                                        <KeyBinding Modifiers="Ctrl" Key="N" Command="{Binding Data.Effect_AddEffectPart_Command, Source={StaticResource proxy}}"/>
-                                        <KeyBinding Modifiers="Ctrl" Key="C" Command="{Binding Data.EffectPart_Copy_Command, Source={StaticResource proxy}}"/>
-                                        <KeyBinding Modifiers="Ctrl" Key="V" Command="{Binding Data.EffectPart_Paste_Command, Source={StaticResource proxy}}"/>
-                                        <KeyBinding Modifiers="Ctrl" Key="X" Command="{Binding Data.EffectPart_PasteValues_Command, Source={StaticResource proxy}}"/>
-                                        <KeyBinding Modifiers="Ctrl" Key="D" Command="{Binding Data.EffectPart_Duplicate_Command, Source={StaticResource proxy}}"/>
-                                        <KeyBinding Key="Delete" Command="{Binding Data.EffectPart_Delete_Command, Source={StaticResource proxy}}"/>
+                                        <KeyBinding Modifiers="Ctrl" Key="N" Command="{Binding Data.Effect_AddEffectPartCommand, Source={StaticResource proxy}}"/>
+                                        <KeyBinding Modifiers="Ctrl" Key="C" Command="{Binding Data.EffectPart_CopyCommand, Source={StaticResource proxy}}"/>
+                                        <KeyBinding Modifiers="Ctrl" Key="V" Command="{Binding Data.EffectPart_PasteCommand, Source={StaticResource proxy}}"/>
+                                        <KeyBinding Modifiers="Ctrl" Key="X" Command="{Binding Data.EffectPart_PasteValuesCommand, Source={StaticResource proxy}}"/>
+                                        <KeyBinding Modifiers="Ctrl" Key="D" Command="{Binding Data.EffectPart_DuplicateCommand, Source={StaticResource proxy}}"/>
+                                        <KeyBinding Key="Delete" Command="{Binding Data.EffectPart_DeleteCommand, Source={StaticResource proxy}}"/>
+                                        <KeyBinding Key="Return" Command="{Binding Data.EffectPart_DoubleClickCommand, Source={StaticResource proxy}}"/>
                                     </ListBox.InputBindings>
                                     <ListBox.ContextMenu>
                                         <ContextMenu FontSize="12">
-                                            <MenuItem Header="New" Command="{Binding Data.Effect_AddEffectPart_Command, Source={StaticResource proxy}}"/>
-                                            <MenuItem Header="Delete" Command="{Binding Data.EffectPart_Delete_Command, Source={StaticResource proxy}}"/>
-                                            <MenuItem Header="Duplicate" Command="{Binding Data.EffectPart_Duplicate_Command, Source={StaticResource proxy}}"/>
-                                            <MenuItem Header="Copy" Command="{Binding Data.EffectPart_Copy_Command, Source={StaticResource proxy}}"/>
-                                            <MenuItem Header="Paste" Command="{Binding Data.EffectPart_Paste_Command, Source={StaticResource proxy}}"/>
-                                            <MenuItem Header="Paste Value" Command="{Binding Data.EffectPart_PasteValues_Command, Source={StaticResource proxy}}"/>
+                                            <MenuItem Header="New" Command="{Binding Data.Effect_AddEffectPartCommand, Source={StaticResource proxy}}"/>
+                                            <MenuItem Header="Delete" Command="{Binding Data.EffectPart_DeleteCommand, Source={StaticResource proxy}}"/>
+                                            <MenuItem Header="Duplicate" Command="{Binding Data.EffectPart_DuplicateCommand, Source={StaticResource proxy}}"/>
+                                            <MenuItem Header="Copy" Command="{Binding Data.EffectPart_CopyCommand, Source={StaticResource proxy}}"/>
+                                            <MenuItem Header="Paste" Command="{Binding Data.EffectPart_PasteCommand, Source={StaticResource proxy}}"/>
+                                            <MenuItem Header="Paste Value" Command="{Binding Data.EffectPart_PasteValuesCommand, Source={StaticResource proxy}}"/>
                                             <Separator/>
-                                            <MenuItem Header="Rescale" Command="{Binding Data.EffectPart_Rescale_Command, Source={StaticResource proxy}}"/>
-                                            <MenuItem Header="Change Asset" Command="{Binding Data.EffectPart_ChangeAsset_Command, Source={StaticResource proxy}}"/>
+                                            <MenuItem Header="Rescale" Command="{Binding Data.EffectPart_RescaleCommand, Source={StaticResource proxy}}"/>
+                                            <MenuItem Header="Change Asset" Command="{Binding Data.EffectPart_ChangeAssetCommand, Source={StaticResource proxy}}"/>
                                             <Separator/>
-                                            <MenuItem Header="Go To Asset" Command="{Binding Data.EffectPart_GoToAsset_Command, Source={StaticResource proxy}}"/>
-                                            <MenuItem Header="Edit Asset" Command="{Binding Data.EffectPart_EditAsset_Command, Source={StaticResource proxy}}"/>
+                                            <MenuItem Header="Go To Asset" Command="{Binding Data.EffectPart_GoToAssetCommand, Source={StaticResource proxy}}"/>
+                                            <MenuItem Header="Edit Asset" Command="{Binding Data.EffectPart_EditAssetCommand, Source={StaticResource proxy}}"/>
                                         </ContextMenu>
                                     </ListBox.ContextMenu>
                                 </ListBox>
@@ -184,7 +189,7 @@
                                                 </Grid.ColumnDefinitions>
                                                 <Label Content="Asset"/>
                                                 <TextBox Grid.Column="1" IsEnabled="False" Text="{Binding SelectedEffect.SelectedEffectPart.AssetRefDetails, Mode=OneWay}" IsReadOnly="True"  TextWrapping="NoWrap" VerticalAlignment="Top"/>
-                                                <Button Grid.Column="2" Margin="5,0" Command="{Binding EffectPart_ChangeAsset_Command}" Content="Change"/>
+                                                <Button Grid.Column="2" Margin="5,0" Command="{Binding EffectPart_ChangeAssetCommand}" Content="Change"/>
                                             </Grid>
                                         </StackPanel>
 
@@ -195,7 +200,7 @@
                                                     <ColumnDefinition Width="*"/>
                                                 </Grid.ColumnDefinitions>
                                                 <Label Content="Start Time"/>
-                                                <Controls:NumericUpDown Grid.Column="1" Value="{Binding effectPartViewModel.StartTime, UpdateSourceTrigger=PropertyChanged}" Minimum="0"/>
+                                                <Controls:NumericUpDown Grid.Column="1" Value="{Binding EffectPartViewModel.StartTime, UpdateSourceTrigger=PropertyChanged}" Minimum="0"/>
                                             </Grid>
                                             <Grid Margin="3,5,0,0" Width="250">
                                                 <Grid.ColumnDefinitions>
@@ -203,7 +208,7 @@
                                                     <ColumnDefinition Width="*"/>
                                                 </Grid.ColumnDefinitions>
                                                 <Label Content="Deactivation" ToolTip="Controls how this effect will be externally deactivated (from BAC, BSA, DEM...). Regardless of this setting the effect will be deactivated when it naturally ends, as long as it is not looped.&#x0a;&#x0a;Never:&#x0a;This effect can not be deactivated&#x0a;&#x0a;Immediate:&#x0a;This effect will immediately end when deactivated&#x0a;&#x0a;Loop Cancel:&#x0a;This effect will end when deactivated, but not immediately. &#x0a;[PBIND] Looped particles will end immediately, however any non-looped particles will remain active for their remaining lifetime, and can still create new (non-looped) particles."/>
-                                                <ComboBox Grid.Column="1" SelectedIndex="{Binding effectPartViewModel.Deactivation, UpdateSourceTrigger=PropertyChanged}">
+                                                <ComboBox Grid.Column="1" SelectedIndex="{Binding EffectPartViewModel.Deactivation, UpdateSourceTrigger=PropertyChanged}">
                                                     <ComboBoxItem Content="Never"/>
                                                     <ComboBoxItem Content="Immediate"/>
                                                     <ComboBoxItem Content="Loop Cancel"/>
@@ -218,7 +223,7 @@
                                                     <ColumnDefinition Width="*"/>
                                                 </Grid.ColumnDefinitions>
                                                 <Label Content="Attachment"/>
-                                                <ComboBox Grid.Column="1" SelectedItem="{Binding effectPartViewModel.Attachment, UpdateSourceTrigger=PropertyChanged}" ItemsSource="{Binding Source={StaticResource ResourceKey=PlacementEnum}}"/>
+                                                <ComboBox Grid.Column="1" SelectedItem="{Binding EffectPartViewModel.Attachment, UpdateSourceTrigger=PropertyChanged}" ItemsSource="{Binding Source={StaticResource ResourceKey=PlacementEnum}}"/>
                                             </Grid>
                                             <Grid Margin="3,5,0,0" Width="250">
                                                 <Grid.ColumnDefinitions>
@@ -226,7 +231,7 @@
                                                     <ColumnDefinition Width="*"/>
                                                 </Grid.ColumnDefinitions>
                                                 <Label Content="Attachment Bone"/>
-                                                <ComboBox Grid.Column="1" IsEditable="True" Text="{Binding effectPartViewModel.ESK, UpdateSourceTrigger=LostFocus}" ItemsSource="{x:Static eepk:EffectPart.CommonBones}"/>
+                                                <ComboBox Grid.Column="1" IsEditable="True" Text="{Binding EffectPartViewModel.ESK, UpdateSourceTrigger=LostFocus}" ItemsSource="{x:Static eepk:EffectPart.CommonBones}"/>
                                             </Grid>
                                         </StackPanel>
                                         <StackPanel Orientation="Horizontal">
@@ -236,7 +241,7 @@
                                                     <ColumnDefinition Width="*"/>
                                                 </Grid.ColumnDefinitions>
                                                 <Label Content="Orientation Type"/>
-                                                <ComboBox Grid.Column="1" SelectedItem="{Binding effectPartViewModel.OrientationType, UpdateSourceTrigger=PropertyChanged}" ItemsSource="{Binding Source={StaticResource ResourceKey=OrientationEnum}}"/>
+                                                <ComboBox Grid.Column="1" SelectedItem="{Binding EffectPartViewModel.OrientationType, UpdateSourceTrigger=PropertyChanged}" ItemsSource="{Binding Source={StaticResource ResourceKey=OrientationEnum}}"/>
                                             </Grid>
                                             <Grid Margin="3,3,0,0" Width="250">
                                                 <Grid.ColumnDefinitions>
@@ -244,9 +249,9 @@
                                                     <ColumnDefinition Width="*"/>
                                                 </Grid.ColumnDefinitions>
                                                 <Label Content="Direction"/>
-                                                <Controls:NumericUpDown Grid.Column="1" Value="{Binding effectPartViewModel.I_06, UpdateSourceTrigger=PropertyChanged}" Maximum="2" Minimum="0"/>
+                                                <Controls:NumericUpDown Grid.Column="1" Value="{Binding EffectPartViewModel.I_06, UpdateSourceTrigger=PropertyChanged}" Maximum="2" Minimum="0"/>
                                             </Grid>
-                                            
+
                                         </StackPanel>
 
                                         <WrapPanel>
@@ -256,7 +261,7 @@
                                                     <ColumnDefinition Width="*"/>
                                                 </Grid.ColumnDefinitions>
                                                 <Label Content="Near Fade Distance"/>
-                                                <Controls:NumericUpDown Grid.Column="1" Value="{Binding effectPartViewModel.F_84, UpdateSourceTrigger=PropertyChanged}" StringFormat="0.00" Interval="0.05"/>
+                                                <Controls:NumericUpDown Grid.Column="1" Value="{Binding EffectPartViewModel.F_84, UpdateSourceTrigger=PropertyChanged}" StringFormat="0.00" Interval="0.05"/>
                                             </Grid>
                                             <Grid Margin="3,5,0,0" Width="250">
                                                 <Grid.ColumnDefinitions>
@@ -264,7 +269,7 @@
                                                     <ColumnDefinition Width="*"/>
                                                 </Grid.ColumnDefinitions>
                                                 <Label Content="Far Fade Distance"/>
-                                                <Controls:NumericUpDown Grid.Column="1" Value="{Binding effectPartViewModel.F_88, UpdateSourceTrigger=PropertyChanged}" StringFormat="0.00" Interval="0.05"/>
+                                                <Controls:NumericUpDown Grid.Column="1" Value="{Binding EffectPartViewModel.F_88, UpdateSourceTrigger=PropertyChanged}" StringFormat="0.00" Interval="0.05"/>
                                             </Grid>
                                             <Grid Margin="3,5,0,0" Width="250">
                                                 <Grid.ColumnDefinitions>
@@ -272,13 +277,13 @@
                                                     <ColumnDefinition Width="*"/>
                                                 </Grid.ColumnDefinitions>
                                                 <Label Content="Avoid Sphere"/>
-                                                <Controls:NumericUpDown Grid.Column="1" Value="{Binding effectPartViewModel.F_24, UpdateSourceTrigger=PropertyChanged}" StringFormat="0.00" Interval="0.05"/>
+                                                <Controls:NumericUpDown Grid.Column="1" Value="{Binding EffectPartViewModel.F_24, UpdateSourceTrigger=PropertyChanged}" StringFormat="0.00" Interval="0.05"/>
                                             </Grid>
                                         </WrapPanel>
                                     </StackPanel>
 
                                 </Expander>
-                                <Expander Header="Position / Rotation / Scale" IsExpanded="True" Visibility="{Binding ElementName=UserControl, Path=effectPartViewModel.IsNotCBIND, Converter={StaticResource BooleanToVisibilityConverter}}">
+                                <Expander Header="Position / Rotation / Scale" IsExpanded="True" Visibility="{Binding ElementName=UserControl, Path=EffectPartViewModel.IsNotCBIND, Converter={StaticResource BooleanToVisibilityConverter}}">
                                     <StackPanel MaxWidth="550" HorizontalAlignment="Left">
                                         <TextBlock Text="Position" FontSize="10" FontWeight="SemiBold" HorizontalAlignment="Center" Margin="0, 2"/>
                                         <Grid Margin="3,5,0,0" Width="250" HorizontalAlignment="Left">
@@ -287,7 +292,7 @@
                                                 <ColumnDefinition Width="*"/>
                                             </Grid.ColumnDefinitions>
                                             <Label Content="Bone Direction" ToolTip="These position values will be relative to the bone direction if enabled, otherwise they will be in world space."/>
-                                            <CheckBox Grid.Column="1" IsChecked="{Binding effectPartViewModel.I_32_5, UpdateSourceTrigger=PropertyChanged}"/>
+                                            <CheckBox Grid.Column="1" IsChecked="{Binding EffectPartViewModel.I_32_5, UpdateSourceTrigger=PropertyChanged}"/>
                                         </Grid>
                                         <Grid Margin="3,5,0,0" Width="900">
                                             <Grid.ColumnDefinitions>
@@ -303,13 +308,13 @@
                                             </Grid.ColumnDefinitions>
                                             <Label Content="Position" ToolTip="Applies a position offset to the effect in addition to its spawn location (as determined by Attachment).&#x0a;&#x0a;When Bone Direction is enabled, the position offset will be applied relative to the Attachment Bone."/>
                                             <Label Grid.Column="1" Content="X" HorizontalContentAlignment="Right"/>
-                                            <Controls:NumericUpDown Grid.Column="2" Value="{Binding effectPartViewModel.POSITION_X, UpdateSourceTrigger=PropertyChanged}" StringFormat="0.00" Interval="0.01"/>
+                                            <Controls:NumericUpDown Grid.Column="2" Value="{Binding EffectPartViewModel.POSITION_X, UpdateSourceTrigger=PropertyChanged}" StringFormat="0.00" Interval="0.01"/>
 
                                             <Label Grid.Column="3" Content="Y" HorizontalContentAlignment="Right"/>
-                                            <Controls:NumericUpDown Grid.Column="4" Value="{Binding effectPartViewModel.POSITION_Y, UpdateSourceTrigger=PropertyChanged}" StringFormat="0.00" Interval="0.01"/>
+                                            <Controls:NumericUpDown Grid.Column="4" Value="{Binding EffectPartViewModel.POSITION_Y, UpdateSourceTrigger=PropertyChanged}" StringFormat="0.00" Interval="0.01"/>
 
                                             <Label Grid.Column="5" Content="Z" HorizontalContentAlignment="Right"/>
-                                            <Controls:NumericUpDown Grid.Column="6" Value="{Binding effectPartViewModel.POSITION_Z, UpdateSourceTrigger=PropertyChanged}" StringFormat="0.00" Interval="0.01"/>
+                                            <Controls:NumericUpDown Grid.Column="6" Value="{Binding EffectPartViewModel.POSITION_Z, UpdateSourceTrigger=PropertyChanged}" StringFormat="0.00" Interval="0.01"/>
                                         </Grid>
 
                                         <TextBlock Text="Rotation" FontSize="10" FontWeight="SemiBold" HorizontalAlignment="Center" Margin="0, 2"/>
@@ -319,7 +324,7 @@
                                                 <ColumnDefinition Width="*"/>
                                             </Grid.ColumnDefinitions>
                                             <Label Content="Enable Rotation"/>
-                                            <CheckBox Grid.Column="1" IsChecked="{Binding effectPartViewModel.I_32_6, UpdateSourceTrigger=PropertyChanged}"/>
+                                            <CheckBox Grid.Column="1" IsChecked="{Binding EffectPartViewModel.I_32_6, UpdateSourceTrigger=PropertyChanged}"/>
                                         </Grid>
                                         <Grid Margin="3,5,0,0" Width="900">
                                             <Grid.ColumnDefinitions>
@@ -335,13 +340,13 @@
                                             </Grid.ColumnDefinitions>
                                             <Label Content="Rotation (Min)"/>
                                             <Label Grid.Column="1" Content="X" HorizontalContentAlignment="Right"/>
-                                            <Controls:NumericUpDown Grid.Column="2" Value="{Binding effectPartViewModel.F_52, UpdateSourceTrigger=PropertyChanged}" StringFormat="0.00" Interval="0.01"/>
+                                            <Controls:NumericUpDown Grid.Column="2" Value="{Binding EffectPartViewModel.F_52, UpdateSourceTrigger=PropertyChanged}" StringFormat="0.00" Interval="0.01"/>
 
                                             <Label Grid.Column="3" Content="Y" HorizontalContentAlignment="Right"/>
-                                            <Controls:NumericUpDown Grid.Column="4" Value="{Binding effectPartViewModel.F_60, UpdateSourceTrigger=PropertyChanged}" StringFormat="0.00" Interval="0.01"/>
+                                            <Controls:NumericUpDown Grid.Column="4" Value="{Binding EffectPartViewModel.F_60, UpdateSourceTrigger=PropertyChanged}" StringFormat="0.00" Interval="0.01"/>
 
                                             <Label Grid.Column="5" Content="Z" HorizontalContentAlignment="Right"/>
-                                            <Controls:NumericUpDown Grid.Column="6" Value="{Binding effectPartViewModel.F_68, UpdateSourceTrigger=PropertyChanged}" StringFormat="0.00" Interval="0.01"/>
+                                            <Controls:NumericUpDown Grid.Column="6" Value="{Binding EffectPartViewModel.F_68, UpdateSourceTrigger=PropertyChanged}" StringFormat="0.00" Interval="0.01"/>
                                         </Grid>
                                         <Grid Margin="3,5,0,0" Width="900">
                                             <Grid.ColumnDefinitions>
@@ -357,37 +362,37 @@
                                             </Grid.ColumnDefinitions>
                                             <Label Content="Rotation (Max)"/>
                                             <Label Grid.Column="1" Content="X" HorizontalContentAlignment="Right"/>
-                                            <Controls:NumericUpDown Grid.Column="2" Value="{Binding effectPartViewModel.F_56, UpdateSourceTrigger=PropertyChanged}" StringFormat="0.00" Interval="0.01"/>
+                                            <Controls:NumericUpDown Grid.Column="2" Value="{Binding EffectPartViewModel.F_56, UpdateSourceTrigger=PropertyChanged}" StringFormat="0.00" Interval="0.01"/>
 
                                             <Label Grid.Column="3" Content="Y" HorizontalContentAlignment="Right"/>
-                                            <Controls:NumericUpDown Grid.Column="4" Value="{Binding effectPartViewModel.F_64, UpdateSourceTrigger=PropertyChanged}" StringFormat="0.00" Interval="0.01"/>
+                                            <Controls:NumericUpDown Grid.Column="4" Value="{Binding EffectPartViewModel.F_64, UpdateSourceTrigger=PropertyChanged}" StringFormat="0.00" Interval="0.01"/>
 
                                             <Label Grid.Column="5" Content="Z" HorizontalContentAlignment="Right"/>
-                                            <Controls:NumericUpDown Grid.Column="6" Value="{Binding effectPartViewModel.F_72, UpdateSourceTrigger=PropertyChanged}" StringFormat="0.00" Interval="0.01"/>
+                                            <Controls:NumericUpDown Grid.Column="6" Value="{Binding EffectPartViewModel.F_72, UpdateSourceTrigger=PropertyChanged}" StringFormat="0.00" Interval="0.01"/>
                                         </Grid>
 
                                         <TextBlock Text="Scale" FontSize="10" FontWeight="SemiBold" HorizontalAlignment="Center" Margin="0, 2"/>
                                         <WrapPanel>
-                                            <Grid Margin="3,5,0,0" Width="250" Visibility="{Binding ElementName=UserControl, Path=effectPartViewModel.IsNotCBIND, Converter={StaticResource BooleanToVisibilityConverter}}">
+                                            <Grid Margin="3,5,0,0" Width="250" Visibility="{Binding ElementName=UserControl, Path=EffectPartViewModel.IsNotCBIND, Converter={StaticResource BooleanToVisibilityConverter}}">
                                                 <Grid.ColumnDefinitions>
                                                     <ColumnDefinition Width="*"/>
                                                     <ColumnDefinition Width="*"/>
                                                 </Grid.ColumnDefinitions>
                                                 <Label Content="Scale (Min)" ToolTip="Scales the Effect Part. The actual scale will be randomly chosen between the Min and Max value.&#x0a;&#x0a;Not applicable for TBIND."/>
-                                                <Controls:NumericUpDown Grid.Column="1" Value="{Binding effectPartViewModel.SIZE_1, UpdateSourceTrigger=PropertyChanged}" StringFormat="0.00" Interval="0.01" IsEnabled="{Binding effectPartViewModel.IsNotTBIND}"/>
+                                                <Controls:NumericUpDown Grid.Column="1" Value="{Binding EffectPartViewModel.SIZE_1, UpdateSourceTrigger=PropertyChanged}" StringFormat="0.00" Interval="0.01" IsEnabled="{Binding EffectPartViewModel.IsNotTBIND}"/>
                                             </Grid>
-                                            <Grid Margin="3,5,0,0" Width="250" Visibility="{Binding ElementName=UserControl, Path=effectPartViewModel.IsNotCBIND, Converter={StaticResource BooleanToVisibilityConverter}}">
+                                            <Grid Margin="3,5,0,0" Width="250" Visibility="{Binding ElementName=UserControl, Path=EffectPartViewModel.IsNotCBIND, Converter={StaticResource BooleanToVisibilityConverter}}">
                                                 <Grid.ColumnDefinitions>
                                                     <ColumnDefinition Width="*"/>
                                                     <ColumnDefinition Width="*"/>
                                                 </Grid.ColumnDefinitions>
                                                 <Label Content="Scale (Max)" ToolTip="Scales the Effect Part. The actual scale will be randomly chosen between the Min and Max value.&#x0a;&#x0a;Not applicable for TBIND."/>
-                                                <Controls:NumericUpDown Grid.Column="1" Value="{Binding effectPartViewModel.SIZE_2, UpdateSourceTrigger=PropertyChanged}" StringFormat="0.00" Interval="0.01" IsEnabled="{Binding effectPartViewModel.IsNotTBIND}"/>
+                                                <Controls:NumericUpDown Grid.Column="1" Value="{Binding EffectPartViewModel.SIZE_2, UpdateSourceTrigger=PropertyChanged}" StringFormat="0.00" Interval="0.01" IsEnabled="{Binding EffectPartViewModel.IsNotTBIND}"/>
                                             </Grid>
                                         </WrapPanel>
                                     </StackPanel>
                                 </Expander>
-                                <Expander Header="Animation" Visibility="{Binding ElementName=UserControl, Path=effectPartViewModel.IsUsingEma, Converter={StaticResource BooleanToVisibilityConverter}}" IsExpanded="True">
+                                <Expander Header="Animation" Visibility="{Binding ElementName=UserControl, Path=EffectPartViewModel.IsUsingEma, Converter={StaticResource BooleanToVisibilityConverter}}" IsExpanded="True">
                                     <StackPanel>
                                         <WrapPanel>
                                             <Grid Margin="3,5,0,0" Width="250">
@@ -396,7 +401,7 @@
                                                     <ColumnDefinition Width="*"/>
                                                 </Grid.ColumnDefinitions>
                                                 <Label Content="Animation ID" ToolTip="ID of animation within the EMA file for this asset."/>
-                                                <Controls:NumericUpDown Grid.Column="1" Value="{Binding effectPartViewModel.I_30, UpdateSourceTrigger=PropertyChanged}" Minimum="0"/>
+                                                <Controls:NumericUpDown Grid.Column="1" Value="{Binding EffectPartViewModel.I_30, UpdateSourceTrigger=PropertyChanged}" Minimum="0"/>
                                             </Grid>
 
                                             <Grid Margin="3,5,0,0" Width="250">
@@ -405,7 +410,7 @@
                                                     <ColumnDefinition Width="*"/>
                                                 </Grid.ColumnDefinitions>
                                                 <Label Content="Enable Looping"/>
-                                                <CheckBox Grid.Column="1" IsChecked="{Binding effectPartViewModel.I_36_0, UpdateSourceTrigger=PropertyChanged}"/>
+                                                <CheckBox Grid.Column="1" IsChecked="{Binding EffectPartViewModel.I_36_0, UpdateSourceTrigger=PropertyChanged}"/>
                                             </Grid>
                                         </WrapPanel>
                                         <WrapPanel>
@@ -415,7 +420,7 @@
                                                     <ColumnDefinition Width="*"/>
                                                 </Grid.ColumnDefinitions>
                                                 <Label Content="Start Frame"/>
-                                                <Controls:NumericUpDown Grid.Column="1" Value="{Binding effectPartViewModel.I_92, UpdateSourceTrigger=PropertyChanged}" Minimum="0"/>
+                                                <Controls:NumericUpDown Grid.Column="1" Value="{Binding EffectPartViewModel.I_92, UpdateSourceTrigger=PropertyChanged}" Minimum="0"/>
                                             </Grid>
                                             <Grid Margin="3,5,0,0" Width="250">
                                                 <Grid.ColumnDefinitions>
@@ -423,7 +428,7 @@
                                                     <ColumnDefinition Width="*"/>
                                                 </Grid.ColumnDefinitions>
                                                 <Label Content="End Frame"/>
-                                                <Controls:NumericUpDown Grid.Column="1" Value="{Binding effectPartViewModel.I_94, UpdateSourceTrigger=PropertyChanged}" Minimum="0"/>
+                                                <Controls:NumericUpDown Grid.Column="1" Value="{Binding EffectPartViewModel.I_94, UpdateSourceTrigger=PropertyChanged}" Minimum="0"/>
                                             </Grid>
                                         </WrapPanel>
                                     </StackPanel>
@@ -432,55 +437,55 @@
                                     <StackPanel MaxWidth="550" HorizontalAlignment="Left">
                                         <Label Content="Attachment" FontSize="10" FontWeight="SemiBold" HorizontalAlignment="Center" Margin="0, 2" ToolTip="These flags control how the attachment bone is updated throughout the effects life cycle."/>
                                         <WrapPanel>
-                                            <CheckBox Width="160" Margin="3,1" Content="Position Update" IsChecked="{Binding effectPartViewModel.I_32_0, UpdateSourceTrigger=PropertyChanged}" ToolTip="Continually update the effects position to match its attached bone."/>
-                                            <CheckBox Width="160" Margin="3,1" Content="Rotation Update" IsChecked="{Binding effectPartViewModel.I_32_1, UpdateSourceTrigger=PropertyChanged}" ToolTip="Continually update the effects rotation to match its attached bone."/>
-                                            <CheckBox Width="160" Margin="3,1" Content="Instant Particle Update" IsChecked="{Binding effectPartViewModel.I_32_2, UpdateSourceTrigger=PropertyChanged}" ToolTip="Instantly update particle position and rotation to move with the attached bone (requires either the Position Update or Rotation Update flag to have any effect).&#x0a;&#x0a;Without this, particle nodes will only be created at the bone position, but wont update with it throughout their lifetime."/>
-                                            
+                                            <CheckBox Width="160" Margin="3,1" Content="Position Update" IsChecked="{Binding EffectPartViewModel.I_32_0, UpdateSourceTrigger=PropertyChanged}" ToolTip="Continually update the effects position to match its attached bone."/>
+                                            <CheckBox Width="160" Margin="3,1" Content="Rotation Update" IsChecked="{Binding EffectPartViewModel.I_32_1, UpdateSourceTrigger=PropertyChanged}" ToolTip="Continually update the effects rotation to match its attached bone."/>
+                                            <CheckBox Width="160" Margin="3,1" Content="Instant Particle Update" IsChecked="{Binding EffectPartViewModel.I_32_2, UpdateSourceTrigger=PropertyChanged}" ToolTip="Instantly update particle position and rotation to move with the attached bone (requires either the Position Update or Rotation Update flag to have any effect).&#x0a;&#x0a;Without this, particle nodes will only be created at the bone position, but wont update with it throughout their lifetime."/>
+
                                         </WrapPanel>
 
                                         <Label Content="Light Flags" ToolTip="By default all these flags are active, but if any of them are enabled here then the others will become inactive." FontSize="10" FontWeight="SemiBold" HorizontalAlignment="Center" Margin="0, 2"/>
                                         <WrapPanel>
-                                            <CheckBox Width="160" Margin="3,1" IsChecked="{Binding effectPartViewModel.I_36_4, UpdateSourceTrigger=PropertyChanged}" Content="Apply to Characters"/>
-                                            <CheckBox Width="160" Margin="3,1" IsChecked="{Binding effectPartViewModel.I_36_5, UpdateSourceTrigger=PropertyChanged}" Content="Apply to Stages"/>
-                                            <CheckBox Width="160" Margin="3,1" IsChecked="{Binding effectPartViewModel.I_36_6, UpdateSourceTrigger=PropertyChanged}" Content="Unk 6" ToolTip="Related to the other light flags somehow. Likely for the light affecting something else."/>
+                                            <CheckBox Width="160" Margin="3,1" IsChecked="{Binding EffectPartViewModel.I_36_4, UpdateSourceTrigger=PropertyChanged}" Content="Apply to Characters"/>
+                                            <CheckBox Width="160" Margin="3,1" IsChecked="{Binding EffectPartViewModel.I_36_5, UpdateSourceTrigger=PropertyChanged}" Content="Apply to Stages"/>
+                                            <CheckBox Width="160" Margin="3,1" IsChecked="{Binding EffectPartViewModel.I_36_6, UpdateSourceTrigger=PropertyChanged}" Content="Unk 6" ToolTip="Related to the other light flags somehow. Likely for the light affecting something else."/>
                                         </WrapPanel>
 
                                         <Label Content="Link Flags" FontSize="10" FontWeight="SemiBold" HorizontalAlignment="Center" Margin="0, 2"/>
                                         <WrapPanel>
-                                            <CheckBox Width="160" Margin="3,1" IsChecked="{Binding effectPartViewModel.I_39_3, UpdateSourceTrigger=PropertyChanged}" Content="_RelativePosZ_To_AbsPosZ"/>
-                                            <CheckBox Width="160" Margin="3,1" IsChecked="{Binding effectPartViewModel.I_39_4, UpdateSourceTrigger=PropertyChanged}" Content="_ScaleZ_To_BonePosZ"/>
-                                            <CheckBox Width="160" Margin="3,1" IsChecked="{Binding effectPartViewModel.I_39_7, UpdateSourceTrigger=PropertyChanged}" Content="_ObjectRotation_To_XXXX" ToolTip="Dont ask"/>
+                                            <CheckBox Width="160" Margin="3,1" IsChecked="{Binding EffectPartViewModel.I_39_3, UpdateSourceTrigger=PropertyChanged}" Content="_RelativePosZ_To_AbsPosZ"/>
+                                            <CheckBox Width="160" Margin="3,1" IsChecked="{Binding EffectPartViewModel.I_39_4, UpdateSourceTrigger=PropertyChanged}" Content="_ScaleZ_To_BonePosZ"/>
+                                            <CheckBox Width="160" Margin="3,1" IsChecked="{Binding EffectPartViewModel.I_39_7, UpdateSourceTrigger=PropertyChanged}" Content="_ObjectRotation_To_XXXX" ToolTip="Dont ask"/>
                                         </WrapPanel>
 
                                         <Label Content="Other" FontSize="10" FontWeight="SemiBold" HorizontalAlignment="Center" Margin="0, 2"/>
                                         <WrapPanel>
-                                            <CheckBox Width="160" Margin="3,1, 0, 3" IsChecked="{Binding effectPartViewModel.I_32_4, UpdateSourceTrigger=PropertyChanged}" Content="Allow Time Scale" ToolTip="Allows the effect to be time scaled."/>
-                                            <CheckBox Width="160" Margin="3,1, 0, 3" IsChecked="{Binding effectPartViewModel.I_39_0, UpdateSourceTrigger=PropertyChanged}" Content="No Glare" ToolTip="Disables all glare for this effect."/>
-                                            <CheckBox Width="160" Margin="3,1, 0, 3" IsChecked="{Binding effectPartViewModel.I_39_2, UpdateSourceTrigger=PropertyChanged}" Content="InverseTransparenDrawOrder" ToolTip="InverseTransparentDrawOrder"/>
-                                            <CheckBox Width="160" Margin="3,1, 0, 3" IsChecked="{Binding effectPartViewModel.I_32_7, UpdateSourceTrigger=PropertyChanged}" Content="SceneCenterToBoneDir"/>
-                                            <CheckBox Width="160" Margin="3,1,0,3" Content="Ground Only" IsChecked="{Binding effectPartViewModel.I_32_3, UpdateSourceTrigger=PropertyChanged}" ToolTip="The effect will only appear when on (or near) the ground."/>
+                                            <CheckBox Width="160" Margin="3,1, 0, 3" IsChecked="{Binding EffectPartViewModel.I_32_4, UpdateSourceTrigger=PropertyChanged}" Content="Allow Time Scale" ToolTip="Allows the effect to be time scaled."/>
+                                            <CheckBox Width="160" Margin="3,1, 0, 3" IsChecked="{Binding EffectPartViewModel.I_39_0, UpdateSourceTrigger=PropertyChanged}" Content="No Glare" ToolTip="Disables all glare for this effect."/>
+                                            <CheckBox Width="160" Margin="3,1, 0, 3" IsChecked="{Binding EffectPartViewModel.I_39_2, UpdateSourceTrigger=PropertyChanged}" Content="InverseTransparenDrawOrder" ToolTip="InverseTransparentDrawOrder"/>
+                                            <CheckBox Width="160" Margin="3,1, 0, 3" IsChecked="{Binding EffectPartViewModel.I_32_7, UpdateSourceTrigger=PropertyChanged}" Content="SceneCenterToBoneDir"/>
+                                            <CheckBox Width="160" Margin="3,1,0,3" Content="Ground Only" IsChecked="{Binding EffectPartViewModel.I_32_3, UpdateSourceTrigger=PropertyChanged}" ToolTip="The effect will only appear when on (or near) the ground."/>
                                         </WrapPanel>
                                     </StackPanel>
                                 </Expander>
                                 <Expander Header="Unknown Flags" IsExpanded="False">
                                     <WrapPanel>
-                                        <CheckBox Width="160" Margin="3,1" IsChecked="{Binding effectPartViewModel.I_39_1, UpdateSourceTrigger=PropertyChanged}" Content="Flag__39__Unk1"/>
-                                        <CheckBox Width="160" Margin="3,1" IsChecked="{Binding effectPartViewModel.I_39_5, UpdateSourceTrigger=PropertyChanged}" Content="Flag__39__Unk5"/>
-                                        <CheckBox Width="160" Margin="3,1" IsChecked="{Binding effectPartViewModel.I_39_6, UpdateSourceTrigger=PropertyChanged}" Content="Flag__39__Unk6"/>
+                                        <CheckBox Width="160" Margin="3,1" IsChecked="{Binding EffectPartViewModel.I_39_1, UpdateSourceTrigger=PropertyChanged}" Content="Flag__39__Unk1"/>
+                                        <CheckBox Width="160" Margin="3,1" IsChecked="{Binding EffectPartViewModel.I_39_5, UpdateSourceTrigger=PropertyChanged}" Content="Flag__39__Unk5"/>
+                                        <CheckBox Width="160" Margin="3,1" IsChecked="{Binding EffectPartViewModel.I_39_6, UpdateSourceTrigger=PropertyChanged}" Content="Flag__39__Unk6"/>
 
-                                        <CheckBox Width="160" Margin="3,1" IsChecked="{Binding effectPartViewModel.I_36_1, UpdateSourceTrigger=PropertyChanged}" Content="Flag__36__Unk1"/>
-                                        <CheckBox Width="160" Margin="3,1" IsChecked="{Binding effectPartViewModel.I_36_2, UpdateSourceTrigger=PropertyChanged}" Content="Flag__36__Unk2"/>
-                                        <CheckBox Width="160" Margin="3,1" IsChecked="{Binding effectPartViewModel.I_36_3, UpdateSourceTrigger=PropertyChanged}" Content="Flag__36__Unk3"/>
-                                        <CheckBox Width="160" Margin="3,1" IsChecked="{Binding effectPartViewModel.I_36_7, UpdateSourceTrigger=PropertyChanged}" Content="Flag__36__Unk7"/>
+                                        <CheckBox Width="160" Margin="3,1" IsChecked="{Binding EffectPartViewModel.I_36_1, UpdateSourceTrigger=PropertyChanged}" Content="Flag__36__Unk1"/>
+                                        <CheckBox Width="160" Margin="3,1" IsChecked="{Binding EffectPartViewModel.I_36_2, UpdateSourceTrigger=PropertyChanged}" Content="Flag__36__Unk2"/>
+                                        <CheckBox Width="160" Margin="3,1" IsChecked="{Binding EffectPartViewModel.I_36_3, UpdateSourceTrigger=PropertyChanged}" Content="Flag__36__Unk3"/>
+                                        <CheckBox Width="160" Margin="3,1" IsChecked="{Binding EffectPartViewModel.I_36_7, UpdateSourceTrigger=PropertyChanged}" Content="Flag__36__Unk7"/>
 
-                                        <CheckBox Width="160" Margin="3,1" IsChecked="{Binding effectPartViewModel.I_37_0, UpdateSourceTrigger=PropertyChanged}" Content="Flag__37__Unk0"/>
-                                        <CheckBox Width="160" Margin="3,1" IsChecked="{Binding effectPartViewModel.I_37_1, UpdateSourceTrigger=PropertyChanged}" Content="Flag__37__Unk1"/>
-                                        <CheckBox Width="160" Margin="3,1" IsChecked="{Binding effectPartViewModel.I_37_2, UpdateSourceTrigger=PropertyChanged}" Content="Flag__37__Unk2"/>
-                                        <CheckBox Width="160" Margin="3,1" IsChecked="{Binding effectPartViewModel.I_37_3, UpdateSourceTrigger=PropertyChanged}" Content="Flag__37__Unk3"/>
-                                        <CheckBox Width="160" Margin="3,1" IsChecked="{Binding effectPartViewModel.I_37_4, UpdateSourceTrigger=PropertyChanged}" Content="Flag__37__Unk4"/>
-                                        <CheckBox Width="160" Margin="3,1" IsChecked="{Binding effectPartViewModel.I_37_5, UpdateSourceTrigger=PropertyChanged}" Content="Flag__37__Unk5"/>
-                                        <CheckBox Width="160" Margin="3,1" IsChecked="{Binding effectPartViewModel.I_37_6, UpdateSourceTrigger=PropertyChanged}" Content="Flag__37__Unk6"/>
-                                        <CheckBox Width="160" Margin="3,1" IsChecked="{Binding effectPartViewModel.I_37_7, UpdateSourceTrigger=PropertyChanged}" Content="Flag__37__Unk7"/>
+                                        <CheckBox Width="160" Margin="3,1" IsChecked="{Binding EffectPartViewModel.I_37_0, UpdateSourceTrigger=PropertyChanged}" Content="Flag__37__Unk0"/>
+                                        <CheckBox Width="160" Margin="3,1" IsChecked="{Binding EffectPartViewModel.I_37_1, UpdateSourceTrigger=PropertyChanged}" Content="Flag__37__Unk1"/>
+                                        <CheckBox Width="160" Margin="3,1" IsChecked="{Binding EffectPartViewModel.I_37_2, UpdateSourceTrigger=PropertyChanged}" Content="Flag__37__Unk2"/>
+                                        <CheckBox Width="160" Margin="3,1" IsChecked="{Binding EffectPartViewModel.I_37_3, UpdateSourceTrigger=PropertyChanged}" Content="Flag__37__Unk3"/>
+                                        <CheckBox Width="160" Margin="3,1" IsChecked="{Binding EffectPartViewModel.I_37_4, UpdateSourceTrigger=PropertyChanged}" Content="Flag__37__Unk4"/>
+                                        <CheckBox Width="160" Margin="3,1" IsChecked="{Binding EffectPartViewModel.I_37_5, UpdateSourceTrigger=PropertyChanged}" Content="Flag__37__Unk5"/>
+                                        <CheckBox Width="160" Margin="3,1" IsChecked="{Binding EffectPartViewModel.I_37_6, UpdateSourceTrigger=PropertyChanged}" Content="Flag__37__Unk6"/>
+                                        <CheckBox Width="160" Margin="3,1" IsChecked="{Binding EffectPartViewModel.I_37_7, UpdateSourceTrigger=PropertyChanged}" Content="Flag__37__Unk7"/>
                                     </WrapPanel>
                                 </Expander>
                                 <Expander Header="Unknown Values" IsExpanded="False">
@@ -492,7 +497,7 @@
                                                     <ColumnDefinition Width="*"/>
                                                 </Grid.ColumnDefinitions>
                                                 <Label Content="I__07"/>
-                                                <Controls:NumericUpDown Grid.Column="1" Value="{Binding effectPartViewModel.I_07, UpdateSourceTrigger=PropertyChanged}" />
+                                                <Controls:NumericUpDown Grid.Column="1" Value="{Binding EffectPartViewModel.I_07, UpdateSourceTrigger=PropertyChanged}" />
                                             </Grid>
                                             <Grid Margin="3,3,0,0" Width="250">
                                                 <Grid.ColumnDefinitions>
@@ -500,7 +505,7 @@
                                                     <ColumnDefinition Width="*"/>
                                                 </Grid.ColumnDefinitions>
                                                 <Label Content="I__08"/>
-                                                <Controls:NumericUpDown Grid.Column="1" Value="{Binding effectPartViewModel.I_08, UpdateSourceTrigger=PropertyChanged}" />
+                                                <Controls:NumericUpDown Grid.Column="1" Value="{Binding EffectPartViewModel.I_08, UpdateSourceTrigger=PropertyChanged}" />
                                             </Grid>
                                             <Grid Margin="3,3,0,0" Width="250">
                                                 <Grid.ColumnDefinitions>
@@ -508,7 +513,7 @@
                                                     <ColumnDefinition Width="*"/>
                                                 </Grid.ColumnDefinitions>
                                                 <Label Content="I__12"/>
-                                                <Controls:NumericUpDown Grid.Column="1" Value="{Binding effectPartViewModel.I_12, UpdateSourceTrigger=PropertyChanged}" />
+                                                <Controls:NumericUpDown Grid.Column="1" Value="{Binding EffectPartViewModel.I_12, UpdateSourceTrigger=PropertyChanged}" />
                                             </Grid>
                                             <Grid Margin="3,3,0,0" Width="250">
                                                 <Grid.ColumnDefinitions>
@@ -516,7 +521,7 @@
                                                     <ColumnDefinition Width="*"/>
                                                 </Grid.ColumnDefinitions>
                                                 <Label Content="I__16"/>
-                                                <Controls:NumericUpDown Grid.Column="1" Value="{Binding effectPartViewModel.I_16, UpdateSourceTrigger=PropertyChanged}" />
+                                                <Controls:NumericUpDown Grid.Column="1" Value="{Binding EffectPartViewModel.I_16, UpdateSourceTrigger=PropertyChanged}" />
                                             </Grid>
                                             <Grid Margin="3,3,0,0" Width="250">
                                                 <Grid.ColumnDefinitions>
@@ -524,7 +529,7 @@
                                                     <ColumnDefinition Width="*"/>
                                                 </Grid.ColumnDefinitions>
                                                 <Label Content="I__20"/>
-                                                <Controls:NumericUpDown Grid.Column="1" Value="{Binding effectPartViewModel.I_20, UpdateSourceTrigger=PropertyChanged}" />
+                                                <Controls:NumericUpDown Grid.Column="1" Value="{Binding EffectPartViewModel.I_20, UpdateSourceTrigger=PropertyChanged}" />
                                             </Grid>
                                             <Grid Margin="3,3,0,0" Width="250">
                                                 <Grid.ColumnDefinitions>
@@ -532,7 +537,7 @@
                                                     <ColumnDefinition Width="*"/>
                                                 </Grid.ColumnDefinitions>
                                                 <Label Content="I__34"/>
-                                                <Controls:NumericUpDown Grid.Column="1" Value="{Binding effectPartViewModel.I_34, UpdateSourceTrigger=PropertyChanged}" />
+                                                <Controls:NumericUpDown Grid.Column="1" Value="{Binding EffectPartViewModel.I_34, UpdateSourceTrigger=PropertyChanged}" />
                                             </Grid>
                                         </WrapPanel>
                                         <WrapPanel HorizontalAlignment="Left">
@@ -542,7 +547,7 @@
                                                     <ColumnDefinition Width="*"/>
                                                 </Grid.ColumnDefinitions>
                                                 <Label Content="I__38__a"/>
-                                                <Controls:NumericUpDown Grid.Column="1" Value="{Binding effectPartViewModel.I_38_a, UpdateSourceTrigger=PropertyChanged}" Minimum="0" Maximum="15"/>
+                                                <Controls:NumericUpDown Grid.Column="1" Value="{Binding EffectPartViewModel.I_38_a, UpdateSourceTrigger=PropertyChanged}" Minimum="0" Maximum="15"/>
                                             </Grid>
                                             <Grid Margin="3,3,0,0" Width="250">
                                                 <Grid.ColumnDefinitions>
@@ -550,7 +555,7 @@
                                                     <ColumnDefinition Width="*"/>
                                                 </Grid.ColumnDefinitions>
                                                 <Label Content="I__38__b"/>
-                                                <Controls:NumericUpDown Grid.Column="1" Value="{Binding effectPartViewModel.I_38_b, UpdateSourceTrigger=PropertyChanged}" Minimum="0" Maximum="15"/>
+                                                <Controls:NumericUpDown Grid.Column="1" Value="{Binding EffectPartViewModel.I_38_b, UpdateSourceTrigger=PropertyChanged}" Minimum="0" Maximum="15"/>
                                             </Grid>
 
                                         </WrapPanel>
@@ -568,7 +573,7 @@
                             </Style>
                         </StackPanel.Resources>
                         <StackPanel VerticalAlignment="Center">
-                            <Button Command="{Binding EffectOptions_AddEffect_Command}" HorizontalAlignment="Center" VerticalAlignment="Center" Width="30" Height="30" Style="{DynamicResource MahApps.Styles.Button.Circle}">
+                            <Button Command="{Binding ElementName=UserControl, Path=EffectNewCommand}" HorizontalAlignment="Center" VerticalAlignment="Center" Width="30" Height="30" Style="{DynamicResource MahApps.Styles.Button.Circle}">
                                 <iconPacks:PackIconMaterialLight Kind="Plus" />
                             </Button>
                             <TextBlock Text="New" HorizontalAlignment="Center" FontSize="10"/>
@@ -577,18 +582,18 @@
                             <Button HorizontalAlignment="Center" VerticalAlignment="Center" Width="30" Height="30" Style="{DynamicResource MahApps.Styles.Button.Circle}" lbUtils:ContextMenuLeftClickBehavior.IsLeftClickEnabled="True">
                                 <Button.ContextMenu>
                                     <ContextMenu FontSize="12">
-                                        <MenuItem Header="Load External EEPK" Click="EffectOptions_ImportEffectsFromFile_Click"/>
+                                        <MenuItem Header="Load External EEPK" Command="{Binding ElementName=UserControl, Path=ImportEffectsFromFileCommand}"/>
                                         <Separator/>
-                                        <MenuItem Header="CMN" Click="EffectOptions_ImportEffectsFromCMN_Click"/>
-                                        <MenuItem Header="Character" Click="EffectOptions_ImportEffectsFromCharacter_Click"/>
-                                        <MenuItem Header="Super Skill" Click="EffectOptions_ImportEffectsFromSuper_Click"/>
-                                        <MenuItem Header="Ultimate Skill" Click="EffectOptions_ImportEffectsFromUltimate_Click"/>
-                                        <MenuItem Header="Evasive Skill" Click="EffectOptions_ImportEffectsFromEvasive_Click"/>
-                                        <MenuItem Header="Blast Skill/Type" Click="EffectOptions_ImportEffectsFromBlast_Click"/>
-                                        <MenuItem Header="Awoken Skill" Click="EffectOptions_ImportEffectsFromAwoken_Click"/>
-                                        <MenuItem Header="Demo (Cutscene)" Click="EffectOptions_ImportEffectsFromDemo_Click"/>
+                                        <MenuItem Header="CMN" Command="{Binding ElementName=UserControl, Path=ImportEffectsFromGameCommand}" CommandParameter="{x:Static forms:EntitySelector+EntityType.CMN}"/>
+                                        <MenuItem Header="Character" Command="{Binding ElementName=UserControl, Path=ImportEffectsFromGameCommand}" CommandParameter="{x:Static forms:EntitySelector+EntityType.Character}"/>
+                                        <MenuItem Header="Super Skill" Command="{Binding ElementName=UserControl, Path=ImportEffectsFromGameCommand}" CommandParameter="{x:Static forms:EntitySelector+EntityType.SuperSkill}"/>
+                                        <MenuItem Header="Ultimate Skill" Command="{Binding ElementName=UserControl, Path=ImportEffectsFromGameCommand}" CommandParameter="{x:Static forms:EntitySelector+EntityType.UltimateSkill}"/>
+                                        <MenuItem Header="Evasive Skill" Command="{Binding ElementName=UserControl, Path=ImportEffectsFromGameCommand}" CommandParameter="{x:Static forms:EntitySelector+EntityType.EvasiveSkill}"/>
+                                        <MenuItem Header="Blast Skill/Type" Command="{Binding ElementName=UserControl, Path=ImportEffectsFromGameCommand}" CommandParameter="{x:Static forms:EntitySelector+EntityType.BlastSkill}"/>
+                                        <MenuItem Header="Awoken Skill" Command="{Binding ElementName=UserControl, Path=ImportEffectsFromGameCommand}" CommandParameter="{x:Static forms:EntitySelector+EntityType.AwokenSkill}"/>
+                                        <MenuItem Header="Demo" Command="{Binding ElementName=UserControl, Path=ImportEffectsFromGameCommand}" CommandParameter="{x:Static forms:EntitySelector+EntityType.Demo}"/>
                                         <Separator/>
-                                        <MenuItem Header="From Cached Files" ItemsSource="{Binding cacheManager.CachedFiles}" MouseMove="MenuItem_MouseMove" Click="EffectOptions_ImportEffectsFromCache_Click">
+                                        <MenuItem Header="From Cached Files" ItemsSource="{Binding ElementName=UserControl, Path=cacheManager.CachedFiles}" MouseMove="MenuItem_MouseMove" Click="EffectOptions_ImportEffectsFromCache_Click">
                                             <MenuItem.ItemContainerStyle>
                                                 <Style>
                                                     <Setter Property="MenuItem.Header" Value="{Binding DisplayName}" />
@@ -611,25 +616,38 @@
             <Controls:MetroTabItem Header="PBIND" Controls:HeaderedControlHelper.HeaderFontSize="14">
                 <Grid Background="Transparent">
 
-                    <DataGrid MouseDoubleClick="PBIND_MouseDoubleClick" PreviewKeyDown="PbindDataGrid_Hotkeys_PreviewKeyDown" SelectionMode="Extended" x:Name="pbindDataGrid" RowDetailsVisibilityMode="Collapsed" ItemsSource="{Binding effectContainerFile.Pbind.ViewAssets}" AutoGenerateColumns="False" CanUserAddRows="False" CanUserDeleteRows="False" CanUserReorderColumns="True" Margin="10,10,246.8,13.909" CanUserResizeRows="False" SelectionChanged="pbindDataGrid_SelectionChanged">
-                        
+                    <DataGrid SelectionMode="Extended" x:Name="pbindDataGrid" RowDetailsVisibilityMode="Collapsed" ItemsSource="{Binding effectContainerFile.Pbind.ViewAssets}" AutoGenerateColumns="False" CanUserAddRows="False" CanUserDeleteRows="False" CanUserReorderColumns="True" Margin="10,10,246.8,13.909" CanUserResizeRows="False">
+                        <DataGrid.InputBindings>
+                            <KeyBinding Key="C" Modifiers="Ctrl" Command="{Binding ElementName=UserControl, Path=AssetCopyCommand}" CommandParameter="{x:Static eepk:AssetType.PBIND}"/>
+                            <KeyBinding Key="V" Modifiers="Ctrl" Command="{Binding ElementName=UserControl, Path=AssetPasteCommand}" CommandParameter="{x:Static eepk:AssetType.PBIND}"/>
+                            <KeyBinding Key="R" Modifiers="Ctrl" Command="{Binding ElementName=UserControl, Path=AssetPasteOverCommand}" CommandParameter="{x:Static eepk:AssetType.PBIND}"/>
+                            <KeyBinding Key="F2" Command="{Binding ElementName=UserControl, Path=AssetRenameCommand}" CommandParameter="{x:Static eepk:AssetType.PBIND}"/>
+                            <KeyBinding Key="M" Modifiers="Ctrl" Command="{Binding ElementName=UserControl, Path=AssetMergeCommand}" CommandParameter="{x:Static eepk:AssetType.PBIND}"/>
+                            <KeyBinding Key="Q" Modifiers="Ctrl" Command="{Binding ElementName=UserControl, Path=AssetUsedByCommand}" CommandParameter="{x:Static eepk:AssetType.PBIND}"/>
+                            <KeyBinding Key="Delete" Command="{Binding ElementName=UserControl, Path=AssetDeleteCommand}" CommandParameter="{x:Static eepk:AssetType.PBIND}"/>
+                            <KeyBinding Key="D" Modifiers="Ctrl" Command="{Binding ElementName=UserControl, Path=AssetDuplicateCommand}" CommandParameter="{x:Static eepk:AssetType.PBIND}"/>
+                            <KeyBinding Key="H" Modifiers="Ctrl" Command="{Binding ElementName=UserControl, Path=AssetHueAdjustCommand}" CommandParameter="{x:Static eepk:AssetType.PBIND}"/>
+                            <KeyBinding Key="H" Modifiers="Alt" Command="{Binding ElementName=UserControl, Path=AssetHueSetCommand}" CommandParameter="{x:Static eepk:AssetType.PBIND}"/>
+                            <KeyBinding Key="Return" Command="{Binding ElementName=UserControl, Path=AssetOpenEditorCommand}" CommandParameter="{x:Static eepk:AssetType.PBIND}"/>
+                            <MouseBinding MouseAction="LeftDoubleClick" Command="{Binding ElementName=UserControl, Path=AssetOpenEditorCommand}" CommandParameter="{x:Static eepk:AssetType.PBIND}"/>
+                        </DataGrid.InputBindings>
                         <DataGrid.ContextMenu>
                             <ContextMenu FontSize="12">
-                                <MenuItem Header="Rename" Click="PBIND_AssetContainer_RenameAsset_Click"/>
-                                <MenuItem Header="Paste Over (Replace)" Click="PBIND_AssetContainer_Replace_Click"/>
-                                <MenuItem Header="Merge" Click="PBIND_AssetContainer_Merge_Click"/>
-                                <MenuItem Header="Copy" Click="PBIND_AssetContainer_Copy_Click"/>
-                                <MenuItem Header="Paste" Click="PBIND_AssetContainer_Paste_Click"/>
-                                <MenuItem Header="Delete" Click="PBIND_AssetContainer_Delete_Click"/>
-                                <MenuItem Header="Duplicate" Click="PBIND_AssetContainer_Duplicate_Click"/>
-                                <MenuItem Header="Used By?" Click="PBIND_AssetContainer_UsedBy_Click"/>
+                                <MenuItem Header="Rename" Command="{Binding AssetRenameCommand}" CommandParameter="{x:Static eepk:AssetType.PBIND}"/>
+                                <MenuItem Header="Paste Over (Replace)" Command="{Binding AssetPasteOverCommand}" CommandParameter="{x:Static eepk:AssetType.PBIND}"/>
+                                <MenuItem Header="Merge" Command="{Binding AssetMergeCommand}" CommandParameter="{x:Static eepk:AssetType.PBIND}"/>
+                                <MenuItem Header="Copy" Command="{Binding AssetCopyCommand}" CommandParameter="{x:Static eepk:AssetType.PBIND}"/>
+                                <MenuItem Header="Paste" Command="{Binding AssetPasteCommand}" CommandParameter="{x:Static eepk:AssetType.PBIND}"/>
+                                <MenuItem Header="Delete" Command="{Binding AssetDeleteCommand}" CommandParameter="{x:Static eepk:AssetType.PBIND}"/>
+                                <MenuItem Header="Duplicate" Command="{Binding AssetDuplicateCommand}" CommandParameter="{x:Static eepk:AssetType.PBIND}"/>
+                                <MenuItem Header="Used By?" Command="{Binding AssetUsedByCommand}" CommandParameter="{x:Static eepk:AssetType.PBIND}"/>
                                 <Separator/>
-                                <MenuItem Header="Remove Color Animations" Click="PBIND_RemoveColorAnimations"/>
-                                <MenuItem Header="Remove Random Color Range" Click="PBIND_RemoveRandomColorRange"/>
+                                <MenuItem Header="Remove Color Animations" Command="{Binding AssetPbindRemoveColorAnimationsCommand}"/>
+                                <MenuItem Header="Remove Random Color Range" Command="{Binding AssetPbindRemoveRandomColorRangeCommand}"/>
                                 <Separator/>
-                                <MenuItem Header="Edit" Click="PBIND_AssetContainer_Edit_Click"/>
-                                <MenuItem Header="Hue Adjustment" Click="PBIND_AssetContainer_Recolor"/>
-                                <MenuItem Header="Hue Set" Click="PBIND_AssetContainer_RecolorHueSet"/>
+                                <MenuItem Header="Edit" Command="{Binding AssetOpenEditorCommand}" CommandParameter="{x:Static eepk:AssetType.PBIND}"/>
+                                <MenuItem Header="Hue Adjustment" Command="{Binding AssetHueAdjustCommand}" CommandParameter="{x:Static eepk:AssetType.PBIND}"/>
+                                <MenuItem Header="Hue Set" Command="{Binding AssetHueSetCommand}" CommandParameter="{x:Static eepk:AssetType.PBIND}"/>
                             </ContextMenu>
                         </DataGrid.ContextMenu>
                         <DataGrid.Columns>
@@ -649,17 +667,17 @@
                             <Button Content="Add Asset" HorizontalAlignment="Left" Margin="10,5,0,0" VerticalAlignment="Top" Width="123" lbUtils:ContextMenuLeftClickBehavior.IsLeftClickEnabled="True">
                                 <Button.ContextMenu>
                                     <ContextMenu FontSize="12">
-                                        <MenuItem Header="New EMP" Click="PBIND_ImportAsset_MenuItem_CreateNewEmp_Click"/>
-                                        <MenuItem Header="Load External EEPK" Click="PBIND_AssetContainer_AddAsset_Click"/>
+                                        <MenuItem Header="New EMP" Command="{Binding PbindCreateNewEmpCommand}"/>
+                                        <MenuItem Header="Load External EEPK" Command="{Binding ImportAssetsFromExternalFileCommand}" CommandParameter="{x:Static eepk:AssetType.PBIND}"/>
                                         <Separator/>
-                                        <MenuItem Header="CMN" Click="PBIND_ImportAsset_MenuItem_FromCMN_Click"/>
-                                        <MenuItem Header="Character" Click="PBIND_ImportAsset_MenuItem_FromCharacter_Click"/>
-                                        <MenuItem Header="Super Skill" Click="PBIND_ImportAsset_MenuItem_FromSuper_Click"/>
-                                        <MenuItem Header="Ultimate Skill" Click="PBIND_ImportAsset_MenuItem_FromUltimate_Click"/>
-                                        <MenuItem Header="Evasive Skill" Click="PBIND_ImportAsset_MenuItem_FromEvasive_Click"/>
-                                        <MenuItem Header="Blast Skill/Type" Click="PBIND_ImportAsset_MenuItem_FromBlast_Click"/>
-                                        <MenuItem Header="Awoken Skill" Click="PBIND_ImportAsset_MenuItem_FromAwoken_Click"/>
-                                        <MenuItem Header="Demo (Cutscene)" Click="PBIND_ImportAsset_MenuItem_FromDemo_Click"/>
+                                        <MenuItem Header="CMN" Command="{Binding ImportPbindAssetsFromGameCommand}" CommandParameter="{x:Static forms:EntitySelector+EntityType.CMN}"/>
+                                        <MenuItem Header="Character" Command="{Binding ImportPbindAssetsFromGameCommand}" CommandParameter="{x:Static forms:EntitySelector+EntityType.Character}"/>
+                                        <MenuItem Header="Super Skill" Command="{Binding ImportPbindAssetsFromGameCommand}" CommandParameter="{x:Static forms:EntitySelector+EntityType.SuperSkill}"/>
+                                        <MenuItem Header="Ultimate Skill" Command="{Binding ImportPbindAssetsFromGameCommand}" CommandParameter="{x:Static forms:EntitySelector+EntityType.UltimateSkill}"/>
+                                        <MenuItem Header="Evasive Skill" Command="{Binding ImportPbindAssetsFromGameCommand}" CommandParameter="{x:Static forms:EntitySelector+EntityType.EvasiveSkill}"/>
+                                        <MenuItem Header="Blast Skill/Type" Command="{Binding ImportPbindAssetsFromGameCommand}" CommandParameter="{x:Static forms:EntitySelector+EntityType.BlastSkill}"/>
+                                        <MenuItem Header="Awoken Skill" Command="{Binding ImportPbindAssetsFromGameCommand}" CommandParameter="{x:Static forms:EntitySelector+EntityType.AwokenSkill}"/>
+                                        <MenuItem Header="Demo (Cutscene)" Command="{Binding ImportPbindAssetsFromGameCommand}" CommandParameter="{x:Static forms:EntitySelector+EntityType.Demo}"/>
                                         <Separator/>
                                         <MenuItem Header="From Cached Files" ItemsSource="{Binding cacheManager.CachedFiles}" MouseMove="MenuItem_MouseMove" Click="PBIND_ImportAsset_MenuItem_FromCachedFiles_Click">
                                             <MenuItem.ItemContainerStyle>
@@ -672,40 +690,52 @@
                                 </Button.ContextMenu>
                             </Button>
 
-                            <Button Click="PBIND_AssetContainer_EmmEdit_Click" Content="Materials" HorizontalAlignment="Left" Margin="10,5,0,0" VerticalAlignment="Top" Width="123"/>
-                            <Button Click="PBIND_AssetContainer_EmbEdit_Click" Content="Textures" HorizontalAlignment="Left" Margin="10,5,0,0" VerticalAlignment="Top" Width="123"/>
-                            <Button Click="PBIND_OpenSettings_Click" Content="Settings" HorizontalAlignment="Left" Margin="10,5,0,0" VerticalAlignment="Top" Width="123"/>
+                            <Button Command="{Binding ElementName=UserControl, Path=AssetOpenMaterialFormCommand}" CommandParameter="{x:Static eepk:AssetType.PBIND}" Content="Materials" HorizontalAlignment="Left" Margin="10,5,0,0" VerticalAlignment="Top" Width="123"/>
+                            <Button Command="{Binding ElementName=UserControl, Path=AssetOpenTextureFormCommand}" CommandParameter="{x:Static eepk:AssetType.PBIND}" Content="Textures" HorizontalAlignment="Left" Margin="10,5,0,0" VerticalAlignment="Top" Width="123"/>
+                            <Button Command="{Binding ElementName=UserControl, Path=AssetOpenSettingsCommand}" CommandParameter="{x:Static eepk:AssetType.PBIND}" Content="Settings" HorizontalAlignment="Left" Margin="10,5,0,0" VerticalAlignment="Top" Width="123"/>
 
-                            <Button Click="PBIND_RemoveUnusedAssets_Click" Content="Remove Unused" Margin="10,5,0,0" HorizontalAlignment="Left" VerticalAlignment="Top" Width="123"/>
-                            <CheckBox ToolTip="If true, all assets will be saved as loose files rather than in a EMB container." IsChecked="{Binding effectContainerFile.Pbind.UndoableLooseFiles, UpdateSourceTrigger=PropertyChanged}" Content="Loose Files" Margin="10,5,0,0" HorizontalAlignment="Left" VerticalAlignment="Top" Width="123"/>
+                            <Button Command="{Binding ElementName=UserControl, Path=AssetRemoveUnusedCommand}" CommandParameter="{x:Static eepk:AssetType.PBIND}" Content="Remove Unused" Margin="10,5,0,0" HorizontalAlignment="Left" VerticalAlignment="Top" Width="123"/>
+                            <CheckBox ToolTip="If true, all assets will be saved as loose files rather than in a EMB container." IsChecked="{Binding ElementName=UserControl, Path=effectContainerFile.Pbind.UndoableLooseFiles, UpdateSourceTrigger=PropertyChanged}" Content="Loose Files" Margin="10,5,0,0" HorizontalAlignment="Left" VerticalAlignment="Top" Width="123"/>
 
                         </StackPanel>
                     </GroupBox>
-                    <Label Content="{Binding effectContainerFile.Pbind.AssetCount}" HorizontalContentAlignment="Right" HorizontalAlignment="Right" Margin="765,423,-0.327,-0.055" VerticalAlignment="Bottom" Width="177" Height="30"/>
+                    <Label Content="{Binding ElementName=UserControl, Path=effectContainerFile.Pbind.AssetCount}" HorizontalContentAlignment="Right" HorizontalAlignment="Right" Margin="765,423,-0.327,-0.055" VerticalAlignment="Bottom" Width="177" Height="30"/>
 
                 </Grid>
             </Controls:MetroTabItem>
             <Controls:MetroTabItem Header="TBIND" Controls:HeaderedControlHelper.HeaderFontSize="14">
                 <Grid Background="Transparent">
 
-                    <DataGrid MouseDoubleClick="TBIND_MouseDoubleClick" PreviewKeyDown="TbindDataGrid_Hotkeys_PreviewKeyDown" SelectionMode="Extended" x:Name="tbindDataGrid" RowDetailsVisibilityMode="Collapsed" ItemsSource="{Binding effectContainerFile.Tbind.ViewAssets}" AutoGenerateColumns="False" CanUserAddRows="False" CanUserDeleteRows="False" CanUserReorderColumns="True" Margin="10,10,246.8,13.909" CanUserResizeRows="False" SelectionChanged="tbindDataGrid_SelectionChanged">
-                        
+                    <DataGrid SelectionMode="Extended" x:Name="tbindDataGrid" RowDetailsVisibilityMode="Collapsed" ItemsSource="{Binding effectContainerFile.Tbind.ViewAssets}" AutoGenerateColumns="False" CanUserAddRows="False" CanUserDeleteRows="False" CanUserReorderColumns="True" Margin="10,10,246.8,13.909" CanUserResizeRows="False">
+                        <DataGrid.InputBindings>
+                            <KeyBinding Key="C" Modifiers="Ctrl" Command="{Binding ElementName=UserControl, Path=AssetCopyCommand}" CommandParameter="{x:Static eepk:AssetType.TBIND}"/>
+                            <KeyBinding Key="V" Modifiers="Ctrl" Command="{Binding ElementName=UserControl, Path=AssetPasteCommand}" CommandParameter="{x:Static eepk:AssetType.TBIND}"/>
+                            <KeyBinding Key="R" Modifiers="Ctrl" Command="{Binding ElementName=UserControl, Path=AssetPasteOverCommand}" CommandParameter="{x:Static eepk:AssetType.TBIND}"/>
+                            <KeyBinding Key="F2" Command="{Binding ElementName=UserControl, Path=AssetRenameCommand}" CommandParameter="{x:Static eepk:AssetType.TBIND}"/>
+                            <KeyBinding Key="M" Modifiers="Ctrl" Command="{Binding ElementName=UserControl, Path=AssetMergeCommand}" CommandParameter="{x:Static eepk:AssetType.TBIND}"/>
+                            <KeyBinding Key="Q" Modifiers="Ctrl" Command="{Binding ElementName=UserControl, Path=AssetUsedByCommand}" CommandParameter="{x:Static eepk:AssetType.TBIND}"/>
+                            <KeyBinding Key="Delete" Command="{Binding ElementName=UserControl, Path=AssetDeleteCommand}" CommandParameter="{x:Static eepk:AssetType.TBIND}"/>
+                            <KeyBinding Key="D" Modifiers="Ctrl" Command="{Binding ElementName=UserControl, Path=AssetDuplicateCommand}" CommandParameter="{x:Static eepk:AssetType.TBIND}"/>
+                            <KeyBinding Key="H" Modifiers="Ctrl" Command="{Binding ElementName=UserControl, Path=AssetHueAdjustCommand}" CommandParameter="{x:Static eepk:AssetType.TBIND}"/>
+                            <KeyBinding Key="H" Modifiers="Alt" Command="{Binding ElementName=UserControl, Path=AssetHueSetCommand}" CommandParameter="{x:Static eepk:AssetType.TBIND}"/>
+                            <KeyBinding Key="Return" Command="{Binding ElementName=UserControl, Path=AssetOpenEditorCommand}" CommandParameter="{x:Static eepk:AssetType.TBIND}"/>
+                            <MouseBinding MouseAction="LeftDoubleClick" Command="{Binding ElementName=UserControl, Path=AssetOpenEditorCommand}" CommandParameter="{x:Static eepk:AssetType.TBIND}"/>
+                        </DataGrid.InputBindings>
                         <DataGrid.ContextMenu>
                             <ContextMenu FontSize="12">
-                                <MenuItem Header="Rename" Click="TBIND_AssetContainer_RenameAsset_Click"/>
-                                <MenuItem Header="Paste Over (Replace)" Click="TBIND_AssetContainer_Replace_Click"/>
-                                <MenuItem Header="Merge" Click="TBIND_AssetContainer_Merge_Click"/>
-                                <MenuItem Header="Copy" Click="TBIND_AssetContainer_Copy_Click"/>
-                                <MenuItem Header="Paste" Click="TBIND_AssetContainer_Paste_Click"/>
-                                <MenuItem Header="Delete" Click="TBIND_AssetContainer_Delete_Click"/>
-                                <MenuItem Header="Duplicate" Click="TBIND_AssetContainer_Duplicate_Click"/>
-                                <MenuItem Header="Used By?" Click="TBIND_AssetContainer_UsedBy_Click"/>
+                                <MenuItem Header="Rename" Command="{Binding AssetRenameCommand}" CommandParameter="{x:Static eepk:AssetType.TBIND}"/>
+                                <MenuItem Header="Paste Over (Replace)" Command="{Binding AssetPasteOverCommand}" CommandParameter="{x:Static eepk:AssetType.TBIND}"/>
+                                <MenuItem Header="Merge" Command="{Binding AssetMergeCommand}" CommandParameter="{x:Static eepk:AssetType.TBIND}"/>
+                                <MenuItem Header="Copy" Command="{Binding AssetCopyCommand}" CommandParameter="{x:Static eepk:AssetType.TBIND}"/>
+                                <MenuItem Header="Paste" Command="{Binding AssetPasteCommand}" CommandParameter="{x:Static eepk:AssetType.TBIND}"/>
+                                <MenuItem Header="Delete" Command="{Binding AssetDeleteCommand}" CommandParameter="{x:Static eepk:AssetType.TBIND}"/>
+                                <MenuItem Header="Duplicate" Command="{Binding AssetDuplicateCommand}" CommandParameter="{x:Static eepk:AssetType.TBIND}"/>
+                                <MenuItem Header="Used By?" Command="{Binding AssetUsedByCommand}" CommandParameter="{x:Static eepk:AssetType.TBIND}"/>
                                 <Separator/>
-                                <MenuItem Header="Hue Adjustment" Click="TBIND_AssetContainer_Recolor"/>
-                                <MenuItem Header="Hue Set" Click="TBIND_AssetContainer_RecolorHueSet"/>
-                                <MenuItem Header="Scale" Click="TBIND_AssetContainer_Scale"/>
-                                <Separator/>
-                                <MenuItem Header="Edit" Click="TBIND_AssetContainer_Edit_Click"/>
+                                <MenuItem Header="Edit" Command="{Binding AssetOpenEditorCommand}" CommandParameter="{x:Static eepk:AssetType.TBIND}"/>
+                                <MenuItem Header="Hue Adjustment" Command="{Binding AssetHueAdjustCommand}" CommandParameter="{x:Static eepk:AssetType.TBIND}"/>
+                                <MenuItem Header="Hue Set" Command="{Binding AssetHueSetCommand}" CommandParameter="{x:Static eepk:AssetType.TBIND}"/>
+                                <MenuItem Header="Scale" Command="{Binding AssetTbindScaleCommand}"/>
                             </ContextMenu>
                         </DataGrid.ContextMenu>
 
@@ -720,23 +750,23 @@
                             </DataTemplate>
                         </DataGrid.RowHeaderTemplate>
                     </DataGrid>
-                    <Label Content="{Binding effectContainerFile.Tbind.AssetCount}" HorizontalContentAlignment="Right" HorizontalAlignment="Right" Margin="765,423,-0.327,-0.055" VerticalAlignment="Bottom" Width="177" Height="30"/>
+                    <Label Content="{Binding ElementName=UserControl, Path=effectContainerFile.Tbind.AssetCount}" HorizontalContentAlignment="Right" HorizontalAlignment="Right" Margin="765,423,-0.327,-0.055" VerticalAlignment="Bottom" Width="177" Height="30"/>
                     <GroupBox Header="Options" HorizontalAlignment="Right" Height="Auto" Margin="0,10,10,0" VerticalAlignment="Top" Width="223">
                         <StackPanel Margin="0, 5">
                             <Button Content="Add Asset" HorizontalAlignment="Left" Margin="10,5,0,0"  VerticalAlignment="Top" Width="123" lbUtils:ContextMenuLeftClickBehavior.IsLeftClickEnabled="True">
                                 <Button.ContextMenu>
                                     <ContextMenu FontSize="12">
-                                        <MenuItem Header="New ETR" Click="TBIND_NewEtr_Click"/>
-                                        <MenuItem Header="Load External EEPK" Click="TBIND_AssetContainer_AddAsset_Click"/>
+                                        <MenuItem Header="New ETR" Command="{Binding TbindCreateNewEtrCommand}"/>
+                                        <MenuItem Header="Load External EEPK" Command="{Binding ImportAssetsFromExternalFileCommand}" CommandParameter="{x:Static eepk:AssetType.TBIND}"/>
                                         <Separator/>
-                                        <MenuItem Header="CMN" Click="TBIND_ImportAsset_MenuItem_FromCMN_Click"/>
-                                        <MenuItem Header="Character" Click="TBIND_ImportAsset_MenuItem_FromCharacter_Click"/>
-                                        <MenuItem Header="Super Skill" Click="TBIND_ImportAsset_MenuItem_FromSuper_Click"/>
-                                        <MenuItem Header="Ultimate Skill" Click="TBIND_ImportAsset_MenuItem_FromUltimate_Click"/>
-                                        <MenuItem Header="Evasive Skill" Click="TBIND_ImportAsset_MenuItem_FromEvasive_Click"/>
-                                        <MenuItem Header="Blast Skill/Type" Click="TBIND_ImportAsset_MenuItem_FromBlast_Click"/>
-                                        <MenuItem Header="Awoken Skill" Click="TBIND_ImportAsset_MenuItem_FromAwoken_Click"/>
-                                        <MenuItem Header="Demo (Cutscene)" Click="TBIND_ImportAsset_MenuItem_FromDemo_Click"/>
+                                        <MenuItem Header="CMN" Command="{Binding ImportTbindAssetsFromGameCommand}" CommandParameter="{x:Static forms:EntitySelector+EntityType.CMN}"/>
+                                        <MenuItem Header="Character" Command="{Binding ImportTbindAssetsFromGameCommand}" CommandParameter="{x:Static forms:EntitySelector+EntityType.Character}"/>
+                                        <MenuItem Header="Super Skill" Command="{Binding ImportTbindAssetsFromGameCommand}" CommandParameter="{x:Static forms:EntitySelector+EntityType.SuperSkill}"/>
+                                        <MenuItem Header="Ultimate Skill" Command="{Binding ImportTbindAssetsFromGameCommand}" CommandParameter="{x:Static forms:EntitySelector+EntityType.UltimateSkill}"/>
+                                        <MenuItem Header="Evasive Skill" Command="{Binding ImportTbindAssetsFromGameCommand}" CommandParameter="{x:Static forms:EntitySelector+EntityType.EvasiveSkill}"/>
+                                        <MenuItem Header="Blast Skill/Type" Command="{Binding ImportTbindAssetsFromGameCommand}" CommandParameter="{x:Static forms:EntitySelector+EntityType.BlastSkill}"/>
+                                        <MenuItem Header="Awoken Skill" Command="{Binding ImportTbindAssetsFromGameCommand}" CommandParameter="{x:Static forms:EntitySelector+EntityType.AwokenSkill}"/>
+                                        <MenuItem Header="Demo (Cutscene)" Command="{Binding ImportTbindAssetsFromGameCommand}" CommandParameter="{x:Static forms:EntitySelector+EntityType.Demo}"/>
                                         <Separator/>
                                         <MenuItem Header="From Cached Files" ItemsSource="{Binding cacheManager.CachedFiles}" MouseMove="MenuItem_MouseMove" Click="TBIND_ImportAsset_MenuItem_FromCachedFiles_Click">
                                             <MenuItem.ItemContainerStyle>
@@ -750,12 +780,12 @@
                                 </Button.ContextMenu>
                             </Button>
 
-                            <Button Click="TBIND_AssetContainer_EmmEdit_Click" Content="Materials" HorizontalAlignment="Left" Margin="10,5,0,0" VerticalAlignment="Top" Width="123"/>
-                            <Button Click="TBIND_AssetContainer_EmbEdit_Click" Content="Textures" HorizontalAlignment="Left" Margin="10,5,0,0" VerticalAlignment="Top" Width="123"/>
-                            <Button Click="TBIND_OpenSettings_Click" Content="Settings" HorizontalAlignment="Left" Margin="10,5,0,0" VerticalAlignment="Top" Width="123"/>
+                            <Button Command="{Binding ElementName=UserControl, Path=AssetOpenMaterialFormCommand}" CommandParameter="{x:Static eepk:AssetType.TBIND}" Content="Materials" HorizontalAlignment="Left" Margin="10,5,0,0" VerticalAlignment="Top" Width="123"/>
+                            <Button Command="{Binding ElementName=UserControl, Path=AssetOpenTextureFormCommand}" CommandParameter="{x:Static eepk:AssetType.TBIND}" Content="Textures" HorizontalAlignment="Left" Margin="10,5,0,0" VerticalAlignment="Top" Width="123"/>
+                            <Button Command="{Binding ElementName=UserControl, Path=AssetOpenSettingsCommand}" CommandParameter="{x:Static eepk:AssetType.TBIND}" Content="Settings" HorizontalAlignment="Left" Margin="10,5,0,0" VerticalAlignment="Top" Width="123"/>
 
-                            <Button Click="TBIND_RemoveUnusedAssets_Click" Content="Remove Unused" Margin="10,5,0,0" HorizontalAlignment="Left" VerticalAlignment="Top" Width="123"/>
-                            <CheckBox ToolTip="If true, all assets will be saved as loose files rather than in a EMB container." IsChecked="{Binding effectContainerFile.Tbind.UndoableLooseFiles, UpdateSourceTrigger=PropertyChanged}" Content="Loose Files" Margin="10,5,0,0" HorizontalAlignment="Left" VerticalAlignment="Top" Width="123"/>
+                            <Button Command="{Binding ElementName=UserControl, Path=AssetRemoveUnusedCommand}" CommandParameter="{x:Static eepk:AssetType.TBIND}" Content="Remove Unused" Margin="10,5,0,0" HorizontalAlignment="Left" VerticalAlignment="Top" Width="123"/>
+                            <CheckBox ToolTip="If true, all assets will be saved as loose files rather than in a EMB container." IsChecked="{Binding ElementName=UserControl, Path=effectContainerFile.Tbind.UndoableLooseFiles, UpdateSourceTrigger=PropertyChanged}" Content="Loose Files" Margin="10,5,0,0" HorizontalAlignment="Left" VerticalAlignment="Top" Width="123"/>
 
                         </StackPanel>
                     </GroupBox>
@@ -765,24 +795,36 @@
             <Controls:MetroTabItem Header="CBIND" Controls:HeaderedControlHelper.HeaderFontSize="14">
                 <Grid Background="Transparent">
 
-                    <DataGrid MouseDoubleClick="CBIND_MouseDoubleClick" PreviewKeyDown="CbindDataGrid_Hotkeys_PreviewKeyDown" SelectionMode="Extended" x:Name="cbindDataGrid" RowDetailsVisibilityMode="Collapsed" ItemsSource="{Binding effectContainerFile.Cbind.ViewAssets}" AutoGenerateColumns="False" CanUserAddRows="False" CanUserDeleteRows="False" CanUserReorderColumns="True" Margin="10,10,246.8,13.909" CanUserResizeRows="False" SelectionChanged="cbindDataGrid_SelectionChanged">
-                        
+                    <DataGrid SelectionMode="Extended" x:Name="cbindDataGrid" RowDetailsVisibilityMode="Collapsed" ItemsSource="{Binding effectContainerFile.Cbind.ViewAssets}" AutoGenerateColumns="False" CanUserAddRows="False" CanUserDeleteRows="False" CanUserReorderColumns="True" Margin="10,10,246.8,13.909" CanUserResizeRows="False">
+                        <DataGrid.InputBindings>
+                            <KeyBinding Key="C" Modifiers="Ctrl" Command="{Binding ElementName=UserControl, Path=AssetCopyCommand}" CommandParameter="{x:Static eepk:AssetType.CBIND}"/>
+                            <KeyBinding Key="V" Modifiers="Ctrl" Command="{Binding ElementName=UserControl, Path=AssetPasteCommand}" CommandParameter="{x:Static eepk:AssetType.CBIND}"/>
+                            <KeyBinding Key="R" Modifiers="Ctrl" Command="{Binding ElementName=UserControl, Path=AssetPasteOverCommand}" CommandParameter="{x:Static eepk:AssetType.CBIND}"/>
+                            <KeyBinding Key="F2" Command="{Binding ElementName=UserControl, Path=AssetRenameCommand}" CommandParameter="{x:Static eepk:AssetType.CBIND}"/>
+                            <KeyBinding Key="M" Modifiers="Ctrl" Command="{Binding ElementName=UserControl, Path=AssetMergeCommand}" CommandParameter="{x:Static eepk:AssetType.CBIND}"/>
+                            <KeyBinding Key="Q" Modifiers="Ctrl" Command="{Binding ElementName=UserControl, Path=AssetUsedByCommand}" CommandParameter="{x:Static eepk:AssetType.CBIND}"/>
+                            <KeyBinding Key="Delete" Command="{Binding ElementName=UserControl, Path=AssetDeleteCommand}" CommandParameter="{x:Static eepk:AssetType.CBIND}"/>
+                            <KeyBinding Key="D" Modifiers="Ctrl" Command="{Binding ElementName=UserControl, Path=AssetDuplicateCommand}" CommandParameter="{x:Static eepk:AssetType.CBIND}"/>
+                            <KeyBinding Key="H" Modifiers="Ctrl" Command="{Binding ElementName=UserControl, Path=AssetHueAdjustCommand}" CommandParameter="{x:Static eepk:AssetType.CBIND}"/>
+                            <KeyBinding Key="H" Modifiers="Alt" Command="{Binding ElementName=UserControl, Path=AssetHueSetCommand}" CommandParameter="{x:Static eepk:AssetType.CBIND}"/>
+                            <KeyBinding Key="Return" Command="{Binding ElementName=UserControl, Path=AssetOpenEditorCommand}" CommandParameter="{x:Static eepk:AssetType.CBIND}"/>
+                            <MouseBinding MouseAction="LeftDoubleClick" Command="{Binding ElementName=UserControl, Path=AssetOpenEditorCommand}" CommandParameter="{x:Static eepk:AssetType.CBIND}"/>
+                        </DataGrid.InputBindings>
                         <DataGrid.ContextMenu>
                             <ContextMenu FontSize="12">
-                                <MenuItem Header="Rename" Click="CBIND_AssetContainer_RenameAsset_Click"/>
-                                <MenuItem Header="Paste Over (Replace)" Click="CBIND_AssetContainer_Replace_Click"/>
-                                <MenuItem Header="Merge" Click="CBIND_AssetContainer_Merge_Click"/>
-                                <MenuItem Header="Copy" Click="CBIND_AssetContainer_Copy_Click"/>
-                                <MenuItem Header="Paste" Click="CBIND_AssetContainer_Paste_Click"/>
-                                <MenuItem Header="Delete" Click="CBIND_AssetContainer_Delete_Click"/>
-                                <MenuItem Header="Duplicate" Click="CBIND_AssetContainer_Duplicate_Click"/>
-                                <MenuItem Header="Extract File" Click="CBIND_AssetContainer_ExtractFile_Click"/>
-                                <MenuItem Header="Used By?" Click="CBIND_AssetContainer_UsedBy_Click"/>
+                                <MenuItem Header="Rename" Command="{Binding AssetRenameCommand}" CommandParameter="{x:Static eepk:AssetType.CBIND}"/>
+                                <MenuItem Header="Paste Over (Replace)" Command="{Binding AssetPasteOverCommand}" CommandParameter="{x:Static eepk:AssetType.CBIND}"/>
+                                <MenuItem Header="Merge" Command="{Binding AssetMergeCommand}" CommandParameter="{x:Static eepk:AssetType.CBIND}"/>
+                                <MenuItem Header="Copy" Command="{Binding AssetCopyCommand}" CommandParameter="{x:Static eepk:AssetType.CBIND}"/>
+                                <MenuItem Header="Paste" Command="{Binding AssetPasteCommand}" CommandParameter="{x:Static eepk:AssetType.CBIND}"/>
+                                <MenuItem Header="Delete" Command="{Binding AssetDeleteCommand}" CommandParameter="{x:Static eepk:AssetType.CBIND}"/>
+                                <MenuItem Header="Duplicate" Command="{Binding AssetDuplicateCommand}" CommandParameter="{x:Static eepk:AssetType.CBIND}"/>
+                                <MenuItem Header="Extract" Command="{Binding AssetExtractCommand}" CommandParameter="{x:Static eepk:AssetType.CBIND}"/>
+                                <MenuItem Header="Used By?" Command="{Binding AssetUsedByCommand}" CommandParameter="{x:Static eepk:AssetType.CBIND}"/>
                                 <Separator/>
-                                <MenuItem Header="Hue Adjustment" Click="CBIND_AssetContainer_Recolor"/>
-                                <MenuItem Header="Hue Set" Click="CBIND_AssetContainer_RecolorHueSet"/>
-                                <Separator/>
-                                <MenuItem Header="Edit" Click="CBIND_AssetContainer_Edit_Click"/>
+                                <MenuItem Header="Edit" Command="{Binding AssetOpenEditorCommand}" CommandParameter="{x:Static eepk:AssetType.CBIND}"/>
+                                <MenuItem Header="Hue Adjustment" Command="{Binding AssetHueAdjustCommand}" CommandParameter="{x:Static eepk:AssetType.CBIND}"/>
+                                <MenuItem Header="Hue Set" Command="{Binding AssetHueSetCommand}" CommandParameter="{x:Static eepk:AssetType.CBIND}"/>
                             </ContextMenu>
                         </DataGrid.ContextMenu>
 
@@ -797,24 +839,24 @@
                             </DataTemplate>
                         </DataGrid.RowHeaderTemplate>
                     </DataGrid>
-                    <Label Content="{Binding effectContainerFile.Cbind.AssetCount}" HorizontalContentAlignment="Right" HorizontalAlignment="Right" Margin="765,423,-0.327,-0.055" VerticalAlignment="Bottom" Width="177" Height="30"/>
+                    <Label Content="{Binding ElementName=UserControl, Path=effectContainerFile.Cbind.AssetCount}" HorizontalContentAlignment="Right" HorizontalAlignment="Right" Margin="765,423,-0.327,-0.055" VerticalAlignment="Bottom" Width="177" Height="30"/>
                     <GroupBox Header="Options" HorizontalAlignment="Right" Height="Auto" Margin="0,10,10,0" VerticalAlignment="Top" Width="223">
                         <StackPanel Margin="0, 5">
                             <Button Content="Add Asset" HorizontalAlignment="Left" Margin="10,5,0,0" VerticalAlignment="Top" Width="123" lbUtils:ContextMenuLeftClickBehavior.IsLeftClickEnabled="True">
                                 <Button.ContextMenu>
                                     <ContextMenu FontSize="12">
-                                        <MenuItem Header="New ECF" Click="CBIND_NewEcf_Click"/>
-                                        <MenuItem Header="Load External EEPK" Click="CBIND_AssetContainer_AddAsset_Click"/>
-                                        <MenuItem Header="Load External ECF" Click="CBIND_ImportAsset_MenuItem_LoadEcf_Click"/>
+                                        <MenuItem Header="New ECF" Command="{Binding CbindCreateNewEcfCommand}"/>
+                                        <MenuItem Header="Load External EEPK" Command="{Binding ImportAssetsFromExternalFileCommand}" CommandParameter="{x:Static eepk:AssetType.CBIND}"/>
+                                        <MenuItem Header="Load External ECF" Command="{Binding CbindImportExternalEcfCommand}"/>
                                         <Separator/>
-                                        <MenuItem Header="CMN" Click="CBIND_ImportAsset_MenuItem_FromCMN_Click"/>
-                                        <MenuItem Header="Character" Click="CBIND_ImportAsset_MenuItem_FromCharacter_Click"/>
-                                        <MenuItem Header="Super Skill" Click="CBIND_ImportAsset_MenuItem_FromSuper_Click"/>
-                                        <MenuItem Header="Ultimate Skill" Click="CBIND_ImportAsset_MenuItem_FromUltimate_Click"/>
-                                        <MenuItem Header="Evasive Skill" Click="CBIND_ImportAsset_MenuItem_FromEvasive_Click"/>
-                                        <MenuItem Header="Blast Skill/Type" Click="CBIND_ImportAsset_MenuItem_FromBlast_Click"/>
-                                        <MenuItem Header="Awoken Skill" Click="CBIND_ImportAsset_MenuItem_FromAwoken_Click"/>
-                                        <MenuItem Header="Demo (Cutscene)" Click="CBIND_ImportAsset_MenuItem_FromDemo_Click"/>
+                                        <MenuItem Header="CMN" Command="{Binding ImportCbindAssetsFromGameCommand}" CommandParameter="{x:Static forms:EntitySelector+EntityType.CMN}"/>
+                                        <MenuItem Header="Character" Command="{Binding ImportCbindAssetsFromGameCommand}" CommandParameter="{x:Static forms:EntitySelector+EntityType.Character}"/>
+                                        <MenuItem Header="Super Skill" Command="{Binding ImportCbindAssetsFromGameCommand}" CommandParameter="{x:Static forms:EntitySelector+EntityType.SuperSkill}"/>
+                                        <MenuItem Header="Ultimate Skill" Command="{Binding ImportCbindAssetsFromGameCommand}" CommandParameter="{x:Static forms:EntitySelector+EntityType.UltimateSkill}"/>
+                                        <MenuItem Header="Evasive Skill" Command="{Binding ImportCbindAssetsFromGameCommand}" CommandParameter="{x:Static forms:EntitySelector+EntityType.EvasiveSkill}"/>
+                                        <MenuItem Header="Blast Skill/Type" Command="{Binding ImportCbindAssetsFromGameCommand}" CommandParameter="{x:Static forms:EntitySelector+EntityType.BlastSkill}"/>
+                                        <MenuItem Header="Awoken Skill" Command="{Binding ImportCbindAssetsFromGameCommand}" CommandParameter="{x:Static forms:EntitySelector+EntityType.AwokenSkill}"/>
+                                        <MenuItem Header="Demo (Cutscene)" Command="{Binding ImportCbindAssetsFromGameCommand}" CommandParameter="{x:Static forms:EntitySelector+EntityType.Demo}"/>
                                         <Separator/>
                                         <MenuItem Header="From Cached Files" ItemsSource="{Binding cacheManager.CachedFiles}" MouseMove="MenuItem_MouseMove" Click="CBIND_ImportAsset_MenuItem_FromCachedFiles_Click">
                                             <MenuItem.ItemContainerStyle>
@@ -827,9 +869,9 @@
                                     </ContextMenu>
                                 </Button.ContextMenu>
                             </Button>
-                            <Button Click="CBIND_OpenSettings_Click" Content="Settings" HorizontalAlignment="Left" Margin="10,5,0,0" VerticalAlignment="Top" Width="123"/>
-                            <Button Click="CBIND_RemoveUnusedAssets_Click" Content="Remove Unused" HorizontalAlignment="Left" Margin="10,5,0,0" VerticalAlignment="Top" Width="123"/>
-                            <CheckBox ToolTip="If true, all assets will be saved as loose files rather than in a EMB container." IsChecked="{Binding effectContainerFile.Cbind.UndoableLooseFiles, UpdateSourceTrigger=PropertyChanged}" Content="Loose Files" HorizontalAlignment="Left" Margin="10,5,0,0" VerticalAlignment="Top" Width="123"/>
+                            <Button Command="{Binding ElementName=UserControl, Path=AssetOpenSettingsCommand}" CommandParameter="{x:Static eepk:AssetType.CBIND}" Content="Settings" HorizontalAlignment="Left" Margin="10,5,0,0" VerticalAlignment="Top" Width="123"/>
+                            <Button Command="{Binding ElementName=UserControl, Path=AssetRemoveUnusedCommand}" CommandParameter="{x:Static eepk:AssetType.CBIND}" Content="Remove Unused" HorizontalAlignment="Left" Margin="10,5,0,0" VerticalAlignment="Top" Width="123"/>
+                            <CheckBox ToolTip="If true, all assets will be saved as loose files rather than in a EMB container." IsChecked="{Binding ElementName=UserControl, Path=effectContainerFile.Cbind.UndoableLooseFiles, UpdateSourceTrigger=PropertyChanged}" Content="Loose Files" HorizontalAlignment="Left" Margin="10,5,0,0" VerticalAlignment="Top" Width="123"/>
                         </StackPanel>
                     </GroupBox>
 
@@ -838,25 +880,35 @@
             <Controls:MetroTabItem Header="EMO" Controls:HeaderedControlHelper.HeaderFontSize="14">
                 <Grid Background="Transparent">
 
-                    <DataGrid PreviewKeyDown="EmoDataGrid_Hotkeys_PreviewKeyDown" SelectionMode="Extended" x:Name="emoDataGrid" RowDetailsVisibilityMode="VisibleWhenSelected" ItemsSource="{Binding effectContainerFile.Emo.ViewAssets}" AutoGenerateColumns="False" CanUserAddRows="False" CanUserDeleteRows="False" CanUserReorderColumns="True" Margin="10,10,246.8,13.909" CanUserResizeRows="False" SelectionChanged="emoDataGrid_SelectionChanged">
-                        
+                    <DataGrid SelectionMode="Extended" x:Name="emoDataGrid" RowDetailsVisibilityMode="VisibleWhenSelected" ItemsSource="{Binding ElementName=UserControl, Path=effectContainerFile.Emo.ViewAssets}" AutoGenerateColumns="False" CanUserAddRows="False" CanUserDeleteRows="False" CanUserReorderColumns="True" Margin="10,10,246.8,13.909" CanUserResizeRows="False">
+                        <DataGrid.InputBindings>
+                            <KeyBinding Key="C" Modifiers="Ctrl" Command="{Binding ElementName=UserControl, Path=AssetCopyCommand}" CommandParameter="{x:Static eepk:AssetType.EMO}"/>
+                            <KeyBinding Key="V" Modifiers="Ctrl" Command="{Binding ElementName=UserControl, Path=AssetPasteCommand}" CommandParameter="{x:Static eepk:AssetType.EMO}"/>
+                            <KeyBinding Key="R" Modifiers="Ctrl" Command="{Binding ElementName=UserControl, Path=AssetPasteOverCommand}" CommandParameter="{x:Static eepk:AssetType.EMO}"/>
+                            <KeyBinding Key="M" Modifiers="Ctrl" Command="{Binding ElementName=UserControl, Path=AssetMergeCommand}" CommandParameter="{x:Static eepk:AssetType.EMO}"/>
+                            <KeyBinding Key="Q" Modifiers="Ctrl" Command="{Binding ElementName=UserControl, Path=AssetUsedByCommand}" CommandParameter="{x:Static eepk:AssetType.EMO}"/>
+                            <KeyBinding Key="Delete" Command="{Binding ElementName=UserControl, Path=AssetDeleteCommand}" CommandParameter="{x:Static eepk:AssetType.EMO}"/>
+                            <KeyBinding Key="D" Modifiers="Ctrl" Command="{Binding ElementName=UserControl, Path=AssetDuplicateCommand}" CommandParameter="{x:Static eepk:AssetType.EMO}"/>
+                            <KeyBinding Key="H" Modifiers="Ctrl" Command="{Binding ElementName=UserControl, Path=AssetHueAdjustCommand}" CommandParameter="{x:Static eepk:AssetType.EMO}"/>
+                            <KeyBinding Key="H" Modifiers="Alt" Command="{Binding ElementName=UserControl, Path=AssetHueSetCommand}" CommandParameter="{x:Static eepk:AssetType.EMO}"/>
+                        </DataGrid.InputBindings>
                         <DataGrid.ContextMenu>
                             <ContextMenu FontSize="12">
-                                <MenuItem Header="New Asset" Click="EMO_AssetContainer_NewAsset_Click"/>
-                                <MenuItem Header="Add File" Click="EMO_AssetContainer_AddFile_Click"/>
-                                <MenuItem Header="Add File (EMD + ESK -> EMO)" Click="EMO_AssetContainer_AddEmd_Click"/>
-                                <MenuItem Header="Add File (EAN -> OBJ.EMA)" Click="EMO_AssetContainer_AddEan_Click" Visibility="Collapsed"/>
+                                <MenuItem Header="New Asset" Command="{Binding EmoCreateNewAssetCommand}" CommandParameter="{x:Static eepk:AssetType.EMO}"/>
+                                <MenuItem Header="Add File" Command="{Binding AssetEmoAddFileCommand}" CommandParameter="{x:Static eepk:AssetType.EMO}"/>
+                                <MenuItem Header="Add File (EMD + ESK -> EMO)" Command="{Binding AssetEmoAddEmdFileCommand}" CommandParameter="{x:Static eepk:AssetType.EMO}"/>
+                                <MenuItem Header="Add File (EAN -> OBJ.EMA)" Command="{Binding AssetEmoAddEanFileCommand}" CommandParameter="{x:Static eepk:AssetType.EMO}" Visibility="Collapsed"/>
                                 <Separator/>
-                                <MenuItem Header="Paste Over (Replace)" Click="EMO_AssetContainer_Replace_Click"/>
-                                <MenuItem Header="Merge" Click="EMO_AssetContainer_Merge_Click"/>
-                                <MenuItem Header="Copy" Click="EMO_AssetContainer_Copy_Click"/>
-                                <MenuItem Header="Paste" Click="EMO_AssetContainer_Paste_Click"/>
-                                <MenuItem Header="Delete" Click="EMO_AssetContainer_Delete_Click"/>
-                                <MenuItem Header="Duplicate" Click="EMO_AssetContainer_Duplicate_Click"/>
-                                <MenuItem Header="Used By?" Click="EMO_AssetContainer_UsedBy_Click"/>
+                                <MenuItem Header="Paste Over (Replace)" Command="{Binding AssetPasteOverCommand}" CommandParameter="{x:Static eepk:AssetType.EMO}"/>
+                                <MenuItem Header="Merge" Command="{Binding AssetMergeCommand}" CommandParameter="{x:Static eepk:AssetType.EMO}"/>
+                                <MenuItem Header="Copy" Command="{Binding AssetCopyCommand}" CommandParameter="{x:Static eepk:AssetType.EMO}"/>
+                                <MenuItem Header="Paste" Command="{Binding AssetPasteCommand}" CommandParameter="{x:Static eepk:AssetType.EMO}"/>
+                                <MenuItem Header="Delete" Command="{Binding AssetDeleteCommand}" CommandParameter="{x:Static eepk:AssetType.EMO}"/>
+                                <MenuItem Header="Duplicate" Command="{Binding AssetDuplicateCommand}" CommandParameter="{x:Static eepk:AssetType.EMO}"/>
+                                <MenuItem Header="Used By?" Command="{Binding AssetUsedByCommand}" CommandParameter="{x:Static eepk:AssetType.EMO}"/>
                                 <Separator/>
-                                <MenuItem Header="Hue Adjustment" Click="EMO_AssetContainer_Recolor"/>
-                                <MenuItem Header="Hue Set" Click="EMO_AssetContainer_RecolorHueSet"/>
+                                <MenuItem Header="Hue Adjustment" Command="{Binding AssetHueAdjustCommand}" CommandParameter="{x:Static eepk:AssetType.EMO}"/>
+                                <MenuItem Header="Hue Set" Command="{Binding AssetHueSetCommand}" CommandParameter="{x:Static eepk:AssetType.EMO}"/>
                             </ContextMenu>
                         </DataGrid.ContextMenu>
 
@@ -872,7 +924,7 @@
                                         <DataTemplate>
                                             <Grid Margin="0,2">
                                                 <Grid.InputBindings>
-                                                    <MouseBinding MouseAction="LeftDoubleClick" Command="{Binding ElementName=UserControl, Path=EMO_DoubleClickCommand}" CommandParameter="{Binding}"/>
+                                                    <MouseBinding MouseAction="LeftDoubleClick" Command="{Binding ElementName=UserControl, Path=AssetEmoDoubleClickCommand}" CommandParameter="{Binding}"/>
                                                 </Grid.InputBindings>
                                                 <Grid.ColumnDefinitions>
                                                     <ColumnDefinition Width="*" />
@@ -883,6 +935,7 @@
                                     </ListBox.ItemTemplate>
                                     <ListBox.ContextMenu>
                                         <ContextMenu>
+                                            <!-- TODO: Move to commands-->
                                             <MenuItem Header="Rename" Click="EMO_AssetContainer_RenameFile_Click"/>
                                             <MenuItem Header="Replace" Click="EMO_AssetContainer_ReplaceFile_Click"/>
                                             <MenuItem Header="Delete" Click="EMO_AssetContainer_DeleteFile_Click"/>
@@ -894,23 +947,23 @@
                             </DataTemplate>
                         </DataGrid.RowDetailsTemplate>
                     </DataGrid>
-                    <Label Content="{Binding effectContainerFile.Emo.AssetCount}" HorizontalContentAlignment="Right" HorizontalAlignment="Right" Margin="765,423,-0.327,-0.055" VerticalAlignment="Bottom" Width="177" Height="30"/>
+                    <Label Content="{Binding ElementName=UserControl, Path=effectContainerFile.Emo.AssetCount}" HorizontalContentAlignment="Right" HorizontalAlignment="Right" Margin="765,423,-0.327,-0.055" VerticalAlignment="Bottom" Width="177" Height="30"/>
                     <GroupBox Header="Options" HorizontalAlignment="Right" Height="Auto" Margin="0,10,10,0" VerticalAlignment="Top" Width="223">
                         <StackPanel Margin="0, 5">
                             <Button Content="Add Asset" HorizontalAlignment="Left" Margin="10,5,0,0" VerticalAlignment="Top" Width="123" lbUtils:ContextMenuLeftClickBehavior.IsLeftClickEnabled="True">
                                 <Button.ContextMenu>
                                     <ContextMenu FontSize="12">
-                                        <MenuItem Header="Load External EEPK" Click="EMO_AssetContainer_AddAsset_Click"/>
-                                        <MenuItem Header="Load External EMO Files" Click="EMO_ImportAsset_MenuItem_LoadEmoFiles_Click"/>
+                                        <MenuItem Header="Load External EEPK" Command="{Binding ImportAssetsFromExternalFileCommand}" CommandParameter="{x:Static eepk:AssetType.EMO}"/>
+                                        <MenuItem Header="Load External EMO Files" Command="{Binding EmoImportExternalFilesCommand}"/>
                                         <Separator/>
-                                        <MenuItem Header="CMN" Click="EMO_ImportAsset_MenuItem_FromCMN_Click"/>
-                                        <MenuItem Header="Character" Click="EMO_ImportAsset_MenuItem_FromCharacter_Click"/>
-                                        <MenuItem Header="Super Skill" Click="EMO_ImportAsset_MenuItem_FromSuper_Click"/>
-                                        <MenuItem Header="Ultimate Skill" Click="EMO_ImportAsset_MenuItem_FromUltimate_Click"/>
-                                        <MenuItem Header="Evasive Skill" Click="EMO_ImportAsset_MenuItem_FromEvasive_Click"/>
-                                        <MenuItem Header="Blast Skill/Type" Click="EMO_ImportAsset_MenuItem_FromBlast_Click"/>
-                                        <MenuItem Header="Awoken Skill" Click="EMO_ImportAsset_MenuItem_FromAwoken_Click"/>
-                                        <MenuItem Header="Demo (Cutscene)" Click="EMO_ImportAsset_MenuItem_FromDemo_Click"/>
+                                        <MenuItem Header="CMN" Command="{Binding ImportEmoAssetsFromGameCommand}" CommandParameter="{x:Static forms:EntitySelector+EntityType.CMN}"/>
+                                        <MenuItem Header="Character" Command="{Binding ImportEmoAssetsFromGameCommand}" CommandParameter="{x:Static forms:EntitySelector+EntityType.Character}"/>
+                                        <MenuItem Header="Super Skill" Command="{Binding ImportEmoAssetsFromGameCommand}" CommandParameter="{x:Static forms:EntitySelector+EntityType.SuperSkill}"/>
+                                        <MenuItem Header="Ultimate Skill" Command="{Binding ImportEmoAssetsFromGameCommand}" CommandParameter="{x:Static forms:EntitySelector+EntityType.UltimateSkill}"/>
+                                        <MenuItem Header="Evasive Skill" Command="{Binding ImportEmoAssetsFromGameCommand}" CommandParameter="{x:Static forms:EntitySelector+EntityType.EvasiveSkill}"/>
+                                        <MenuItem Header="Blast Skill/Type" Command="{Binding ImportEmoAssetsFromGameCommand}" CommandParameter="{x:Static forms:EntitySelector+EntityType.BlastSkill}"/>
+                                        <MenuItem Header="Awoken Skill" Command="{Binding ImportEmoAssetsFromGameCommand}" CommandParameter="{x:Static forms:EntitySelector+EntityType.AwokenSkill}"/>
+                                        <MenuItem Header="Demo (Cutscene)" Command="{Binding ImportEmoAssetsFromGameCommand}" CommandParameter="{x:Static forms:EntitySelector+EntityType.Demo}"/>
                                         <Separator/>
                                         <MenuItem Header="From Cached Files" ItemsSource="{Binding cacheManager.CachedFiles}" MouseMove="MenuItem_MouseMove" Click="EMO_ImportAsset_MenuItem_FromCachedFiles_Click">
                                             <MenuItem.ItemContainerStyle>
@@ -923,31 +976,42 @@
                                     </ContextMenu>
                                 </Button.ContextMenu>
                             </Button>
-                            <Button Click="EMO_OpenSettings_Click" Content="Settings" HorizontalAlignment="Left" Margin="10,5,0,0" VerticalAlignment="Top" Width="123"/>
-                            <Button Click="EMO_RemoveUnusedAssets_Click" Content="Remove Unused" HorizontalAlignment="Left" Margin="10,5,0,0" VerticalAlignment="Top" Width="123"/>
+                            <Button Command="{Binding ElementName=UserControl, Path=AssetOpenSettingsCommand}" CommandParameter="{x:Static eepk:AssetType.EMO}" Content="Settings" HorizontalAlignment="Left" Margin="10,5,0,0" VerticalAlignment="Top" Width="123"/>
+                            <Button Command="{Binding ElementName=UserControl, Path=AssetRemoveUnusedCommand}" CommandParameter="{x:Static eepk:AssetType.EMO}" Content="Remove Unused" HorizontalAlignment="Left" Margin="10,5,0,0" VerticalAlignment="Top" Width="123"/>
                         </StackPanel>
                     </GroupBox>
                 </Grid>
             </Controls:MetroTabItem>
-
             <Controls:MetroTabItem Header="LIGHT" Controls:HeaderedControlHelper.HeaderFontSize="14">
                 <Grid Background="Transparent">
 
-                    <DataGrid PreviewKeyDown="LightEmaDataGrid_Hotkeys_PreviewKeyDown" SelectionMode="Extended" x:Name="lightDataGrid" RowDetailsVisibilityMode="Collapsed" ItemsSource="{Binding effectContainerFile.LightEma.ViewAssets}" AutoGenerateColumns="False" CanUserAddRows="False" CanUserDeleteRows="False" CanUserReorderColumns="True" Margin="10,10,246.8,13.909" CanUserResizeRows="False" SelectionChanged="lightDataGrid_SelectionChanged">
+                    <DataGrid SelectionMode="Extended" x:Name="lightDataGrid" RowDetailsVisibilityMode="Collapsed" ItemsSource="{Binding ElementName=UserControl, Path=effectContainerFile.LightEma.ViewAssets}" AutoGenerateColumns="False" CanUserAddRows="False" CanUserDeleteRows="False" CanUserReorderColumns="True" Margin="10,10,246.8,13.909" CanUserResizeRows="False">
+                        <DataGrid.InputBindings>
+                            <KeyBinding Key="C" Modifiers="Ctrl" Command="{Binding ElementName=UserControl, Path=AssetCopyCommand}" CommandParameter="{x:Static eepk:AssetType.LIGHT}"/>
+                            <KeyBinding Key="V" Modifiers="Ctrl" Command="{Binding ElementName=UserControl, Path=AssetPasteCommand}" CommandParameter="{x:Static eepk:AssetType.LIGHT}"/>
+                            <KeyBinding Key="R" Modifiers="Ctrl" Command="{Binding ElementName=UserControl, Path=AssetPasteOverCommand}" CommandParameter="{x:Static eepk:AssetType.LIGHT}"/>
+                            <KeyBinding Key="F2" Command="{Binding ElementName=UserControl, Path=AssetRenameCommand}" CommandParameter="{x:Static eepk:AssetType.LIGHT}"/>
+                            <KeyBinding Key="M" Modifiers="Ctrl" Command="{Binding ElementName=UserControl, Path=AssetMergeCommand}" CommandParameter="{x:Static eepk:AssetType.LIGHT}"/>
+                            <KeyBinding Key="Q" Modifiers="Ctrl" Command="{Binding ElementName=UserControl, Path=AssetUsedByCommand}" CommandParameter="{x:Static eepk:AssetType.LIGHT}"/>
+                            <KeyBinding Key="Delete" Command="{Binding ElementName=UserControl, Path=AssetDeleteCommand}" CommandParameter="{x:Static eepk:AssetType.LIGHT}"/>
+                            <KeyBinding Key="D" Modifiers="Ctrl" Command="{Binding ElementName=UserControl, Path=AssetDuplicateCommand}" CommandParameter="{x:Static eepk:AssetType.LIGHT}"/>
+                            <KeyBinding Key="H" Modifiers="Ctrl" Command="{Binding ElementName=UserControl, Path=AssetHueAdjustCommand}" CommandParameter="{x:Static eepk:AssetType.LIGHT}"/>
+                            <KeyBinding Key="H" Modifiers="Alt" Command="{Binding ElementName=UserControl, Path=AssetHueSetCommand}" CommandParameter="{x:Static eepk:AssetType.LIGHT}"/>
+                        </DataGrid.InputBindings>
                         <DataGrid.ContextMenu>
                             <ContextMenu FontSize="12">
-                                <MenuItem Header="Rename" Click="LIGHT_AssetContainer_RenameAsset_Click"/>
-                                <MenuItem Header="Paste Over (Replace)" Click="LIGHT_AssetContainer_Replace_Click"/>
-                                <MenuItem Header="Merge" Click="LIGHT_AssetContainer_Merge_Click"/>
-                                <MenuItem Header="Copy" Click="LIGHT_AssetContainer_Copy_Click"/>
-                                <MenuItem Header="Paste" Click="LIGHT_AssetContainer_Paste_Click"/>
-                                <MenuItem Header="Delete" Click="LIGHT_AssetContainer_Delete_Click"/>
-                                <MenuItem Header="Duplicate" Click="LIGHT_AssetContainer_Duplicate_Click"/>
-                                <MenuItem Header="Extract File" Click="LIGHT_AssetContainer_ExtractFile_Click"/>
-                                <MenuItem Header="Used By?" Click="LIGHT_AssetContainer_UsedBy_Click"/>
+                                <MenuItem Header="Rename" Command="{Binding AssetRenameCommand}" CommandParameter="{x:Static eepk:AssetType.LIGHT}"/>
+                                <MenuItem Header="Paste Over (Replace)" Command="{Binding AssetPasteOverCommand}" CommandParameter="{x:Static eepk:AssetType.LIGHT}"/>
+                                <MenuItem Header="Merge" Command="{Binding AssetMergeCommand}" CommandParameter="{x:Static eepk:AssetType.LIGHT}"/>
+                                <MenuItem Header="Copy" Command="{Binding AssetCopyCommand}" CommandParameter="{x:Static eepk:AssetType.LIGHT}"/>
+                                <MenuItem Header="Paste" Command="{Binding AssetPasteCommand}" CommandParameter="{x:Static eepk:AssetType.LIGHT}"/>
+                                <MenuItem Header="Delete" Command="{Binding AssetDeleteCommand}" CommandParameter="{x:Static eepk:AssetType.LIGHT}"/>
+                                <MenuItem Header="Duplicate" Command="{Binding AssetDuplicateCommand}" CommandParameter="{x:Static eepk:AssetType.LIGHT}"/>
+                                <MenuItem Header="Extract" Command="{Binding AssetExtractCommand}" CommandParameter="{x:Static eepk:AssetType.LIGHT}"/>
+                                <MenuItem Header="Used By?" Command="{Binding AssetUsedByCommand}" CommandParameter="{x:Static eepk:AssetType.LIGHT}"/>
                                 <Separator/>
-                                <MenuItem Header="Hue Adjustment" Click="LIGHT_AssetContainer_Recolor"/>
-                                <MenuItem Header="Hue Set" Click="LIGHT_AssetContainer_RecolorHueSet"/>
+                                <MenuItem Header="Hue Adjustment" Command="{Binding AssetHueAdjustCommand}" CommandParameter="{x:Static eepk:AssetType.LIGHT}"/>
+                                <MenuItem Header="Hue Set" Command="{Binding AssetHueSetCommand}" CommandParameter="{x:Static eepk:AssetType.LIGHT}"/>
                             </ContextMenu>
                         </DataGrid.ContextMenu>
 
@@ -962,23 +1026,23 @@
                             </DataTemplate>
                         </DataGrid.RowHeaderTemplate>
                     </DataGrid>
-                    <Label Content="{Binding effectContainerFile.LightEma.AssetCount}" HorizontalContentAlignment="Right" HorizontalAlignment="Right" Margin="765,423,-0.327,-0.055" VerticalAlignment="Bottom" Width="177" Height="30"/>
+                    <Label Content="{Binding ElementName=UserControl, Path=effectContainerFile.LightEma.AssetCount}" HorizontalContentAlignment="Right" HorizontalAlignment="Right" Margin="765,423,-0.327,-0.055" VerticalAlignment="Bottom" Width="177" Height="30"/>
                     <GroupBox Header="Options" HorizontalAlignment="Right" Height="Auto" Margin="0,10,10,0" VerticalAlignment="Top" Width="223">
                         <StackPanel Margin="0, 5">
                             <Button Content="Add Asset" HorizontalAlignment="Left" Margin="10,5,0,0" VerticalAlignment="Top" Width="123" lbUtils:ContextMenuLeftClickBehavior.IsLeftClickEnabled="True">
                                 <Button.ContextMenu>
                                     <ContextMenu FontSize="12">
-                                        <MenuItem Header="Load External EEPK" Click="LIGHT_AssetContainer_AddAsset_Click"/>
-                                        <MenuItem Header="Load External LIGHT.EMA" Click="LIGHT_ImportAsset_MenuItem_LoadLightEma_Click"/>
+                                        <MenuItem Header="Load External EEPK" Command="{Binding ImportAssetsFromExternalFileCommand}" CommandParameter="{x:Static eepk:AssetType.LIGHT}"/>
+                                        <MenuItem Header="Load External LIGHT.EMA" Command="{Binding LightImportExternalCommand}"/>
                                         <Separator/>
-                                        <MenuItem Header="CMN" Click="LIGHT_ImportAsset_MenuItem_FromCMN_Click"/>
-                                        <MenuItem Header="Character" Click="LIGHT_ImportAsset_MenuItem_FromCharacter_Click"/>
-                                        <MenuItem Header="Super Skill" Click="LIGHT_ImportAsset_MenuItem_FromSuper_Click"/>
-                                        <MenuItem Header="Ultimate Skill" Click="LIGHT_ImportAsset_MenuItem_FromUltimate_Click"/>
-                                        <MenuItem Header="Evasive Skill" Click="LIGHT_ImportAsset_MenuItem_FromEvasive_Click"/>
-                                        <MenuItem Header="Blast Skill/Type" Click="LIGHT_ImportAsset_MenuItem_FromBlast_Click"/>
-                                        <MenuItem Header="Awoken Skill" Click="LIGHT_ImportAsset_MenuItem_FromAwoken_Click"/>
-                                        <MenuItem Header="Demo (Cutscene)" Click="LIGHT_ImportAsset_MenuItem_FromDemo_Click"/>
+                                        <MenuItem Header="CMN" Command="{Binding ImportLightAssetsFromGameCommand}" CommandParameter="{x:Static forms:EntitySelector+EntityType.CMN}"/>
+                                        <MenuItem Header="Character" Command="{Binding ImportLightAssetsFromGameCommand}" CommandParameter="{x:Static forms:EntitySelector+EntityType.Character}"/>
+                                        <MenuItem Header="Super Skill" Command="{Binding ImportLightAssetsFromGameCommand}" CommandParameter="{x:Static forms:EntitySelector+EntityType.SuperSkill}"/>
+                                        <MenuItem Header="Ultimate Skill" Command="{Binding ImportLightAssetsFromGameCommand}" CommandParameter="{x:Static forms:EntitySelector+EntityType.UltimateSkill}"/>
+                                        <MenuItem Header="Evasive Skill" Command="{Binding ImportLightAssetsFromGameCommand}" CommandParameter="{x:Static forms:EntitySelector+EntityType.EvasiveSkill}"/>
+                                        <MenuItem Header="Blast Skill/Type" Command="{Binding ImportLightAssetsFromGameCommand}" CommandParameter="{x:Static forms:EntitySelector+EntityType.BlastSkill}"/>
+                                        <MenuItem Header="Awoken Skill" Command="{Binding ImportLightAssetsFromGameCommand}" CommandParameter="{x:Static forms:EntitySelector+EntityType.AwokenSkill}"/>
+                                        <MenuItem Header="Demo (Cutscene)" Command="{Binding ImportLightAssetsFromGameCommand}" CommandParameter="{x:Static forms:EntitySelector+EntityType.Demo}"/>
                                         <Separator/>
                                         <MenuItem Header="From Cached Files" ItemsSource="{Binding cacheManager.CachedFiles}" MouseMove="MenuItem_MouseMove" Click="LIGHT_ImportAsset_MenuItem_FromCachedFiles_Click">
                                             <MenuItem.ItemContainerStyle>
@@ -991,15 +1055,13 @@
                                     </ContextMenu>
                                 </Button.ContextMenu>
                             </Button>
-                            <Button Click="LIGHT_OpenSettings_Click" Content="Settings" HorizontalAlignment="Left" Margin="10,5,0,0" VerticalAlignment="Top" Width="123"/>
-                            <Button Click="LIGHT_RemoveUnusedAssets_Click" Content="Remove Unused" HorizontalAlignment="Left" Margin="10,5,0,0" VerticalAlignment="Top" Width="123"/>
-                            <CheckBox ToolTip="If true, all assets will be saved as loose files rather than in a EMB container." IsChecked="{Binding effectContainerFile.LightEma.UndoableLooseFiles, UpdateSourceTrigger=PropertyChanged}" Content="Loose Files" HorizontalAlignment="Left" Margin="10,5,0,0" VerticalAlignment="Top" Width="123"/>
+                            <Button Command="{Binding ElementName=UserControl, Path=AssetOpenSettingsCommand}" CommandParameter="{x:Static eepk:AssetType.LIGHT}" Content="Settings" HorizontalAlignment="Left" Margin="10,5,0,0" VerticalAlignment="Top" Width="123"/>
+                            <Button Command="{Binding ElementName=UserControl, Path=AssetRemoveUnusedCommand}" CommandParameter="{x:Static eepk:AssetType.LIGHT}" Content="Remove Unused" HorizontalAlignment="Left" Margin="10,5,0,0" VerticalAlignment="Top" Width="123"/>
+                            <CheckBox ToolTip="If true, all assets will be saved as loose files rather than in a EMB container." IsChecked="{Binding ElementName=UserControl, Path=effectContainerFile.LightEma.UndoableLooseFiles, UpdateSourceTrigger=PropertyChanged}" Content="Loose Files" HorizontalAlignment="Left" Margin="10,5,0,0" VerticalAlignment="Top" Width="123"/>
                         </StackPanel>
                     </GroupBox>
-
                 </Grid>
             </Controls:MetroTabItem>
-
 
         </TabControl>
 
@@ -1010,20 +1072,20 @@
                 <iconPacks:Material Kind="Tools" />
                 <Button.ContextMenu>
                     <ContextMenu>
-                        <MenuItem Header="Hue Adjustment" Click="ToolMenu_HueAdjustment_Click"/>
-                        <MenuItem Header="Hue Set" Click="ToolMenu_HueSet_Click"/>
+                        <MenuItem Header="Hue Adjustment" Command="{Binding ToolMenu_HueAdjustCommand}"/>
+                        <MenuItem Header="Hue Set" Command="{Binding ToolMenu_HueSetCommand}"/>
                         <Separator/>
-                        <MenuItem Header="Clean All" Click="ToolMenu_CleanAll_Click"/>
+                        <MenuItem Header="Optimize Textures" Command="{Binding ToolMenu_CreateSuperTextureCommand}"/>
+                        <MenuItem Header="Clean All" Command="{Binding ToolMenu_CleanAllCommand}"/>
                     </ContextMenu>
                 </Button.ContextMenu>
-
             </Button>
 
-            <TextBox TextChanged="TextBox_TextChanged" VerticalContentAlignment="Center" HorizontalAlignment="Right" Height="23" Margin="0,0,0,0" TextWrapping="Wrap" Text="{Binding SearchFilter, UpdateSourceTrigger=PropertyChanged}" VerticalAlignment="Top" Width="176" Controls:TextBoxHelper.Watermark="Search..." Controls:TextBoxHelper.ButtonCommand="{Binding ClearSearchCommand}" Controls:TextBoxHelper.ClearTextButton="True">
+            <TextBox TextChanged="TextBox_TextChanged" VerticalContentAlignment="Center" HorizontalAlignment="Right" Height="23" Margin="0,0,0,0" TextWrapping="Wrap" Text="{Binding ElementName=UserControl, Path=SearchFilter, UpdateSourceTrigger=PropertyChanged}" VerticalAlignment="Top" Width="176" Controls:TextBoxHelper.Watermark="Search..." Controls:TextBoxHelper.ButtonCommand="{Binding ElementName=UserControl, Path=ClearSearchCommand}" Controls:TextBoxHelper.ClearTextButton="True">
                 <TextBox.InputBindings>
-                    <KeyBinding Key="Return" Command="{Binding SearchCommand}"/>
+                    <KeyBinding Key="Return" Command="{Binding ElementName=UserControl, Path=SearchCommand}"/>
                 </TextBox.InputBindings>
             </TextBox>
         </Grid>
     </Grid>
-</UserControl>
+</mvvm:AutoObservableUserControl>

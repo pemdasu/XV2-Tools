@@ -1,14 +1,15 @@
-﻿<UserControl x:Class="EEPK_Organiser.View.Controls.ShapeDraw"
+﻿<mvvm:AutoObservableUserControl x:Class="EEPK_Organiser.View.Controls.ShapeDraw"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
              xmlns:lbUtils="clr-namespace:LB_Common.Utils;assembly=LB_Common"
              xmlns:emp="clr-namespace:Xv2CoreLib.EMP_NEW;assembly=Xv2CoreLib"
+             xmlns:mvvm="clr-namespace:LB_Common.Mvvm;assembly=LB_Common"
              mc:Ignorable="d" 
              x:Name="UserControl"
              d:DesignHeight="300" d:DesignWidth="300">
-    <UserControl.Resources>
+    <mvvm:AutoObservableUserControl.Resources>
         <lbUtils:BindingProxy x:Key="Proxy" Data="{Binding}" />
 
         <Style x:Key="PointListBoxItemStyle" TargetType="{x:Type ListBoxItem}">
@@ -106,7 +107,7 @@
                 </EventTrigger>
             </DataTemplate.Triggers>
         </DataTemplate>
-    </UserControl.Resources>
+    </mvvm:AutoObservableUserControl.Resources>
     <Grid Width="500" Height="500" Background="{DynamicResource MahApps.Brushes.Gray.SemiTransparent}">
         <Grid.ContextMenu>
             <ContextMenu>
@@ -131,4 +132,4 @@
             </ListBox.Template>
         </ListBox>
     </Grid>
-</UserControl>
+</mvvm:AutoObservableUserControl>

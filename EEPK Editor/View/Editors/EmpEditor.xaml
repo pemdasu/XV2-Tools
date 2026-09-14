@@ -1,4 +1,4 @@
-﻿<UserControl x:Class="EEPK_Organiser.View.EmpEditor"
+﻿<mvvm:AutoObservableUserControl x:Class="EEPK_Organiser.View.EmpEditor"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
@@ -8,6 +8,7 @@
              xmlns:views="clr-namespace:EEPK_Organiser.View.Editors.EMP"
              xmlns:iconPacks="http://metro.mahapps.com/winfx/xaml/iconpacks"
              xmlns:lbUtils="clr-namespace:LB_Common.Utils;assembly=LB_Common"
+             xmlns:mvvm="clr-namespace:LB_Common.Mvvm;assembly=LB_Common"
              xmlns:emm="clr-namespace:Xv2CoreLib.EMM;assembly=Xv2CoreLib"
              xmlns:emp="clr-namespace:Xv2CoreLib.EMP_NEW;assembly=Xv2CoreLib"
              xmlns:Dialog="clr-namespace:MahApps.Metro.Controls.Dialogs;assembly=MahApps.Metro"
@@ -17,10 +18,10 @@
              mc:Ignorable="d" 
              Dialog:DialogParticipation.Register="{Binding}"
              d:DesignHeight="720" d:DesignWidth="1200" Name="UserControl">
-    <UserControl.Resources>
+    <mvvm:AutoObservableUserControl.Resources>
         <lbUtils:BindingProxy x:Key="Proxy" Data="{Binding}" />
         <converters:BooleanToVisibilityConverter x:Key="visibilityConverter" />
-    </UserControl.Resources>
+    </mvvm:AutoObservableUserControl.Resources>
     <Grid>
         <Controls:MetroTabControl x:Name="tabItems" Controls:TabControlHelper.Underlined="TabPanel" Controls:TabControlHelper.UnderlineBrush="{DynamicResource MahApps.Brushes.SystemControlForegroundListMedium}">
             <Controls:MetroTabItem Header="Nodes" Controls:HeaderedControlHelper.HeaderFontSize="16">
@@ -33,13 +34,13 @@
                     </Grid.ColumnDefinitions>
                     <StackPanel Margin="5, 20, 0, 0">
                         <StackPanel HorizontalAlignment="Center" Margin="2.5">
-                            <Button Command="{Binding ElementName=UserControl, Path=NewNodeCommand}" HorizontalAlignment="Center" Width="30" Height="30" Style="{DynamicResource MahApps.Styles.Button.Circle}" >
+                            <Button Command="{Binding ElementName=UserControl, Path=NewNodeCommand}" CommandParameter="{x:Static emp:NewNodeType.Empty}" HorizontalAlignment="Center" Width="30" Height="30" Style="{DynamicResource MahApps.Styles.Button.Circle}" >
                                 <iconPacks:PackIconMaterialLight Kind="Plus" Width="15" Height="15" />
                             </Button>
                             <TextBlock Text="Add" HorizontalAlignment="Center" FontSize="10"/>
                         </StackPanel>
                         <StackPanel HorizontalAlignment="Center" Margin="2.5">
-                            <Button Command="{Binding ElementName=UserControl, Path=NewNodeChildCommand}" HorizontalAlignment="Center" Width="30" Height="30" Style="{DynamicResource MahApps.Styles.Button.Circle}" >
+                            <Button Command="{Binding ElementName=UserControl, Path=NewNodeChildCommand}" CommandParameter="{x:Static emp:NewNodeType.Empty}" HorizontalAlignment="Center" Width="30" Height="30" Style="{DynamicResource MahApps.Styles.Button.Circle}" >
                                 <iconPacks:PackIconMaterialLight Kind="Plus" Width="15" Height="15" />
                             </Button>
                             <TextBlock Text="Child" HorizontalAlignment="Center" FontSize="10"/>
@@ -79,30 +80,30 @@
                         <TreeView.ContextMenu>
                             <ContextMenu>
                                 <MenuItem Header="New Node">
-                                    <MenuItem Header="Empty" Command="{Binding Source={StaticResource Proxy}, Path=Data.NewNodeCommand}" CommandParameter="0"/>
+                                    <MenuItem Header="Empty" Command="{Binding Source={StaticResource Proxy}, Path=Data.NewNodeCommand}" CommandParameter="{x:Static emp:NewNodeType.Empty}"/>
                                     <Separator/>
-                                    <MenuItem Header="Emission -> Plane" Command="{Binding Source={StaticResource Proxy}, Path=Data.NewNodeCommand}" CommandParameter="1"/>
-                                    <MenuItem Header="Emission -> Shape" Command="{Binding Source={StaticResource Proxy}, Path=Data.NewNodeCommand}" CommandParameter="2"/>
-                                    <MenuItem Header="Emission -> Extrude" Command="{Binding Source={StaticResource Proxy}, Path=Data.NewNodeCommand}" CommandParameter="3"/>
-                                    <MenuItem Header="Emission -> Mesh" Command="{Binding Source={StaticResource Proxy}, Path=Data.NewNodeCommand}" CommandParameter="4"/>
+                                    <MenuItem Header="Emission -> Plane" Command="{Binding Source={StaticResource Proxy}, Path=Data.NewNodeCommand}" CommandParameter="{x:Static emp:NewNodeType.Plane}"/>
+                                    <MenuItem Header="Emission -> Shape" Command="{Binding Source={StaticResource Proxy}, Path=Data.NewNodeCommand}" CommandParameter="{x:Static emp:NewNodeType.Shape}"/>
+                                    <MenuItem Header="Emission -> Extrude" Command="{Binding Source={StaticResource Proxy}, Path=Data.NewNodeCommand}" CommandParameter="{x:Static emp:NewNodeType.Extrude}"/>
+                                    <MenuItem Header="Emission -> Mesh" Command="{Binding Source={StaticResource Proxy}, Path=Data.NewNodeCommand}" CommandParameter="{x:Static emp:NewNodeType.Mesh}"/>
                                     <Separator/>
-                                    <MenuItem Header="Emitter -> Circle" Command="{Binding Source={StaticResource Proxy}, Path=Data.NewNodeCommand}" CommandParameter="5"/>
-                                    <MenuItem Header="Emitter -> Square" Command="{Binding Source={StaticResource Proxy}, Path=Data.NewNodeCommand}" CommandParameter="6"/>
-                                    <MenuItem Header="Emitter -> Sphere" Command="{Binding Source={StaticResource Proxy}, Path=Data.NewNodeCommand}" CommandParameter="7"/>
-                                    <MenuItem Header="Emitter -> Point" Command="{Binding Source={StaticResource Proxy}, Path=Data.NewNodeCommand}" CommandParameter="8"/>
+                                    <MenuItem Header="Emitter -> Circle" Command="{Binding Source={StaticResource Proxy}, Path=Data.NewNodeCommand}" CommandParameter="{x:Static emp:NewNodeType.EmitterCirlce}"/>
+                                    <MenuItem Header="Emitter -> Square" Command="{Binding Source={StaticResource Proxy}, Path=Data.NewNodeCommand}" CommandParameter="{x:Static emp:NewNodeType.EmitterSquare}"/>
+                                    <MenuItem Header="Emitter -> Sphere" Command="{Binding Source={StaticResource Proxy}, Path=Data.NewNodeCommand}" CommandParameter="{x:Static emp:NewNodeType.EmitterSphere}"/>
+                                    <MenuItem Header="Emitter -> Point" Command="{Binding Source={StaticResource Proxy}, Path=Data.NewNodeCommand}" CommandParameter="{x:Static emp:NewNodeType.EmitterPoint}"/>
                                 </MenuItem>
                                 <MenuItem Header="New Node (child)">
-                                    <MenuItem Header="Empty" Command="{Binding Source={StaticResource Proxy}, Path=Data.NewNodeChildCommand}" CommandParameter="0"/>
+                                    <MenuItem Header="Empty" Command="{Binding Source={StaticResource Proxy}, Path=Data.NewNodeChildCommand}" CommandParameter="{x:Static emp:NewNodeType.Empty}"/>
                                     <Separator/>
-                                    <MenuItem Header="Emission -> Plane" Command="{Binding Source={StaticResource Proxy}, Path=Data.NewNodeChildCommand}" CommandParameter="1"/>
-                                    <MenuItem Header="Emission -> Shape" Command="{Binding Source={StaticResource Proxy}, Path=Data.NewNodeChildCommand}" CommandParameter="2"/>
-                                    <MenuItem Header="Emission -> Extrude" Command="{Binding Source={StaticResource Proxy}, Path=Data.NewNodeChildCommand}" CommandParameter="3"/>
-                                    <MenuItem Header="Emission -> Mesh" Command="{Binding Source={StaticResource Proxy}, Path=Data.NewNodeChildCommand}" CommandParameter="4"/>
+                                    <MenuItem Header="Emission -> Plane" Command="{Binding Source={StaticResource Proxy}, Path=Data.NewNodeChildCommand}" CommandParameter="{x:Static emp:NewNodeType.Plane}"/>
+                                    <MenuItem Header="Emission -> Shape" Command="{Binding Source={StaticResource Proxy}, Path=Data.NewNodeChildCommand}" CommandParameter="{x:Static emp:NewNodeType.Shape}"/>
+                                    <MenuItem Header="Emission -> Extrude" Command="{Binding Source={StaticResource Proxy}, Path=Data.NewNodeChildCommand}" CommandParameter="{x:Static emp:NewNodeType.Extrude}"/>
+                                    <MenuItem Header="Emission -> Mesh" Command="{Binding Source={StaticResource Proxy}, Path=Data.NewNodeChildCommand}" CommandParameter="{x:Static emp:NewNodeType.Mesh}"/>
                                     <Separator/>
-                                    <MenuItem Header="Emitter -> Circle" Command="{Binding Source={StaticResource Proxy}, Path=Data.NewNodeChildCommand}" CommandParameter="5"/>
-                                    <MenuItem Header="Emitter -> Square" Command="{Binding Source={StaticResource Proxy}, Path=Data.NewNodeChildCommand}" CommandParameter="6"/>
-                                    <MenuItem Header="Emitter -> Sphere" Command="{Binding Source={StaticResource Proxy}, Path=Data.NewNodeChildCommand}" CommandParameter="7"/>
-                                    <MenuItem Header="Emitter -> Point" Command="{Binding Source={StaticResource Proxy}, Path=Data.NewNodeChildCommand}" CommandParameter="8"/>
+                                    <MenuItem Header="Emitter -> Circle" Command="{Binding Source={StaticResource Proxy}, Path=Data.NewNodeChildCommand}" CommandParameter="{x:Static emp:NewNodeType.EmitterCirlce}"/>
+                                    <MenuItem Header="Emitter -> Square" Command="{Binding Source={StaticResource Proxy}, Path=Data.NewNodeChildCommand}" CommandParameter="{x:Static emp:NewNodeType.EmitterSquare}"/>
+                                    <MenuItem Header="Emitter -> Sphere" Command="{Binding Source={StaticResource Proxy}, Path=Data.NewNodeChildCommand}" CommandParameter="{x:Static emp:NewNodeType.EmitterSphere}"/>
+                                    <MenuItem Header="Emitter -> Point" Command="{Binding Source={StaticResource Proxy}, Path=Data.NewNodeChildCommand}" CommandParameter="{x:Static emp:NewNodeType.EmitterPoint}"/>
                                 </MenuItem>
                                 <MenuItem Header="Duplicate" Command="{Binding Source={StaticResource Proxy}, Path=Data.DuplicateNodeCommand}"/>
                                 <MenuItem Header="Delete" Command="{Binding Source={StaticResource Proxy}, Path=Data.DeleteNodeCommand}"/>
@@ -112,14 +113,14 @@
                                 <MenuItem Header="Paste (child)" Command="{Binding Source={StaticResource Proxy}, Path=Data.PasteNodeChildCommand}"/>
                                 <MenuItem Header="Paste Values" Command="{Binding Source={StaticResource Proxy}, Path=Data.PasteNodeValuesCommand}"/>
                                 <Separator/>
-                                <MenuItem Header="Hue Adjustment" Command="{Binding Source={StaticResource Proxy}, Path=Data.HueAdjustment_Command}"/>
-                                <MenuItem Header="Hue Set" Command="{Binding Source={StaticResource Proxy}, Path=Data.HueSet_Command}"/>
+                                <MenuItem Header="Hue Adjustment" Command="{Binding Source={StaticResource Proxy}, Path=Data.HueAdjustmentCommand}"/>
+                                <MenuItem Header="Hue Set" Command="{Binding Source={StaticResource Proxy}, Path=Data.HueSetCommand}"/>
                                 
                                 <Separator/>
-                                <MenuItem Header="Hide" Command="{Binding Source={StaticResource Proxy}, Path=Data.HideAllSelected_Command}"/>
-                                <MenuItem Header="Show" Command="{Binding Source={StaticResource Proxy}, Path=Data.ShowAllSelected_Command}"/>
-                                <MenuItem Header="Hide All" Command="{Binding Source={StaticResource Proxy}, Path=Data.HideAll_Command}"/>
-                                <MenuItem Header="Show All" Command="{Binding Source={StaticResource Proxy}, Path=Data.ShowAll_Command}"/>
+                                <MenuItem Header="Hide" Command="{Binding Source={StaticResource Proxy}, Path=Data.HideAllSelectedCommand}"/>
+                                <MenuItem Header="Show" Command="{Binding Source={StaticResource Proxy}, Path=Data.ShowAllSelectedCommand}"/>
+                                <MenuItem Header="Hide All" Command="{Binding Source={StaticResource Proxy}, Path=Data.HideAllCommand}"/>
+                                <MenuItem Header="Show All" Command="{Binding Source={StaticResource Proxy}, Path=Data.ShowAllCommand}"/>
                                 
                             </ContextMenu>
                         </TreeView.ContextMenu>
@@ -155,4 +156,4 @@
             </Controls:MetroTabItem>
         </Controls:MetroTabControl>
     </Grid>
-    </UserControl>
+    </mvvm:AutoObservableUserControl>

@@ -1,8 +1,8 @@
 ﻿using System.ComponentModel;
 using System.Windows;
-using System.Windows.Controls;
+using CommunityToolkit.Mvvm.Input;
 using EEPK_Organiser.ViewModel;
-using GalaSoft.MvvmLight.CommandWpf;
+using LB_Common.Mvvm;
 using Xv2CoreLib.EMP_NEW;
 using Xv2CoreLib.EMP_NEW.Keyframes;
 using Xv2CoreLib.Resource.UndoRedo;
@@ -10,17 +10,8 @@ using Xv2CoreLib.Resource.UndoRedo;
 namespace EEPK_Organiser.View.Editors.EMP
 {
 
-    public partial class EmpKeyframesView : UserControl, INotifyPropertyChanged
+    public partial class EmpKeyframesView : AutoObservableUserControl
     {
-        #region NotifyPropChanged
-        public event PropertyChangedEventHandler PropertyChanged;
-
-        private void NotifyPropertyChanged(string propertyName = "")
-        {
-            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
-        }
-        #endregion
-
         #region DP
         public static readonly DependencyProperty KeyframedValueProperty = DependencyProperty.Register(nameof(KeyframedValue), typeof(KeyframedBaseValue), typeof(EmpKeyframesView), new PropertyMetadata(OnKeyframedValueChanged));
 
@@ -136,11 +127,15 @@ namespace EEPK_Organiser.View.Editors.EMP
             UndoManager.Instance.UndoOrRedoCalled -= Instance_UndoOrRedoCalled;
         }
 
-        public RelayCommand DeselectedKeyframedValueCommand => new RelayCommand(DeselectedKeyframedValue, () => Node != null);
+        [RelayCommand(CanExecute = nameof(IsValueSelected))]
         private void DeselectedKeyframedValue()
         {
             Node.SelectedKeyframedValue = null;
         }
 
+        private bool IsValueSelected()
+        {
+            return Node != null;
+        }
     }
 }

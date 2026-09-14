@@ -1,16 +1,14 @@
-﻿using EEPK_Organiser.Forms;
+﻿using CommunityToolkit.Mvvm.Input;
+using EEPK_Organiser.Forms;
 using EEPK_Organiser.ViewModel;
-using GalaSoft.MvvmLight.CommandWpf;
 using LB_Common.Forms;
+using LB_Common.Mvvm;
 using MahApps.Metro.Controls;
-using MahApps.Metro.Controls.Dialogs;
 using System;
 using System.Collections.Generic;
-using System.ComponentModel;
 using System.Linq;
 using System.Text;
 using System.Windows;
-using System.Windows.Controls;
 using System.Windows.Data;
 using Xv2CoreLib.EffectContainer;
 using Xv2CoreLib.EMM;
@@ -22,20 +20,8 @@ namespace EEPK_Organiser.View
     /// <summary>
     /// Interaction logic for MaterialsEditor.xaml
     /// </summary>
-    public partial class MaterialsEditor : UserControl, INotifyPropertyChanged, IDisposable
+    public partial class MaterialsEditor : AutoObservableUserControl, IDisposable
     {
-        #region NotifyPropChanged
-        public event PropertyChangedEventHandler PropertyChanged;
-
-        private void NotifyPropertyChanged(String propertyName = "")
-        {
-            if (PropertyChanged != null)
-            {
-                PropertyChanged(this, new PropertyChangedEventArgs(propertyName));
-            }
-        }
-        #endregion
-
         #region DependencyProperty
         public static readonly DependencyProperty EmmFileProperty = DependencyProperty.Register(nameof(EmmFile), typeof(EMM_File), typeof(MaterialsEditor), new PropertyMetadata(null));
 
@@ -203,7 +189,7 @@ namespace EEPK_Organiser.View
 
 
         //Filtering
-        public RelayCommand ClearSearchCommand => new RelayCommand(ClearSearch);
+        [RelayCommand]
         private void ClearSearch()
         {
             SearchFilter = string.Empty;
@@ -399,7 +385,7 @@ namespace EEPK_Organiser.View
         #endregion
 
         #region ContextMenuCommands
-        public RelayCommand AddNewMaterialCommand => new RelayCommand(AddNewMaterial);
+        [RelayCommand]
         private void AddNewMaterial()
         {
             EmmMaterial material = EmmMaterial.NewMaterial();
@@ -418,7 +404,7 @@ namespace EEPK_Organiser.View
             EmmFile.TriggerMaterialsChanged();
         }
 
-        public RelayCommand DeleteMaterialCommand => new RelayCommand(DeleteMaterial, IsMaterialSelected);
+        [RelayCommand(CanExecute = nameof(IsMaterialSelected))]
         private void DeleteMaterial()
         {
             bool materialInUse = false;
@@ -472,7 +458,7 @@ namespace EEPK_Organiser.View
             }
         }
 
-        public RelayCommand DuplicateMaterialCommand => new RelayCommand(DuplicateMaterial, IsMaterialSelected);
+        [RelayCommand(CanExecute = nameof(IsMaterialSelected))]
         private void DuplicateMaterial()
         {
             List<EmmMaterial> selectedMaterials = materialDataGrid.SelectedItems.Cast<EmmMaterial>().ToList();
@@ -504,7 +490,7 @@ namespace EEPK_Organiser.View
             }
         }
 
-        public RelayCommand MergeMaterialCommand => new RelayCommand(MergeMaterial, IsMaterialSelected);
+        [RelayCommand(CanExecute = nameof(IsMaterialSelected))]
         private void MergeMaterial()
         {
             List<EmmMaterial> selectedMaterials = materialDataGrid.SelectedItems.Cast<EmmMaterial>().ToList();
@@ -539,7 +525,7 @@ namespace EEPK_Organiser.View
             }
         }
 
-        public RelayCommand UsedByCommand => new RelayCommand(UsedBy, IsMaterialSelected);
+        [RelayCommand(CanExecute = nameof(IsMaterialSelected))]
         private void UsedBy()
         {
             if (SelectedMaterial != null)
@@ -558,7 +544,7 @@ namespace EEPK_Organiser.View
             }
         }
 
-        public RelayCommand HueShiftCommand => new RelayCommand(HueShift, IsMaterialSelected);
+        [RelayCommand(CanExecute = nameof(IsMaterialSelected))]
         private void HueShift()
         {
             if (SelectedMaterial != null)
@@ -572,7 +558,7 @@ namespace EEPK_Organiser.View
             }
         }
 
-        public RelayCommand HueSetCommand => new RelayCommand(HueSet, IsMaterialSelected);
+        [RelayCommand(CanExecute = nameof(IsMaterialSelected))]
         private void HueSet()
         {
             if (SelectedMaterial != null)
@@ -586,7 +572,7 @@ namespace EEPK_Organiser.View
             }
         }
 
-        public RelayCommand CopyMaterialCommand => new RelayCommand(CopyMaterial, IsMaterialSelected);
+        [RelayCommand(CanExecute = nameof(IsMaterialSelected))]
         private void CopyMaterial()
         {
             List<EmmMaterial> selectedMaterials = materialDataGrid.SelectedItems.Cast<EmmMaterial>().ToList();
@@ -597,7 +583,7 @@ namespace EEPK_Organiser.View
             }
         }
 
-        public RelayCommand PasteMaterialCommand => new RelayCommand(PasteMaterial, CanPasteMaterial);
+        [RelayCommand(CanExecute = nameof(CanPasteMaterial))]
         private void PasteMaterial()
         {
             List<EmmMaterial> copiedMaterials = (List<EmmMaterial>)Clipboard.GetData(Misc.ClipboardDataTypes.EmmMaterial);
@@ -622,7 +608,7 @@ namespace EEPK_Organiser.View
 
         }
 
-        public RelayCommand PasteMaterialValuesCommand => new RelayCommand(PasteMaterialValues, CanPasteMaterialValues);
+        [RelayCommand(CanExecute = nameof(CanPasteMaterialValues))]
         private void PasteMaterialValues()
         {
             List<EmmMaterial> copiedMaterials = (List<EmmMaterial>)Clipboard.GetData(Misc.ClipboardDataTypes.EmmMaterial);
@@ -666,7 +652,7 @@ namespace EEPK_Organiser.View
         #endregion
 
         #region ToolsCommand
-        public RelayCommand MergeDuplicatesCommand => new RelayCommand(MergeDuplicates);
+        [RelayCommand]
         private void MergeDuplicates()
         {
             var result = MessagePrompt.Show("All instances of duplicated materials will be merged into a single material. A duplicated material means any that share the same parameters, but have a different name. \n\nAll references to the duplicates in any assets will also be updated to reflect these changes.\n\nDo you want to continue?", "Merge Duplicates", MessagePromptButtons.OKCancel, MessagePromptIcon.Question);
@@ -689,7 +675,7 @@ namespace EEPK_Organiser.View
             }
         }
 
-        public RelayCommand RemoveUnusedMaterialsCommand => new RelayCommand(RemoveUnusedMaterials);
+        [RelayCommand]
         private void RemoveUnusedMaterials()
         {
             var result = MessagePrompt.Show("All materials that are not currently used by an asset will be deleted.\n\nDo you want to continue?", "Remove Unused", MessagePromptButtons.YesNo, MessagePromptIcon.Question);

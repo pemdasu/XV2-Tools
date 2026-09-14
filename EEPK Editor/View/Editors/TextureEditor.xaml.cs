@@ -1,17 +1,16 @@
-﻿using EEPK_Organiser.Forms;
+﻿using CommunityToolkit.Mvvm.Input;
+using EEPK_Organiser.Forms;
 using EEPK_Organiser.Misc;
-using GalaSoft.MvvmLight.CommandWpf;
 using LB_Common.Forms;
+using LB_Common.Mvvm;
 using MahApps.Metro.Controls;
 using Microsoft.Win32;
 using System;
 using System.Collections.Generic;
-using System.ComponentModel;
 using System.IO;
 using System.Linq;
 using System.Text;
 using System.Windows;
-using System.Windows.Controls;
 using System.Windows.Data;
 using Xv2CoreLib.EffectContainer;
 using Xv2CoreLib.EMB_CLASS;
@@ -23,20 +22,8 @@ namespace EEPK_Organiser.View
     /// <summary>
     /// Interaction logic for TextureEditor.xaml
     /// </summary>
-    public partial class TextureEditor : UserControl, INotifyPropertyChanged, IDisposable
+    public partial class TextureEditor : AutoObservableUserControl, IDisposable
     {
-        #region NotifyPropChanged
-        public event PropertyChangedEventHandler PropertyChanged;
-
-        private void NotifyPropertyChanged(String propertyName = "")
-        {
-            if (PropertyChanged != null)
-            {
-                PropertyChanged(this, new PropertyChangedEventArgs(propertyName));
-            }
-        }
-        #endregion
-
         #region DependencyProperty
         public static readonly DependencyProperty EmbFileProperty = DependencyProperty.Register(nameof(EmbFile), typeof(EMB_File), typeof(TextureEditor), new PropertyMetadata(null));
 
@@ -246,7 +233,7 @@ namespace EEPK_Organiser.View
 
 
         //Filtering
-        public RelayCommand ClearSearchCommand => new RelayCommand(ClearSearch);
+        [RelayCommand]
         private void ClearSearch()
         {
             SearchFilter = string.Empty;
@@ -336,7 +323,7 @@ namespace EEPK_Organiser.View
         
 
         #region TextureCommands
-        public RelayCommand AddTextureFromFileCommand => new RelayCommand(AddTextureFromFile);
+        [RelayCommand]
         private void AddTextureFromFile()
         {
             List<IUndoRedo> undos = new List<IUndoRedo>();
@@ -415,7 +402,7 @@ namespace EEPK_Organiser.View
             NotifyPropertyChanged(nameof(TextureCount));
         }
 
-        public RelayCommand ExtractTextureCommand => new RelayCommand(ExtractTexture, IsTextureSelected);
+        [RelayCommand(CanExecute = nameof(IsTextureSelected))]
         private void ExtractTexture()
         {
             List<EmbEntry> selectedTextures = textureDataGrid.SelectedItems.Cast<EmbEntry>().ToList();
@@ -454,7 +441,7 @@ namespace EEPK_Organiser.View
             }
         }
 
-        public RelayCommand DeleteTextureCommand => new RelayCommand(DeleteTexture, IsTextureSelected);
+        [RelayCommand(CanExecute = nameof(IsTextureSelected))]
         private void DeleteTexture()
         {
             bool textureInUse = false;
@@ -502,8 +489,8 @@ namespace EEPK_Organiser.View
 
             NotifyPropertyChanged(nameof(TextureCount));
         }
-        
-        public RelayCommand DuplicateTextureCommand => new RelayCommand(DuplicateTexture, IsTextureSelected);
+
+        [RelayCommand(CanExecute = nameof(IsTextureSelected))]
         private void DuplicateTexture()
         {
             List<EmbEntry> selectedTextures = textureDataGrid.SelectedItems.Cast<EmbEntry>().ToList();
@@ -539,7 +526,7 @@ namespace EEPK_Organiser.View
             NotifyPropertyChanged(nameof(TextureCount));
         }
 
-        public RelayCommand CopyTextureCommand => new RelayCommand(CopyTexture, IsTextureSelected);
+        [RelayCommand(CanExecute = nameof(IsTextureSelected))]
         private void CopyTexture()
         {
             List<EmbEntry> selectedTextures = textureDataGrid.SelectedItems.Cast<EmbEntry>().ToList();
@@ -550,7 +537,7 @@ namespace EEPK_Organiser.View
             }
         }
 
-        public RelayCommand PasteTextureCommand => new RelayCommand(PasteTexture, CanPasteTexture);
+        [RelayCommand(CanExecute = nameof(CanPasteTexture))]
         private void PasteTexture()
         {
             List<EmbEntry> copiedTextures = (List<EmbEntry>)Clipboard.GetData(ClipboardDataTypes.EmbTexture);
@@ -592,7 +579,7 @@ namespace EEPK_Organiser.View
             NotifyPropertyChanged(nameof(TextureCount));
         }
 
-        public RelayCommand MergeTexturesCommand => new RelayCommand(MergeTextures, CanMergeTextures);
+        [RelayCommand(CanExecute = nameof(CanMergeTextures))]
         private void MergeTextures()
         {
             if (!IsForContainer) return;
@@ -635,7 +622,7 @@ namespace EEPK_Organiser.View
             NotifyPropertyChanged(nameof(TextureCount));
         }
 
-        public RelayCommand UsedByCommand => new RelayCommand(UsedBy, IsTextureSelected);
+        [RelayCommand(CanExecute = nameof(IsTextureSelected))]
         private void UsedBy()
         {
             if (!IsForContainer) return;
@@ -656,7 +643,7 @@ namespace EEPK_Organiser.View
             }
         }
 
-        public RelayCommand HueShiftCommand => new RelayCommand(HueShift, IsTextureSelected);
+        [RelayCommand(CanExecute = nameof(IsTextureSelected))]
         private void HueShift()
         {
             if (SelectedTexture != null)
@@ -673,7 +660,7 @@ namespace EEPK_Organiser.View
             }
         }
 
-        public RelayCommand HueSetCommand => new RelayCommand(HueSet, IsTextureSelected);
+        [RelayCommand(CanExecute = nameof(IsTextureSelected))]
         private void HueSet()
         {
             if (SelectedTexture != null)
@@ -690,7 +677,7 @@ namespace EEPK_Organiser.View
             }
         }
 
-        public RelayCommand ReplaceTextureCommand => new RelayCommand(ReplaceTexture, IsTextureSelected);
+        [RelayCommand(CanExecute = nameof(IsTextureSelected))]
         private void ReplaceTexture()
         {
             OpenFileDialog openFile = new OpenFileDialog();
@@ -725,7 +712,7 @@ namespace EEPK_Organiser.View
             NotifyPropertyChanged(nameof(TextureCount));
         }
 
-        public RelayCommand CreateSuperTextureCommand => new RelayCommand(CreateSuperTexture, CanCreateSuperTexture);
+        [RelayCommand(CanExecute = nameof(CanCreateSuperTexture))]
         private void CreateSuperTexture()
         {
             if (TextureEditorType != TextureEditorType.Pbind) return;
@@ -801,7 +788,7 @@ namespace EEPK_Organiser.View
         #endregion
 
         #region ToolCommands
-        public RelayCommand MergeDuplicatesCommand => new RelayCommand(MergeDuplicates);
+        [RelayCommand]
         private void MergeDuplicates()
         {
             var result = MessagePrompt.Show("All instances of duplicated textures will be merged into a single texture. A duplicated texture means any that share the exact same data, but have a different name. \n\nAll references to the duplicates in any assets will also be updated to reflect these changes.\n\nDo you want to continue?", "Merge Duplicates", MessagePromptButtons.YesNo, MessagePromptIcon.Question);
@@ -828,7 +815,7 @@ namespace EEPK_Organiser.View
             NotifyPropertyChanged(nameof(TextureCount));
         }
 
-        public RelayCommand RemoveUnusedTexturesCommand => new RelayCommand(RemoveUnusedTextures);
+        [RelayCommand]
         private void RemoveUnusedTextures()
         {
             if (!IsForContainer) return;

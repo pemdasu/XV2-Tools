@@ -1,11 +1,10 @@
 ﻿using System.Collections.ObjectModel;
 using System.Windows;
-using System.Windows.Input;
 using System;
 using MahApps.Metro.Controls;
 using System.ComponentModel;
 using System.Windows.Data;
-using GalaSoft.MvvmLight.CommandWpf;
+using CommunityToolkit.Mvvm.Input;
 
 namespace EEPK_Organiser.Forms
 {
@@ -28,15 +27,15 @@ namespace EEPK_Organiser.Forms
 
         public enum EntityType
         {
-            Character,
-            SuperSkill,
-            UltimateSkill,
-            EvasiveSkill,
-            BlastSkill,
-            AwokenSkill,
-            Stage,
-            Demo,
-            CMN
+            Character = 0,
+            SuperSkill = 1,
+            UltimateSkill = 2,
+            EvasiveSkill = 3,
+            BlastSkill = 4,
+            AwokenSkill = 5,
+            Stage = 6,
+            Demo = 7,
+            CMN = 8
         }
 
         public ObservableCollection<GameEntity> Entities { get; set; }
@@ -111,13 +110,17 @@ namespace EEPK_Organiser.Forms
 
         }
 
-        public RelayCommand SelectItemCommand => new RelayCommand(SelectItem, () => listBox.SelectedItem != null);
+        [RelayCommand(CanExecute = nameof(CanSelectItem))]
         private void SelectItem()
         {
             SelectedEntity = listBox.SelectedItem as GameEntity;
             Close();
         }
 
+        private bool CanSelectItem()
+        {
+            return listBox.SelectedItem != null;
+        }
 
         #region Search
         private string _searchFilter = null;
@@ -186,7 +189,7 @@ namespace EEPK_Organiser.Forms
             NotifyPropertyChanged(nameof(FilterList));
         }
 
-        public RelayCommand ClearSearchCommand => new RelayCommand(ClearSearch);
+        [RelayCommand]
         private void ClearSearch()
         {
             SearchFilter = string.Empty;

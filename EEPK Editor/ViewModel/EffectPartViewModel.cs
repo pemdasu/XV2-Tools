@@ -1,4 +1,4 @@
-﻿using GalaSoft.MvvmLight;
+﻿using LB_Common.Mvvm;
 using System;
 using System.Collections.Generic;
 using Xv2CoreLib.EEPK;
@@ -7,7 +7,7 @@ using static Xv2CoreLib.EEPK.EffectPart;
 
 namespace EEPK_Organiser.ViewModel
 {
-    public class EffectPartViewModel : ObservableObject, IDisposable
+    public class EffectPartViewModel : AutoObservableObject, IDisposable
     {
         private EffectPart effectPart;
 

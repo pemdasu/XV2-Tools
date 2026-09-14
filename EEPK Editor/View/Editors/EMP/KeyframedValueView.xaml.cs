@@ -1,28 +1,17 @@
 ﻿using System.ComponentModel;
 using System.Windows;
-using System.Windows.Controls;
-using Xv2CoreLib.EMP_NEW;
 using Xv2CoreLib.EMP_NEW.Keyframes;
 using EEPK_Organiser.Forms;
-using GalaSoft.MvvmLight.CommandWpf;
-using System.Windows.Media;
+using LB_Common.Mvvm;
+using CommunityToolkit.Mvvm.Input;
 
 namespace EEPK_Organiser.View.Editors.EMP
 {
     /// <summary>
     /// Interaction logic for KeyframedValueView.xaml
     /// </summary>
-    public partial class KeyframedValueView : UserControl, INotifyPropertyChanged
+    public partial class KeyframedValueView : AutoObservableUserControl
     {
-        #region NotifyPropChanged
-        public event PropertyChangedEventHandler PropertyChanged;
-
-        private void NotifyPropertyChanged(string propertyName = "")
-        {
-            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
-        }
-        #endregion
-
         #region DP
         public static readonly DependencyProperty KeyframedValueProperty = DependencyProperty.Register(
             nameof(KeyframedValue), typeof(KeyframedBaseValue), typeof(KeyframedValueView), new PropertyMetadata(OnDpChanged));
@@ -117,7 +106,7 @@ namespace EEPK_Organiser.View.Editors.EMP
             NotifyPropertyChanged(nameof(NotAnimButtonVisible));
         }
 
-        public RelayCommand GoToKeyframedValueCommand => new RelayCommand(GoToKeyframedValue, IsNodeSelected);
+        [RelayCommand(CanExecute = nameof(IsNodeSelected))]
         private void GoToKeyframedValue()
         {
             Node.SelectedKeyframedValue = KeyframedValue;

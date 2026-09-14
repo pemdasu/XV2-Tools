@@ -1,4 +1,4 @@
-﻿<UserControl x:Class="EEPK_Organiser.View.Editors.EMP.EmpKeyframesView"
+﻿<mvvm:AutoObservableUserControl x:Class="EEPK_Organiser.View.Editors.EMP.EmpKeyframesView"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
@@ -10,12 +10,13 @@
              xmlns:empDic="clr-namespace:Xv2CoreLib.ValuesDictionary;assembly=Xv2CoreLib"
              xmlns:Dialog="clr-namespace:MahApps.Metro.Controls.Dialogs;assembly=MahApps.Metro"
              xmlns:lbUtils="clr-namespace:LB_Common.Utils;assembly=LB_Common"
+             xmlns:mvvm="clr-namespace:LB_Common.Mvvm;assembly=LB_Common"
              mc:Ignorable="d" 
              Dialog:DialogParticipation.Register="{Binding}"
              d:DesignHeight="200" d:DesignWidth="600" Name="UserControl" Unloaded="UserControl_Unloaded">
-    <UserControl.Resources>
+    <mvvm:AutoObservableUserControl.Resources>
         <lbUtils:BindingProxy x:Key="Proxy" Data="{Binding}" />
-    </UserControl.Resources>
+    </mvvm:AutoObservableUserControl.Resources>
     <Grid>
         <TextBlock x:Name="nothingSelectedText" VerticalAlignment="Center" HorizontalAlignment="Center"/>
         <Grid x:Name="mainGrid">
@@ -387,4 +388,4 @@
             </Grid>
         </Grid>
     </Grid>
-</UserControl>
+</mvvm:AutoObservableUserControl>

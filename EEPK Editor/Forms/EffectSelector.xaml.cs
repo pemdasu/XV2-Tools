@@ -1,13 +1,13 @@
-﻿using GalaSoft.MvvmLight.CommandWpf;
-using LB_Common.Forms;
-using MahApps.Metro.Controls;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Linq;
 using System.Text;
 using System.Windows;
 using System.Windows.Controls;
+using MahApps.Metro.Controls;
+using CommunityToolkit.Mvvm.Input;
+using LB_Common.Forms;
 using Xv2CoreLib.EEPK;
 using Xv2CoreLib.EffectContainer;
 
@@ -262,7 +262,7 @@ namespace EEPK_Organiser.Forms
             SetSelectState(false);
         }
 
-        public RelayCommand ToggleSelectionCommand => new RelayCommand(ToggleSelection);
+        [RelayCommand]
         private void ToggleSelection()
         {
             //First set them as selected

@@ -1,11 +1,11 @@
-﻿using Xv2CoreLib.EMP_NEW;
+﻿using LB_Common.Mvvm;
 using Xv2CoreLib.EMB_CLASS;
+using Xv2CoreLib.EMP_NEW;
 using Xv2CoreLib.Resource.UndoRedo;
-using GalaSoft.MvvmLight;
 
 namespace EEPK_Organiser.ViewModel
 {
-    public class EmpTextureViewModel : ObservableObject
+    public class EmpTextureViewModel : AutoObservableObject
     {
         private EMP_TextureSamplerDef texture;
 

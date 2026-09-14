@@ -1,11 +1,11 @@
-﻿using GalaSoft.MvvmLight;
+﻿using LB_Common.Mvvm;
 using System;
 using Xv2CoreLib.EffectContainer;
 using Xv2CoreLib.Resource.UndoRedo;
 
 namespace EEPK_Organiser.ViewModel
 {
-    public class AssetContainerViewModel : ObservableObject, IDisposable
+    public class AssetContainerViewModel : AutoObservableObject, IDisposable
     {
         private readonly AssetContainerTool AssetContainer;
 

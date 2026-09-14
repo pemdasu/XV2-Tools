@@ -1,14 +1,14 @@
-﻿using GalaSoft.MvvmLight.CommandWpf;
-using System;
+﻿using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Collections.Specialized;
 using System.ComponentModel;
 using System.Linq;
 using System.Windows;
-using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
+using CommunityToolkit.Mvvm.Input;
+using LB_Common.Mvvm;
 using Xv2CoreLib.EMP_NEW;
 using Xv2CoreLib.Resource;
 using Xv2CoreLib.Resource.UndoRedo;
@@ -18,17 +18,8 @@ namespace EEPK_Organiser.View.Controls
     //Used as an initial base:
     //https://www.codeproject.com/articles/769055/interpolate-d-points-usign-bezier-curves-in-wpf
 
-    public partial class ShapeDraw : UserControl, INotifyPropertyChanged
+    public partial class ShapeDraw : AutoObservableUserControl
     {
-        #region NotifyPropChanged
-        public event PropertyChangedEventHandler PropertyChanged;
-
-        public void NotifyPropertyChanged(string propertyName = "")
-        {
-            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
-        }
-        #endregion
-
         #region DP
 
         public static readonly DependencyProperty PointsProperty = DependencyProperty.Register(nameof(Points), typeof(IEnumerable), typeof(ShapeDraw), new PropertyMetadata(null, PointsChangedCallback));
@@ -211,7 +202,7 @@ namespace EEPK_Organiser.View.Controls
         }
 
 
-        public RelayCommand CreatePointCommand => new RelayCommand(CreatePoint, HasPoints);
+        [RelayCommand(CanExecute = nameof(HasPoints))]
         private void CreatePoint()
         {
             Point mousePos = Mouse.GetPosition(path);
@@ -230,14 +221,14 @@ namespace EEPK_Organiser.View.Controls
             NotifyPropertyChanged(nameof(SelectedPoint));
         }
 
-        public RelayCommand DeletePointCommand => new RelayCommand(DeletePoint, CanDeletePoint);
+        [RelayCommand(CanExecute = nameof(CanDeletePoint))]
         private void DeletePoint()
         {
             UndoManager.Instance.AddUndo(new UndoableListRemove<ShapeDrawPoint>(Points, SelectedPoint.Point, "Shape Draw -> Delete Point"));
             Points.Remove(SelectedPoint.Point);
         }
 
-        public RelayCommand ReducePointsCommand => new RelayCommand(ReducePoints, CanReducePoints);
+        [RelayCommand(CanExecute = nameof(CanReducePoints))]
         private void ReducePoints()
         {
             var undos = Xv2CoreLib.EMP_NEW.ShapeDraw.ReducePoints(Points);

@@ -1,21 +1,17 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using Xv2CoreLib.EMP_NEW;
-using Xv2CoreLib.EMP_NEW.Keyframes;
-using GalaSoft.MvvmLight.CommandWpf;
-using GalaSoft.MvvmLight;
+﻿using System.Linq;
 using System.Windows;
-using LB_Common.Numbers;
-using Xv2CoreLib.Resource.UndoRedo;
+using System.Collections.Generic;
 using System.Windows.Controls;
+using CommunityToolkit.Mvvm.Input;
+using LB_Common.Numbers;
+using LB_Common.Mvvm;
 using Xv2CoreLib.ETR;
+using Xv2CoreLib.EMP_NEW.Keyframes;
+using Xv2CoreLib.Resource.UndoRedo;
 
 namespace EEPK_Organiser.ViewModel
 {
-    public class EmpKeyframesViewModel : ObservableObject
+    public partial class EmpKeyframesViewModel : AutoObservableObject
     {
         private KeyframedBaseValue KeyframedValue = null;
         public DataGrid FloatKeyframeDataGrid = null;
@@ -210,13 +206,13 @@ namespace EEPK_Organiser.ViewModel
 
 
         #region FloatCommands
-        public RelayCommand AddFloatKeyframeCommand => new RelayCommand(AddFloatKeyframe, IsFloatValue);
+        [RelayCommand(CanExecute = nameof(IsFloatValue))]
         private void AddFloatKeyframe()
         {
             UndoManager.Instance.AddUndo(FloatValue.AddKeyframe(NewTime, NewFloat));
         }
 
-        public RelayCommand DeleteFloatKeyframeCommand => new RelayCommand(DeleteFloatKeyframe, IsFloatSelected);
+        [RelayCommand(CanExecute = nameof(IsFloatSelected))]
         private void DeleteFloatKeyframe()
         {
             List<IUndoRedo> undos = new List<IUndoRedo>();
@@ -230,7 +226,7 @@ namespace EEPK_Organiser.ViewModel
             UndoManager.Instance.AddCompositeUndo(undos, "EMP -> Remove Keyframes");
         }
 
-        public RelayCommand CopyFloatKeyframeCommand => new RelayCommand(CopyFloatKeyframe, IsFloatSelected);
+        [RelayCommand(CanExecute = nameof(IsFloatSelected))]
         private void CopyFloatKeyframe()
         {
             List<KeyframeFloatValue> selectedFloatKeyframes = FloatKeyframeDataGrid.SelectedItems.Cast<KeyframeFloatValue>().ToList();
@@ -241,7 +237,7 @@ namespace EEPK_Organiser.ViewModel
             }
         }
 
-        public RelayCommand PasteFloatKeyframeCommand => new RelayCommand(PasteFloatKeyframe, () => Clipboard.ContainsData(KeyframedFloatValue.CLIPBOARD_ID) && IsFloatValue());
+        [RelayCommand(CanExecute = nameof(IsFloatInClipboard))]
         private void PasteFloatKeyframe()
         {
             List<IUndoRedo> undos = new List<IUndoRedo>();
@@ -255,6 +251,10 @@ namespace EEPK_Organiser.ViewModel
             UndoManager.Instance.AddCompositeUndo(undos, "EMP -> Paste Keyframe");
         }
 
+        private bool IsFloatInClipboard()
+        {
+            return Clipboard.ContainsData(KeyframedFloatValue.CLIPBOARD_ID) && IsFloatValue();
+        }
 
         private bool IsFloatValue()
         {
@@ -269,13 +269,13 @@ namespace EEPK_Organiser.ViewModel
         #endregion
 
         #region ColorCommands
-        public RelayCommand AddColorKeyframeCommand => new RelayCommand(AddColorKeyframe, IsColorValue);
+        [RelayCommand(CanExecute = nameof(IsColorValue))]
         private void AddColorKeyframe()
         {
             UndoManager.Instance.AddUndo(ColorValue.AddKeyframe(NewTime, NewColor.R, NewColor.G, NewColor.B));
         }
 
-        public RelayCommand DeleteColorKeyframeCommand => new RelayCommand(DeleteColorKeyframe, IsColorSelected);
+        [RelayCommand(CanExecute = nameof(IsColorSelected))]
         private void DeleteColorKeyframe()
         {
             List<IUndoRedo> undos = new List<IUndoRedo>();
@@ -289,7 +289,7 @@ namespace EEPK_Organiser.ViewModel
             UndoManager.Instance.AddCompositeUndo(undos, "Remove Keyframes");
         }
 
-        public RelayCommand CopyColorKeyframeCommand => new RelayCommand(CopyColorKeyframe, IsColorSelected);
+        [RelayCommand(CanExecute = nameof(IsColorSelected))]
         private void CopyColorKeyframe()
         {
             List<KeyframeColorValue> selectedKeyframes = ColorKeyframeDataGrid.SelectedItems.Cast<KeyframeColorValue>().ToList();
@@ -300,7 +300,7 @@ namespace EEPK_Organiser.ViewModel
             }
         }
 
-        public RelayCommand PasteColorKeyframeCommand => new RelayCommand(PasteColorKeyframe, () => Clipboard.ContainsData(KeyframedColorValue.CLIPBOARD_ID) && IsColorValue());
+        [RelayCommand(CanExecute = nameof(IsColorInClipboard))]
         private void PasteColorKeyframe()
         {
             List<IUndoRedo> undos = new List<IUndoRedo>();
@@ -312,6 +312,11 @@ namespace EEPK_Organiser.ViewModel
             }
 
             UndoManager.Instance.AddCompositeUndo(undos, "EMP -> Paste Keyframe");
+        }
+
+        private bool IsColorInClipboard()
+        {
+            return Clipboard.ContainsData(KeyframedColorValue.CLIPBOARD_ID) && IsColorValue();
         }
 
         private bool IsColorValue()
@@ -326,13 +331,13 @@ namespace EEPK_Organiser.ViewModel
         #endregion
 
         #region Vector2Commands
-        public RelayCommand AddVector2KeyframeCommand => new RelayCommand(AddVector2Keyframe, IsVector2Value);
+        [RelayCommand(CanExecute = nameof(IsVector2Value))]
         private void AddVector2Keyframe()
         {
             UndoManager.Instance.AddUndo(Vector2Value.AddKeyframe(NewTime, NewVector.X, NewVector.Y));
         }
 
-        public RelayCommand DeleteVector2KeyframeCommand => new RelayCommand(DeleteVector2Keyframe, IsVector2Selected);
+        [RelayCommand(CanExecute = nameof(IsVector2Selected))]
         private void DeleteVector2Keyframe()
         {
             List<IUndoRedo> undos = new List<IUndoRedo>();
@@ -346,7 +351,7 @@ namespace EEPK_Organiser.ViewModel
             UndoManager.Instance.AddCompositeUndo(undos, "Remove Keyframes");
         }
 
-        public RelayCommand CopyVector2KeyframeCommand => new RelayCommand(CopyVector2Keyframe, IsVector2Selected);
+        [RelayCommand(CanExecute = nameof(IsVector2Selected))]
         private void CopyVector2Keyframe()
         {
             List<KeyframeVector2Value> selectedKeyframes = Vector2KeyframeDataGrid.SelectedItems.Cast<KeyframeVector2Value>().ToList();
@@ -357,7 +362,7 @@ namespace EEPK_Organiser.ViewModel
             }
         }
 
-        public RelayCommand PasteVector2KeyframeCommand => new RelayCommand(PasteVector2Keyframe, () => Clipboard.ContainsData(KeyframedVector2Value.CLIPBOARD_ID) && IsVector2Value());
+        [RelayCommand(CanExecute = nameof(IsVector2InClipboard))]
         private void PasteVector2Keyframe()
         {
             List<IUndoRedo> undos = new List<IUndoRedo>();
@@ -369,6 +374,11 @@ namespace EEPK_Organiser.ViewModel
             }
 
             UndoManager.Instance.AddCompositeUndo(undos, "EMP -> Paste Keyframe");
+        }
+
+        private bool IsVector2InClipboard()
+        {
+            return Clipboard.ContainsData(KeyframedVector2Value.CLIPBOARD_ID) && IsVector2Value();
         }
 
         private bool IsVector2Value()
@@ -383,13 +393,13 @@ namespace EEPK_Organiser.ViewModel
         #endregion
 
         #region Vector3Commands
-        public RelayCommand AddVector3KeyframeCommand => new RelayCommand(AddVector3Keyframe, IsVector3Value);
+        [RelayCommand(CanExecute = nameof(IsVector3Value))]
         private void AddVector3Keyframe()
         {
             UndoManager.Instance.AddUndo(Vector3Value.AddKeyframe(NewTime, NewVector.X, NewVector.Y, NewVector.Z));
         }
 
-        public RelayCommand DeleteVector3KeyframeCommand => new RelayCommand(DeleteVector3Keyframe, IsVector3Selected);
+        [RelayCommand(CanExecute = nameof(IsVector3Selected))]
         private void DeleteVector3Keyframe()
         {
             List<IUndoRedo> undos = new List<IUndoRedo>();
@@ -403,7 +413,7 @@ namespace EEPK_Organiser.ViewModel
             UndoManager.Instance.AddCompositeUndo(undos, "Remove Keyframes");
         }
 
-        public RelayCommand CopyVector3KeyframeCommand => new RelayCommand(CopyVector3Keyframe, IsVector3Selected);
+        [RelayCommand(CanExecute = nameof(IsVector3Selected))]
         private void CopyVector3Keyframe()
         {
             List<KeyframeVector3Value> selectedKeyframes = Vector3KeyframeDataGrid.SelectedItems.Cast<KeyframeVector3Value>().ToList();
@@ -414,7 +424,7 @@ namespace EEPK_Organiser.ViewModel
             }
         }
 
-        public RelayCommand PasteVector3KeyframeCommand => new RelayCommand(PasteVector3Keyframe, () => Clipboard.ContainsData(KeyframedVector3Value.CLIPBOARD_ID) && IsVector3Value());
+        [RelayCommand(CanExecute = nameof(IsVector3InClipboard))]
         private void PasteVector3Keyframe()
         {
             List<IUndoRedo> undos = new List<IUndoRedo>();
@@ -426,6 +436,11 @@ namespace EEPK_Organiser.ViewModel
             }
 
             UndoManager.Instance.AddCompositeUndo(undos, "EMP -> Paste Keyframe");
+        }
+
+        private bool IsVector3InClipboard()
+        {
+            return Clipboard.ContainsData(KeyframedVector3Value.CLIPBOARD_ID) && IsVector3Value();
         }
 
         private bool IsVector3Value()
