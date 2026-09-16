@@ -19,6 +19,8 @@ namespace Xv2CoreLib.EMP_NEW.Keyframes
         private float[] InterpolatedValues = new float[4];
 
         #region Init
+        public KeyframedColorValue() { }
+
         public KeyframedColorValue(float r, float g, float b, KeyframedValueType valueType, bool isEtr = false, bool isModifier = false)
         {
             Constant = new CustomColor(r, g, b, 1f);
@@ -136,9 +138,6 @@ namespace Xv2CoreLib.EMP_NEW.Keyframes
         {
             List<RgbColor> colors = new List<RgbColor>();
 
-            if (!Constant.IsWhiteOrBlack() || allowWhiteAndBlack)
-                colors.Add(new RgbColor(Constant));
-
             if (IsAnimated)
             {
                 foreach (KeyframeColorValue keyframe in Keyframes)
@@ -146,6 +145,11 @@ namespace Xv2CoreLib.EMP_NEW.Keyframes
                     if (!keyframe.Value.IsWhiteOrBlack() || allowWhiteAndBlack)
                         colors.Add(new RgbColor(keyframe.Value));
                 }
+            }
+            else
+            {
+                if (!Constant.IsWhiteOrBlack() || allowWhiteAndBlack)
+                    colors.Add(new RgbColor(Constant));
             }
 
             return colors.Count > 0 ? ColorEx.GetAverageColor(colors) : new RgbColor(Constant);
@@ -232,6 +236,8 @@ namespace Xv2CoreLib.EMP_NEW.Keyframes
     public class KeyframeColorValue : KeyframeBaseValue
     {
         public CustomColor Value { get; set; }
+
+        public KeyframeColorValue() { }
 
         public KeyframeColorValue(float time, float r, float g, float b)
         {

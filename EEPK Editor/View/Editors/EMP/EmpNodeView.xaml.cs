@@ -4,6 +4,7 @@ using EEPK_Organiser.View.Controls;
 using EEPK_Organiser.ViewModel;
 using LB_Common.Forms;
 using LB_Common.Mvvm;
+using LB_Common.Utils;
 using Microsoft.Win32;
 using System;
 using System.Collections.Generic;
@@ -189,7 +190,7 @@ namespace EEPK_Organiser.View.Editors.EMP
                 }
                 else if (e.UndoContext is Asset asset)
                 {
-                    if(asset.assetType == Xv2CoreLib.EEPK.AssetType.PBIND)
+                    if(asset.AssetType == Xv2CoreLib.EEPK.AssetType.PBIND)
                     {
                         if(asset.Files[0].EmpFile == EmpFile)
                         {
@@ -335,13 +336,14 @@ namespace EEPK_Organiser.View.Editors.EMP
         private void CopyShapeDrawPoint()
         {
             List<ShapeDrawPoint> selectedPoints = shapeDrawPointDataGrid.SelectedItems.Cast<ShapeDrawPoint>().ToList();
-            Clipboard.SetData(EMP_File.CLIPBOARD_SHAP_DRAW_POINT, selectedPoints);
+            CustomClipboard.SetData(EMP_File.CLIPBOARD_SHAP_DRAW_POINT, selectedPoints);
         }
 
         [RelayCommand(CanExecute = nameof(IsShapeDrawInClipboard))]
         private void PasteShapeDrawPoint()
         {
-            List<ShapeDrawPoint> points = (List<ShapeDrawPoint>)Clipboard.GetData(EMP_File.CLIPBOARD_SHAP_DRAW_POINT);
+            if (!CustomClipboard.TryGetData(EMP_File.CLIPBOARD_SHAP_DRAW_POINT, out List<ShapeDrawPoint> points))
+                return;
 
             if (points != null)
             {
@@ -361,7 +363,9 @@ namespace EEPK_Organiser.View.Editors.EMP
         [RelayCommand(CanExecute = nameof(IsShapeDrawInClipboard))]
         private void PasteShapeDrawPointValues()
         {
-            List<ShapeDrawPoint> points = (List<ShapeDrawPoint>)Clipboard.GetData(EMP_File.CLIPBOARD_SHAP_DRAW_POINT);
+            if (!CustomClipboard.TryGetData(EMP_File.CLIPBOARD_SHAP_DRAW_POINT, out List<ShapeDrawPoint> points))
+                return;
+
             List<ShapeDrawPoint> selectedPoints = shapeDrawPointDataGrid.SelectedItems.Cast<ShapeDrawPoint>().ToList();
 
             if (points?.Count == selectedPoints.Count)
@@ -389,7 +393,7 @@ namespace EEPK_Organiser.View.Editors.EMP
 
         private bool IsShapeDrawInClipboard()
         {
-            return Clipboard.ContainsData(EMP_File.CLIPBOARD_SHAP_DRAW_POINT) && IsNodeSelected();
+            return CustomClipboard.ContainsData(EMP_File.CLIPBOARD_SHAP_DRAW_POINT) && IsNodeSelected();
         }
         #endregion
 
@@ -490,13 +494,14 @@ namespace EEPK_Organiser.View.Editors.EMP
         [RelayCommand(CanExecute = nameof(HasMeshData))]
         private void Mesh_CopyMesh()
         {
-            Clipboard.SetData(EMG_File.CLIPBOARD_ID, Node.EmissionNode.Mesh.EmgFile);
+            CustomClipboard.SetData(EMG_File.CLIPBOARD_ID, Node.EmissionNode.Mesh.EmgFile);
         }
 
         [RelayCommand(CanExecute = nameof(IsMeshInClipboard))]
         private void Mesh_PasteMesh()
         {
-            EMG_File emg = (EMG_File)Clipboard.GetData(EMG_File.CLIPBOARD_ID);
+            if (!CustomClipboard.TryGetData(EMG_File.CLIPBOARD_ID, out EMG_File emg))
+                return;
 
             UndoManager.Instance.AddUndo(new UndoablePropertyGeneric(nameof(ParticleStaticMesh.EmgFile), Node.EmissionNode.Mesh, Node.EmissionNode.Mesh.EmgFile, emg, "Paste Static Mesh"));
             Node.EmissionNode.Mesh.EmgFile = emg;
@@ -505,7 +510,7 @@ namespace EEPK_Organiser.View.Editors.EMP
 
         private bool IsMeshInClipboard()
         {
-            return Clipboard.ContainsData(EMG_File.CLIPBOARD_ID);
+            return CustomClipboard.ContainsData(EMG_File.CLIPBOARD_ID);
         }
 
         private bool HasMeshData()
@@ -561,13 +566,14 @@ namespace EEPK_Organiser.View.Editors.EMP
         private void CopyExtrudePoint()
         {
             List<ConeExtrudePoint> selectedPoints = extrudeDataGrid.SelectedItems.Cast<ConeExtrudePoint>().ToList();
-            Clipboard.SetData(EMP_File.CLIPBOARD_CONE_EXTRUSION, selectedPoints);
+            CustomClipboard.SetData(EMP_File.CLIPBOARD_CONE_EXTRUSION, selectedPoints);
         }
 
         [RelayCommand(CanExecute = nameof(IsExtrudePointInClipboard))]
         private void PasteExtrudePoint()
         {
-            List<ConeExtrudePoint> points = (List<ConeExtrudePoint>)Clipboard.GetData(EMP_File.CLIPBOARD_CONE_EXTRUSION);
+            if (!CustomClipboard.TryGetData(EMP_File.CLIPBOARD_CONE_EXTRUSION, out List<ConeExtrudePoint> points))
+                return;
 
             if (points != null)
             {
@@ -592,7 +598,7 @@ namespace EEPK_Organiser.View.Editors.EMP
 
         private bool IsExtrudePointInClipboard()
         {
-            return Clipboard.ContainsData(EMP_File.CLIPBOARD_CONE_EXTRUSION);
+            return CustomClipboard.ContainsData(EMP_File.CLIPBOARD_CONE_EXTRUSION);
         }
 
         private bool IsExtrudePointSelected()

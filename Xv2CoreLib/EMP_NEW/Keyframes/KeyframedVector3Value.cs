@@ -18,6 +18,8 @@ namespace Xv2CoreLib.EMP_NEW.Keyframes
         private float[] InterpolatedValues = new float[4];
 
         #region Init
+        public KeyframedVector3Value() { }
+
         public KeyframedVector3Value(float x, float y, float z, KeyframedValueType valueType, bool isEtr = false, bool isModifier = false)
         {
             Constant = new CustomVector4(x, y, z, 1f);
@@ -205,6 +207,8 @@ namespace Xv2CoreLib.EMP_NEW.Keyframes
     public class KeyframeVector3Value : KeyframeBaseValue
     {
         public CustomVector4 Value { get; set; }
+
+        public KeyframeVector3Value() { }
 
         public KeyframeVector3Value(float time, float x, float y, float z)
         {

@@ -1,9 +1,11 @@
 ﻿using CommunityToolkit.Mvvm.Input;
 using LB_Common.Mvvm;
+using LB_Common.Utils;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Windows;
+using Xv2CoreLib.ECF;
 using Xv2CoreLib.EMP_NEW;
 using Xv2CoreLib.EMP_NEW.Keyframes;
 using Xv2CoreLib.Resource;
@@ -213,14 +215,16 @@ namespace EEPK_Organiser.View.Editors.EMP
         [RelayCommand(CanExecute = nameof(IsModifierSelected))]
         private void CopyModifier()
         {
-            Clipboard.SetData(GetClipboardFormat(), SelectedModifiers);
+            CustomClipboard.SetData(GetClipboardFormat(), SelectedModifiers);
         }
 
         [RelayCommand(CanExecute = nameof(CanPasteModifier))]
         private void PasteModifier()
         {
+            if (!CustomClipboard.TryGetData(GetClipboardFormat(), out List<EMP_Modifier> modifiers))
+                return;
+
             List<IUndoRedo> undos = new List<IUndoRedo>();
-            List<EMP_Modifier> modifiers = (List<EMP_Modifier>)Clipboard.GetData(GetClipboardFormat());
 
             foreach (EMP_Modifier modifier in modifiers)
             {
@@ -234,7 +238,7 @@ namespace EEPK_Organiser.View.Editors.EMP
 
         private bool CanPasteModifier()
         {
-            return Clipboard.ContainsData(GetClipboardFormat());
+            return CustomClipboard.ContainsData(GetClipboardFormat());
         }
 
         private bool IsModifierSelected()

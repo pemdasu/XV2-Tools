@@ -89,7 +89,7 @@
                             <ColumnDefinition Width="20"/>
                         </Grid.ColumnDefinitions>
                         <Label Content="Enabled"/>
-                        <CheckBox Grid.Column="1" IsChecked="{Binding ElementName=UserControl, Path=ViewModel.IsAnimated}"/>
+                        <CheckBox Grid.Column="1" IsChecked="{Binding ElementName=UserControl, Path=ViewModel.IsAnimated}" Checked="CheckBox_Checked" Unchecked="CheckBox_Checked"/>
                     </Grid>
                     <Grid IsEnabled="{Binding ElementName=UserControl, Path=ViewModel.IsAnimated}" ToolTip="This setting will loop the keyframes if they end before the particles lifetime expires.&#x0a;&#x0a;Since time is a factor of a particles lifetime, this setting will only do anything if the final keyframe is less than 1.0">
                         <Grid.ColumnDefinitions>

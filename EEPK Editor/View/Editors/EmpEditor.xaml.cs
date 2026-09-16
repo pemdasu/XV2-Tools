@@ -1,16 +1,17 @@
-﻿using System;
+﻿using CommunityToolkit.Mvvm.Input;
+using LB_Common.Mvvm;
+using LB_Common.Utils;
+using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Windows;
 using System.Windows.Controls;
-using Xv2CoreLib.EMP_NEW;
-using Xv2CoreLib.EffectContainer;
 using System.Windows.Input;
-using Xv2CoreLib.Resource.UndoRedo;
-using Xv2CoreLib.Resource;
 using Xv2CoreLib;
-using LB_Common.Mvvm;
-using CommunityToolkit.Mvvm.Input;
+using Xv2CoreLib.EffectContainer;
+using Xv2CoreLib.EMP_NEW;
+using Xv2CoreLib.Resource;
+using Xv2CoreLib.Resource.UndoRedo;
 
 namespace EEPK_Organiser.View
 {
@@ -156,7 +157,7 @@ namespace EEPK_Organiser.View
         [RelayCommand(CanExecute = nameof(IsNodeSelected))]
         private void CopyNode()
         {
-            Clipboard.SetData(EMP_File.CLIPBOARD_NODE, SelectedNode);
+            CustomClipboard.SetData(EMP_File.CLIPBOARD_NODE, SelectedNode);
         }
 
         [RelayCommand(CanExecute = nameof(CanPasteNode))]
@@ -174,8 +175,10 @@ namespace EEPK_Organiser.View
         [RelayCommand(CanExecute = nameof(CanPasteNodeChild))]
         private void PasteNodeValues()
         {
+            if (!CustomClipboard.TryGetData(EMP_File.CLIPBOARD_NODE, out ParticleNode copiedNode))
+                return;
+
             List<IUndoRedo> undos = new List<IUndoRedo>();
-            ParticleNode copiedNode = (ParticleNode)Clipboard.GetData(EMP_File.CLIPBOARD_NODE);
             AssetContainer.AddPbindDependencies(copiedNode, EmpFile, undos);
             SelectedNode.CopyValues(copiedNode, undos);
 
@@ -185,7 +188,9 @@ namespace EEPK_Organiser.View
 
         private void PasteNode(AsyncObservableCollection<ParticleNode> nodes)
         {
-            ParticleNode copiedNode = (ParticleNode)Clipboard.GetData(EMP_File.CLIPBOARD_NODE);
+            if (!CustomClipboard.TryGetData(EMP_File.CLIPBOARD_NODE, out ParticleNode copiedNode))
+                return;
+
             copiedNode.Name = NameHelper.GetUniqueName(copiedNode.Name, nodes);
 
             List<IUndoRedo> undos = new List<IUndoRedo>();
@@ -276,12 +281,12 @@ namespace EEPK_Organiser.View
 
         private bool CanPasteNode()
         {
-            return Clipboard.ContainsData(EMP_File.CLIPBOARD_NODE);
+            return CustomClipboard.ContainsData(EMP_File.CLIPBOARD_NODE);
         }
         
         private bool CanPasteNodeChild()
         {
-            return Clipboard.ContainsData(EMP_File.CLIPBOARD_NODE) && SelectedNode != null;
+            return CustomClipboard.ContainsData(EMP_File.CLIPBOARD_NODE) && SelectedNode != null;
         }
         #endregion
 
@@ -319,6 +324,11 @@ namespace EEPK_Organiser.View
             {
                 nodeView.tabControl.SelectedIndex = 1;
             }
+        }
+
+        private void EmpKeyframesView_IsEnabledToggled(object sender, EventArgs e)
+        {
+            SelectedNode.UpdatePreviewBrush(false);
         }
     }
 }

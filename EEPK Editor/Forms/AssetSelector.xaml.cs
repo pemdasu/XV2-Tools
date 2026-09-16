@@ -353,7 +353,7 @@ namespace EEPK_Organiser.Forms
 
                     foreach(var asset in item)
                     {
-                        if (!first && asset.assetType != prevAssetType)
+                        if (!first && asset.AssetType != prevAssetType)
                         {
                             MessagePrompt.Show("All selected assets must be of the same type.", "Error", MessagePromptButtons.OK, MessagePromptIcon.Error);
                             return;
@@ -362,7 +362,7 @@ namespace EEPK_Organiser.Forms
                         {
                             first = false;
                         }
-                        prevAssetType = asset.assetType;
+                        prevAssetType = asset.AssetType;
                     }
 
                     SelectedAssetType = prevAssetType;

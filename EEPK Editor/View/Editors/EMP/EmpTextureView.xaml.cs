@@ -1,15 +1,16 @@
-﻿using System.Collections.Generic;
+﻿using CommunityToolkit.Mvvm.Input;
+using EEPK_Organiser.Misc;
+using EEPK_Organiser.ViewModel;
+using LB_Common.Forms;
+using LB_Common.Mvvm;
+using LB_Common.Utils;
+using System.Collections.Generic;
 using System.ComponentModel;
 using System.Linq;
 using System.Windows;
-using LB_Common.Forms;
 using Xv2CoreLib.EffectContainer;
 using Xv2CoreLib.EMP_NEW;
 using Xv2CoreLib.Resource.UndoRedo;
-using EEPK_Organiser.Misc;
-using EEPK_Organiser.ViewModel;
-using LB_Common.Mvvm;
-using CommunityToolkit.Mvvm.Input;
 
 namespace EEPK_Organiser.View.Editors.EMP
 {
@@ -146,13 +147,14 @@ namespace EEPK_Organiser.View.Editors.EMP
         private void TextureCopy()
         {
             AssetContainer.File3_Ref.SaveDdsImages();
-            Clipboard.SetData(ClipboardDataTypes.EmpTextureEntry, SelectedTextures);
+            CustomClipboard.SetData(ClipboardDataTypes.EmpTextureEntry, SelectedTextures);
         }
 
         [RelayCommand(CanExecute = nameof(CanPasteTexture))]
         private void TexturePaste()
         {
-            List<EMP_TextureSamplerDef> copiedTextures = (List<EMP_TextureSamplerDef>)Clipboard.GetData(ClipboardDataTypes.EmpTextureEntry);
+            if (!CustomClipboard.TryGetData(ClipboardDataTypes.EmpTextureEntry, out List<EMP_TextureSamplerDef> copiedTextures))
+                return;
 
             if (copiedTextures != null)
             {
@@ -176,7 +178,8 @@ namespace EEPK_Organiser.View.Editors.EMP
         [RelayCommand(CanExecute = nameof(CanPasteTextureValues))]
         private void TexturePasteValues()
         {
-            List<EMP_TextureSamplerDef> textures = (List<EMP_TextureSamplerDef>)Clipboard.GetData(ClipboardDataTypes.EmpTextureEntry);
+            if (!CustomClipboard.TryGetData(ClipboardDataTypes.EmpTextureEntry, out List<EMP_TextureSamplerDef> textures))
+                return;
 
             if (textures != null)
             {
@@ -242,7 +245,7 @@ namespace EEPK_Organiser.View.Editors.EMP
 
         private bool CanPasteTexture()
         {
-            return Clipboard.ContainsData(ClipboardDataTypes.EmpTextureEntry);
+            return CustomClipboard.ContainsData(ClipboardDataTypes.EmpTextureEntry);
         }
         #endregion
 
@@ -300,13 +303,15 @@ namespace EEPK_Organiser.View.Editors.EMP
         [RelayCommand(CanExecute = nameof(IsKeyframeSelected))]
         private void CopyKeyframe()
         {
-            Clipboard.SetData(EMP_File.CLIPBOARD_TEXTURE_KEYFRAME, SelectedKeyframes);
+            CustomClipboard.SetData(EMP_File.CLIPBOARD_TEXTURE_KEYFRAME, SelectedKeyframes);
         }
 
         [RelayCommand(CanExecute = nameof(CanPasteKeyframe))]
         private void PasteKeyframe()
         {
-            List<EMP_ScrollKeyframe> keyframes = (List<EMP_ScrollKeyframe>)Clipboard.GetData(EMP_File.CLIPBOARD_TEXTURE_KEYFRAME);
+            if (!CustomClipboard.TryGetData(EMP_File.CLIPBOARD_TEXTURE_KEYFRAME, out List<EMP_ScrollKeyframe> keyframes))
+                return;
+
             List<IUndoRedo> undos = new List<IUndoRedo>();
 
             foreach (EMP_ScrollKeyframe keyframe in keyframes)
@@ -337,7 +342,7 @@ namespace EEPK_Organiser.View.Editors.EMP
 
         private bool CanPasteKeyframe()
         {
-            return Clipboard.ContainsData(EMP_File.CLIPBOARD_TEXTURE_KEYFRAME) && IsTextureSelected();
+            return CustomClipboard.ContainsData(EMP_File.CLIPBOARD_TEXTURE_KEYFRAME) && IsTextureSelected();
         }
 
         private bool IsSpriteSheet()

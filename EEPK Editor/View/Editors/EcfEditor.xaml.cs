@@ -9,6 +9,7 @@ using EEPK_Organiser.ViewModel;
 using Xv2CoreLib.EffectContainer;
 using LB_Common.Mvvm;
 using CommunityToolkit.Mvvm.Input;
+using LB_Common.Utils;
 
 namespace EEPK_Organiser.View.Editors
 {
@@ -85,7 +86,7 @@ namespace EEPK_Organiser.View.Editors
                 }
                 else if (e.UndoContext is Asset asset)
                 {
-                    if (asset.assetType == Xv2CoreLib.EEPK.AssetType.CBIND)
+                    if (asset.AssetType == Xv2CoreLib.EEPK.AssetType.CBIND)
                     {
                         if (asset.Files[0].EcfFile == EcfFile)
                         {
@@ -131,13 +132,15 @@ namespace EEPK_Organiser.View.Editors
         [RelayCommand(CanExecute = nameof(IsNodeSelected))]
         private void CopyNode()
         {
-            Clipboard.SetData(ECF_Node.CLIPBOARD_ID, SelectedNodes);
+            CustomClipboard.SetData(ECF_Node.CLIPBOARD_ID, SelectedNodes);
         }
 
         [RelayCommand(CanExecute = nameof(IsNodeInClipboard))]
         private void PasteNode()
         {
-            List<ECF_Node> nodes = (List<ECF_Node>)Clipboard.GetData(ECF_Node.CLIPBOARD_ID);
+            if (!CustomClipboard.TryGetData(ECF_Node.CLIPBOARD_ID, out List<ECF_Node> nodes))
+                return;
+
             List<IUndoRedo> undos = new List<IUndoRedo>();
 
             foreach (ECF_Node node in nodes)
@@ -199,8 +202,13 @@ namespace EEPK_Organiser.View.Editors
         
         private bool IsNodeInClipboard()
         {
-            return Clipboard.ContainsData(ECF_Node.CLIPBOARD_ID) && IsEcfLoaded();
+            return CustomClipboard.ContainsData(ECF_Node.CLIPBOARD_ID) && IsEcfLoaded();
         }
         #endregion
+
+        private void EmpKeyframesView_IsEnabledToggled(object sender, EventArgs e)
+        {
+            SelectedNode.UpdatePreviewBrush();
+        }
     }
 }

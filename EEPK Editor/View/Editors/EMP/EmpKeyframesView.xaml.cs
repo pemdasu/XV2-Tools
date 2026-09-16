@@ -1,4 +1,5 @@
-﻿using System.ComponentModel;
+﻿using System;
+using System.ComponentModel;
 using System.Windows;
 using CommunityToolkit.Mvvm.Input;
 using EEPK_Organiser.ViewModel;
@@ -70,6 +71,8 @@ namespace EEPK_Organiser.View.Editors.EMP
         }
         #endregion
 
+        public event EventHandler IsEnabledToggled;
+
         private EmpKeyframesViewModel _viewModel = new EmpKeyframesViewModel();
         public EmpKeyframesViewModel ViewModel => KeyframedValue != null ? _viewModel : null;
 
@@ -136,6 +139,11 @@ namespace EEPK_Organiser.View.Editors.EMP
         private bool IsValueSelected()
         {
             return Node != null;
+        }
+
+        private void CheckBox_Checked(object sender, RoutedEventArgs e)
+        {
+            IsEnabledToggled?.Invoke(this, EventArgs.Empty);
         }
     }
 }

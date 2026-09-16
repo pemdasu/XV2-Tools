@@ -1,56 +1,15 @@
-﻿<Controls:MetroWindow x:Class="EEPK_Organiser.Forms.EffectSelector"
+﻿<mvvm:AutoObservableWindow x:Class="EEPK_Organiser.Forms.EffectSelector"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:EEPK_Organiser.Forms"
-        xmlns:Themes1="clr-namespace:Microsoft.Windows.Themes;assembly=PresentationFramework.Aero"
         xmlns:Controls="clr-namespace:MahApps.Metro.Controls;assembly=MahApps.Metro"
+        xmlns:mvvm="clr-namespace:LB_Common.Mvvm;assembly=LB_Common"
         mc:Ignorable="d"
-        Title="Effect Selector" Height="465.127" Width="430" ShowInTaskbar="True" ResizeMode="NoResize" WindowStartupLocation="CenterOwner" WindowStyle="ToolWindow" TitleCharacterCasing="Normal">
+        Title="Effect Selector" Height="465.127" Width="430" ShowInTaskbar="True" ResizeMode="NoResize" WindowStartupLocation="CenterOwner" WindowStyle="ToolWindow" TitleCharacterCasing="Normal" Name="Window">
     <Grid>
-        <DataGrid x:Name="effectDataGrid" ItemsSource="{Binding Effects}" CellEditEnding="EffectDataGrid_CellEditEnding" CanUserDeleteRows="False" EnableRowVirtualization="True" EnableColumnVirtualization="True" ScrollViewer.CanContentScroll="True" SelectionMode="Extended" RowDetailsVisibilityMode="Collapsed" HorizontalAlignment="Left" Height="321" Margin="10,10,0,0" VerticalAlignment="Top" Width="400" CanUserResizeRows="False" CanUserAddRows="False" AutoGenerateColumns="False">
-            <DataGrid.Resources>
-                <SolidColorBrush x:Key="{x:Static SystemColors.InactiveSelectionHighlightBrushKey}" Color="SteelBlue"/>
-                <SolidColorBrush x:Key="{x:Static SystemColors.HighlightColorKey}" Color="SteelBlue"/>
-                <SolidColorBrush x:Key="{x:Static SystemColors.InactiveSelectionHighlightTextBrushKey}" Color="White"/>
-                <SolidColorBrush x:Key="{x:Static SystemColors.HighlightTextBrushKey}" Color="White"/>
-
-                <!-- For aligning the arrow button to the top, instead of the centre -->
-                <BooleanToVisibilityConverter x:Key="bool2VisibilityConverter"/>
-                <Style x:Key="RowHeaderGripperStyle" TargetType="{x:Type Thumb}">
-                    <Setter Property="Height" Value="8"/>
-                    <Setter Property="Background" Value="Transparent"/>
-                    <Setter Property="Cursor" Value="SizeNS"/>
-                    <Setter Property="Template">
-                        <Setter.Value>
-                            <ControlTemplate TargetType="{x:Type Thumb}">
-                                <Border Background="{TemplateBinding Background}" Padding="{TemplateBinding Padding}"/>
-                            </ControlTemplate>
-                        </Setter.Value>
-                    </Setter>
-                </Style>
-                <Style
-                    xmlns:Themes="clr-namespace:Microsoft.Windows.Themes;assembly=PresentationFramework.Aero2" TargetType="{x:Type DataGridRowHeader}"
-                       >
-                    <Setter Property="Template">
-                        <Setter.Value>
-                            <ControlTemplate TargetType="{x:Type DataGridRowHeader}">
-                                <Grid>
-                                    <Themes1:DataGridHeaderBorder BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" Background="{TemplateBinding Background}" IsPressed="{TemplateBinding IsPressed}" IsHovered="{TemplateBinding IsMouseOver}" IsSelected="{TemplateBinding IsRowSelected}" Orientation="Horizontal" Padding="{TemplateBinding Padding}" SeparatorBrush="{TemplateBinding SeparatorBrush}" SeparatorVisibility="{TemplateBinding SeparatorVisibility}">
-                                        <StackPanel Orientation="Horizontal">
-                                            <ContentPresenter RecognizesAccessKey="True" SnapsToDevicePixels="{TemplateBinding SnapsToDevicePixels}" VerticalAlignment="Stretch"/>
-                                            <Control SnapsToDevicePixels="false" Template="{Binding ValidationErrorTemplate, RelativeSource={RelativeSource AncestorType={x:Type DataGridRow}}}" Visibility="{Binding (Validation.HasError), Converter={StaticResource bool2VisibilityConverter}, RelativeSource={RelativeSource AncestorType={x:Type DataGridRow}}}"/>
-                                        </StackPanel>
-                                    </Themes1:DataGridHeaderBorder>
-                                    <Thumb x:Name="PART_TopHeaderGripper" Style="{StaticResource RowHeaderGripperStyle}" VerticalAlignment="Top"/>
-                                    <Thumb x:Name="PART_BottomHeaderGripper" Style="{StaticResource RowHeaderGripperStyle}" VerticalAlignment="Bottom"/>
-                                </Grid>
-                            </ControlTemplate>
-                        </Setter.Value>
-                    </Setter>
-                </Style>
-            </DataGrid.Resources>
+        <DataGrid x:Name="effectDataGrid" ItemsSource="{Binding ElementName=Window, Path=Effects}" CanUserDeleteRows="False" EnableRowVirtualization="True" EnableColumnVirtualization="True" ScrollViewer.CanContentScroll="True" SelectionMode="Extended" RowDetailsVisibilityMode="Collapsed" HorizontalAlignment="Left" Height="321" Margin="10,10,0,0" VerticalAlignment="Top" Width="400" CanUserResizeRows="False" CanUserAddRows="False" AutoGenerateColumns="False">
             <DataGrid.Columns>
                 <DataGridTemplateColumn Header="Selected">
                     <DataGridTemplateColumn.CellTemplate>
@@ -63,11 +22,22 @@
                             <CheckBox IsChecked="{Binding IsSelected, UpdateSourceTrigger=PropertyChanged}"/>
                         </DataTemplate>
                     </DataGridTemplateColumn.CellEditingTemplate>
-
                 </DataGridTemplateColumn>
 
-                <DataGridTextColumn Header="Effect ID" Width="*" Binding="{Binding IndexNum}" IsReadOnly="True"/>
-                <DataGridTextColumn Header="New ID" Width="*" Binding="{Binding ImportIdIncrease}"/>
+                <DataGridTextColumn Header="Effect ID" Width="0.8*" Binding="{Binding Effect.IndexNum}" IsReadOnly="True"/>
+
+                <DataGridTemplateColumn Header="New ID" Width="*">
+                    <DataGridTemplateColumn.CellTemplate>
+                        <DataTemplate>
+                            <TextBlock Text="{Binding NewEffectID}"/>
+                        </DataTemplate>
+                    </DataGridTemplateColumn.CellTemplate>
+                    <DataGridTemplateColumn.CellEditingTemplate>
+                        <DataTemplate>
+                            <Controls:NumericUpDown Value="{Binding NewEffectID}" Minimum="0" Maximum="65535"/>
+                        </DataTemplate>
+                    </DataGridTemplateColumn.CellEditingTemplate>
+                </DataGridTemplateColumn>
             </DataGrid.Columns>
 
             <DataGrid.ContextMenu>
@@ -80,36 +50,13 @@
                     <MenuItem Header="Unselect All" Click="UnselectAll_Click"/>
                 </ContextMenu>
             </DataGrid.ContextMenu>
-            <DataGrid.RowDetailsTemplate>
-                <DataTemplate>
-                    <ListBox ItemsSource="{Binding EffectParts}" SelectionMode="Extended">
-                        <ListBox.Resources>
-                            <SolidColorBrush x:Key="{x:Static SystemColors.InactiveSelectionHighlightBrushKey}" Color="Black"/>
-
-                        </ListBox.Resources>
-
-                        <ListBox.ItemTemplate>
-                            <DataTemplate>
-                                <Grid Margin="0,2">
-                                    <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="*" />
-                                    </Grid.ColumnDefinitions>
-                                    <TextBlock Text="{Binding AssetRefDetails}"/>
-                                </Grid>
-                            </DataTemplate>
-                        </ListBox.ItemTemplate>
-                    </ListBox>
-                </DataTemplate>
-            </DataGrid.RowDetailsTemplate>
-
             <DataGrid.InputBindings>
                 <KeyBinding Key="S" Command="{Binding ToggleSelectionCommand}"/>
             </DataGrid.InputBindings>
         </DataGrid>
         <Button Click="Done_Click" Content="Done" HorizontalAlignment="Left" Margin="173,400,0,0" VerticalAlignment="Top" Width="75"/>
-        <TextBox VerticalContentAlignment="Center" HorizontalAlignment="Left" Height="23" Margin="61,351,0,0" TextWrapping="Wrap" Text="{Binding IdIncreaseValue, UpdateSourceTrigger=PropertyChanged}" VerticalAlignment="Top" Width="120"/>
-        <Button Click="IdIncreaseValueButton_Click" Content="Increase ID" HorizontalAlignment="Left" Margin="187,350,0,0" VerticalAlignment="Top" Width="75"/>
-        <Button Click="IdDecreaseValueButton_Click" Content="Decrease ID" HorizontalAlignment="Left" Margin="267,350,0,0" VerticalAlignment="Top" Width="75"/>
-
+        <Controls:NumericUpDown VerticalContentAlignment="Center" HorizontalAlignment="Left" Height="23" Margin="61,351,0,0" Value="{Binding ElementName=Window, Path=IdIncreaseValue, UpdateSourceTrigger=PropertyChanged}" Minimum="0" Maximum="65535" VerticalAlignment="Top" Width="150"/>
+        <Button Click="IdIncreaseValueButton_Click" Content="Increase ID" HorizontalAlignment="Left" Margin="232,350,0,0" VerticalAlignment="Top" Width="75"/>
+        <Button Click="IdDecreaseValueButton_Click" Content="Decrease ID" HorizontalAlignment="Left" Margin="312,350,0,0" VerticalAlignment="Top" Width="75"/>
     </Grid>
-</Controls:MetroWindow>
+</mvvm:AutoObservableWindow>

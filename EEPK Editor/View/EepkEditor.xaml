@@ -132,7 +132,7 @@
 
                         <DataGrid.RowDetailsTemplate>
                             <DataTemplate>
-                                <ListBox Tag="{Binding DataContext, ElementName=rootGrid}" BorderBrush="{DynamicResource MahApps.Brushes.Accent2}" MouseDoubleClick="EffectPartListBox_MouseDoubleClick" PreviewMouseWheel="ListBox_PreviewMouseWheel" BorderThickness="1" SelectionChanged="EffectPart_SelectionChanged" VirtualizingPanel.ScrollUnit="Pixel" ItemsSource="{Binding EffectParts.Binding}" SelectionMode="Extended" SelectedItem="{Binding SelectedEffectPart, UpdateSourceTrigger=PropertyChanged}" lbUtils:AttachedProperties.SelectedItems="{Binding SelectedEffectParts}">
+                                <ListBox BorderBrush="{DynamicResource MahApps.Brushes.Accent2}" MouseDoubleClick="EffectPartListBox_MouseDoubleClick" PreviewMouseWheel="ListBox_PreviewMouseWheel" BorderThickness="1" SelectionChanged="EffectPart_SelectionChanged" VirtualizingPanel.ScrollUnit="Pixel" ItemsSource="{Binding EffectParts.Binding}" SelectionMode="Extended" SelectedItem="{Binding Data.SelectedEffectPart, Source={StaticResource proxy}, UpdateSourceTrigger=PropertyChanged}" lbUtils:AttachedProperties.SelectedItems="{Binding Data.SelectedEffectParts, Source={StaticResource proxy}, UpdateSourceTrigger=PropertyChanged}">
 
                                     <ListBox.ItemTemplate>
                                         <DataTemplate>
@@ -167,7 +167,7 @@
                                             <MenuItem Header="Change Asset" Command="{Binding Data.EffectPart_ChangeAssetCommand, Source={StaticResource proxy}}"/>
                                             <Separator/>
                                             <MenuItem Header="Go To Asset" Command="{Binding Data.EffectPart_GoToAssetCommand, Source={StaticResource proxy}}"/>
-                                            <MenuItem Header="Edit Asset" Command="{Binding Data.EffectPart_EditAssetCommand, Source={StaticResource proxy}}"/>
+                                            <MenuItem Header="Edit Asset" Command="{Binding Data.EffectPart_OpenEditorCommand, Source={StaticResource proxy}}"/>
                                         </ContextMenu>
                                     </ListBox.ContextMenu>
                                 </ListBox>
@@ -188,7 +188,7 @@
                                                     <ColumnDefinition Width="75"/>
                                                 </Grid.ColumnDefinitions>
                                                 <Label Content="Asset"/>
-                                                <TextBox Grid.Column="1" IsEnabled="False" Text="{Binding SelectedEffect.SelectedEffectPart.AssetRefDetails, Mode=OneWay}" IsReadOnly="True"  TextWrapping="NoWrap" VerticalAlignment="Top"/>
+                                                <TextBox Grid.Column="1" IsEnabled="False" Text="{Binding SelectedEffectPart.AssetRefDetails, Mode=OneWay}" IsReadOnly="True"  TextWrapping="NoWrap" VerticalAlignment="Top"/>
                                                 <Button Grid.Column="2" Margin="5,0" Command="{Binding EffectPart_ChangeAssetCommand}" Content="Change"/>
                                             </Grid>
                                         </StackPanel>
@@ -582,16 +582,16 @@
                             <Button HorizontalAlignment="Center" VerticalAlignment="Center" Width="30" Height="30" Style="{DynamicResource MahApps.Styles.Button.Circle}" lbUtils:ContextMenuLeftClickBehavior.IsLeftClickEnabled="True">
                                 <Button.ContextMenu>
                                     <ContextMenu FontSize="12">
-                                        <MenuItem Header="Load External EEPK" Command="{Binding ElementName=UserControl, Path=ImportEffectsFromFileCommand}"/>
+                                        <MenuItem Header="Load External EEPK" Command="{Binding ImportEffectsFromFileCommand}"/>
                                         <Separator/>
-                                        <MenuItem Header="CMN" Command="{Binding ElementName=UserControl, Path=ImportEffectsFromGameCommand}" CommandParameter="{x:Static forms:EntitySelector+EntityType.CMN}"/>
-                                        <MenuItem Header="Character" Command="{Binding ElementName=UserControl, Path=ImportEffectsFromGameCommand}" CommandParameter="{x:Static forms:EntitySelector+EntityType.Character}"/>
-                                        <MenuItem Header="Super Skill" Command="{Binding ElementName=UserControl, Path=ImportEffectsFromGameCommand}" CommandParameter="{x:Static forms:EntitySelector+EntityType.SuperSkill}"/>
-                                        <MenuItem Header="Ultimate Skill" Command="{Binding ElementName=UserControl, Path=ImportEffectsFromGameCommand}" CommandParameter="{x:Static forms:EntitySelector+EntityType.UltimateSkill}"/>
-                                        <MenuItem Header="Evasive Skill" Command="{Binding ElementName=UserControl, Path=ImportEffectsFromGameCommand}" CommandParameter="{x:Static forms:EntitySelector+EntityType.EvasiveSkill}"/>
-                                        <MenuItem Header="Blast Skill/Type" Command="{Binding ElementName=UserControl, Path=ImportEffectsFromGameCommand}" CommandParameter="{x:Static forms:EntitySelector+EntityType.BlastSkill}"/>
-                                        <MenuItem Header="Awoken Skill" Command="{Binding ElementName=UserControl, Path=ImportEffectsFromGameCommand}" CommandParameter="{x:Static forms:EntitySelector+EntityType.AwokenSkill}"/>
-                                        <MenuItem Header="Demo" Command="{Binding ElementName=UserControl, Path=ImportEffectsFromGameCommand}" CommandParameter="{x:Static forms:EntitySelector+EntityType.Demo}"/>
+                                        <MenuItem Header="CMN" Command="{Binding ImportEffectsFromGameCommand}" CommandParameter="{x:Static forms:EntitySelector+EntityType.CMN}"/>
+                                        <MenuItem Header="Character" Command="{Binding ImportEffectsFromGameCommand}" CommandParameter="{x:Static forms:EntitySelector+EntityType.Character}"/>
+                                        <MenuItem Header="Super Skill" Command="{Binding ImportEffectsFromGameCommand}" CommandParameter="{x:Static forms:EntitySelector+EntityType.SuperSkill}"/>
+                                        <MenuItem Header="Ultimate Skill" Command="{Binding ImportEffectsFromGameCommand}" CommandParameter="{x:Static forms:EntitySelector+EntityType.UltimateSkill}"/>
+                                        <MenuItem Header="Evasive Skill" Command="{Binding ImportEffectsFromGameCommand}" CommandParameter="{x:Static forms:EntitySelector+EntityType.EvasiveSkill}"/>
+                                        <MenuItem Header="Blast Skill/Type" Command="{Binding ImportEffectsFromGameCommand}" CommandParameter="{x:Static forms:EntitySelector+EntityType.BlastSkill}"/>
+                                        <MenuItem Header="Awoken Skill" Command="{Binding ImportEffectsFromGameCommand}" CommandParameter="{x:Static forms:EntitySelector+EntityType.AwokenSkill}"/>
+                                        <MenuItem Header="Demo" Command="{Binding ImportEffectsFromGameCommand}" CommandParameter="{x:Static forms:EntitySelector+EntityType.Demo}"/>
                                         <Separator/>
                                         <MenuItem Header="From Cached Files" ItemsSource="{Binding ElementName=UserControl, Path=cacheManager.CachedFiles}" MouseMove="MenuItem_MouseMove" Click="EffectOptions_ImportEffectsFromCache_Click">
                                             <MenuItem.ItemContainerStyle>
@@ -616,7 +616,7 @@
             <Controls:MetroTabItem Header="PBIND" Controls:HeaderedControlHelper.HeaderFontSize="14">
                 <Grid Background="Transparent">
 
-                    <DataGrid SelectionMode="Extended" x:Name="pbindDataGrid" RowDetailsVisibilityMode="Collapsed" ItemsSource="{Binding effectContainerFile.Pbind.ViewAssets}" AutoGenerateColumns="False" CanUserAddRows="False" CanUserDeleteRows="False" CanUserReorderColumns="True" Margin="10,10,246.8,13.909" CanUserResizeRows="False">
+                    <DataGrid SelectionMode="Extended" x:Name="pbindDataGrid" RowDetailsVisibilityMode="Collapsed" ItemsSource="{Binding ElementName=UserControl, Path=effectContainerFile.Pbind.ViewAssets}" SelectedItem="{Binding ElementName=UserControl, Path=SelectedPbind, UpdateSourceTrigger=PropertyChanged}" AutoGenerateColumns="False" CanUserAddRows="False" CanUserDeleteRows="False" CanUserReorderColumns="True" Margin="10,10,246.8,13.909" CanUserResizeRows="False">
                         <DataGrid.InputBindings>
                             <KeyBinding Key="C" Modifiers="Ctrl" Command="{Binding ElementName=UserControl, Path=AssetCopyCommand}" CommandParameter="{x:Static eepk:AssetType.PBIND}"/>
                             <KeyBinding Key="V" Modifiers="Ctrl" Command="{Binding ElementName=UserControl, Path=AssetPasteCommand}" CommandParameter="{x:Static eepk:AssetType.PBIND}"/>
@@ -634,10 +634,10 @@
                         <DataGrid.ContextMenu>
                             <ContextMenu FontSize="12">
                                 <MenuItem Header="Rename" Command="{Binding AssetRenameCommand}" CommandParameter="{x:Static eepk:AssetType.PBIND}"/>
-                                <MenuItem Header="Paste Over (Replace)" Command="{Binding AssetPasteOverCommand}" CommandParameter="{x:Static eepk:AssetType.PBIND}"/>
                                 <MenuItem Header="Merge" Command="{Binding AssetMergeCommand}" CommandParameter="{x:Static eepk:AssetType.PBIND}"/>
                                 <MenuItem Header="Copy" Command="{Binding AssetCopyCommand}" CommandParameter="{x:Static eepk:AssetType.PBIND}"/>
                                 <MenuItem Header="Paste" Command="{Binding AssetPasteCommand}" CommandParameter="{x:Static eepk:AssetType.PBIND}"/>
+                                <MenuItem Header="Paste Over (Replace)" Command="{Binding AssetPasteOverCommand}" CommandParameter="{x:Static eepk:AssetType.PBIND}"/>
                                 <MenuItem Header="Delete" Command="{Binding AssetDeleteCommand}" CommandParameter="{x:Static eepk:AssetType.PBIND}"/>
                                 <MenuItem Header="Duplicate" Command="{Binding AssetDuplicateCommand}" CommandParameter="{x:Static eepk:AssetType.PBIND}"/>
                                 <MenuItem Header="Used By?" Command="{Binding AssetUsedByCommand}" CommandParameter="{x:Static eepk:AssetType.PBIND}"/>
@@ -706,7 +706,7 @@
             <Controls:MetroTabItem Header="TBIND" Controls:HeaderedControlHelper.HeaderFontSize="14">
                 <Grid Background="Transparent">
 
-                    <DataGrid SelectionMode="Extended" x:Name="tbindDataGrid" RowDetailsVisibilityMode="Collapsed" ItemsSource="{Binding effectContainerFile.Tbind.ViewAssets}" AutoGenerateColumns="False" CanUserAddRows="False" CanUserDeleteRows="False" CanUserReorderColumns="True" Margin="10,10,246.8,13.909" CanUserResizeRows="False">
+                    <DataGrid SelectionMode="Extended" x:Name="tbindDataGrid" RowDetailsVisibilityMode="Collapsed" ItemsSource="{Binding ElementName=UserControl, Path=effectContainerFile.Tbind.ViewAssets}" SelectedItem="{Binding ElementName=UserControl, Path=SelectedTbind, UpdateSourceTrigger=PropertyChanged}" AutoGenerateColumns="False" CanUserAddRows="False" CanUserDeleteRows="False" CanUserReorderColumns="True" Margin="10,10,246.8,13.909" CanUserResizeRows="False">
                         <DataGrid.InputBindings>
                             <KeyBinding Key="C" Modifiers="Ctrl" Command="{Binding ElementName=UserControl, Path=AssetCopyCommand}" CommandParameter="{x:Static eepk:AssetType.TBIND}"/>
                             <KeyBinding Key="V" Modifiers="Ctrl" Command="{Binding ElementName=UserControl, Path=AssetPasteCommand}" CommandParameter="{x:Static eepk:AssetType.TBIND}"/>
@@ -724,10 +724,10 @@
                         <DataGrid.ContextMenu>
                             <ContextMenu FontSize="12">
                                 <MenuItem Header="Rename" Command="{Binding AssetRenameCommand}" CommandParameter="{x:Static eepk:AssetType.TBIND}"/>
-                                <MenuItem Header="Paste Over (Replace)" Command="{Binding AssetPasteOverCommand}" CommandParameter="{x:Static eepk:AssetType.TBIND}"/>
                                 <MenuItem Header="Merge" Command="{Binding AssetMergeCommand}" CommandParameter="{x:Static eepk:AssetType.TBIND}"/>
                                 <MenuItem Header="Copy" Command="{Binding AssetCopyCommand}" CommandParameter="{x:Static eepk:AssetType.TBIND}"/>
                                 <MenuItem Header="Paste" Command="{Binding AssetPasteCommand}" CommandParameter="{x:Static eepk:AssetType.TBIND}"/>
+                                <MenuItem Header="Paste Over (Replace)" Command="{Binding AssetPasteOverCommand}" CommandParameter="{x:Static eepk:AssetType.TBIND}"/>
                                 <MenuItem Header="Delete" Command="{Binding AssetDeleteCommand}" CommandParameter="{x:Static eepk:AssetType.TBIND}"/>
                                 <MenuItem Header="Duplicate" Command="{Binding AssetDuplicateCommand}" CommandParameter="{x:Static eepk:AssetType.TBIND}"/>
                                 <MenuItem Header="Used By?" Command="{Binding AssetUsedByCommand}" CommandParameter="{x:Static eepk:AssetType.TBIND}"/>
@@ -795,7 +795,7 @@
             <Controls:MetroTabItem Header="CBIND" Controls:HeaderedControlHelper.HeaderFontSize="14">
                 <Grid Background="Transparent">
 
-                    <DataGrid SelectionMode="Extended" x:Name="cbindDataGrid" RowDetailsVisibilityMode="Collapsed" ItemsSource="{Binding effectContainerFile.Cbind.ViewAssets}" AutoGenerateColumns="False" CanUserAddRows="False" CanUserDeleteRows="False" CanUserReorderColumns="True" Margin="10,10,246.8,13.909" CanUserResizeRows="False">
+                    <DataGrid SelectionMode="Extended" x:Name="cbindDataGrid" RowDetailsVisibilityMode="Collapsed" ItemsSource="{Binding ElementName=UserControl, Path=effectContainerFile.Cbind.ViewAssets}" SelectedItem="{Binding ElementName=UserControl, Path=SelectedCbind, UpdateSourceTrigger=PropertyChanged}" AutoGenerateColumns="False" CanUserAddRows="False" CanUserDeleteRows="False" CanUserReorderColumns="True" Margin="10,10,246.8,13.909" CanUserResizeRows="False">
                         <DataGrid.InputBindings>
                             <KeyBinding Key="C" Modifiers="Ctrl" Command="{Binding ElementName=UserControl, Path=AssetCopyCommand}" CommandParameter="{x:Static eepk:AssetType.CBIND}"/>
                             <KeyBinding Key="V" Modifiers="Ctrl" Command="{Binding ElementName=UserControl, Path=AssetPasteCommand}" CommandParameter="{x:Static eepk:AssetType.CBIND}"/>
@@ -813,10 +813,10 @@
                         <DataGrid.ContextMenu>
                             <ContextMenu FontSize="12">
                                 <MenuItem Header="Rename" Command="{Binding AssetRenameCommand}" CommandParameter="{x:Static eepk:AssetType.CBIND}"/>
-                                <MenuItem Header="Paste Over (Replace)" Command="{Binding AssetPasteOverCommand}" CommandParameter="{x:Static eepk:AssetType.CBIND}"/>
                                 <MenuItem Header="Merge" Command="{Binding AssetMergeCommand}" CommandParameter="{x:Static eepk:AssetType.CBIND}"/>
                                 <MenuItem Header="Copy" Command="{Binding AssetCopyCommand}" CommandParameter="{x:Static eepk:AssetType.CBIND}"/>
                                 <MenuItem Header="Paste" Command="{Binding AssetPasteCommand}" CommandParameter="{x:Static eepk:AssetType.CBIND}"/>
+                                <MenuItem Header="Paste Over (Replace)" Command="{Binding AssetPasteOverCommand}" CommandParameter="{x:Static eepk:AssetType.CBIND}"/>
                                 <MenuItem Header="Delete" Command="{Binding AssetDeleteCommand}" CommandParameter="{x:Static eepk:AssetType.CBIND}"/>
                                 <MenuItem Header="Duplicate" Command="{Binding AssetDuplicateCommand}" CommandParameter="{x:Static eepk:AssetType.CBIND}"/>
                                 <MenuItem Header="Extract" Command="{Binding AssetExtractCommand}" CommandParameter="{x:Static eepk:AssetType.CBIND}"/>
@@ -880,7 +880,7 @@
             <Controls:MetroTabItem Header="EMO" Controls:HeaderedControlHelper.HeaderFontSize="14">
                 <Grid Background="Transparent">
 
-                    <DataGrid SelectionMode="Extended" x:Name="emoDataGrid" RowDetailsVisibilityMode="VisibleWhenSelected" ItemsSource="{Binding ElementName=UserControl, Path=effectContainerFile.Emo.ViewAssets}" AutoGenerateColumns="False" CanUserAddRows="False" CanUserDeleteRows="False" CanUserReorderColumns="True" Margin="10,10,246.8,13.909" CanUserResizeRows="False">
+                    <DataGrid SelectionMode="Extended" x:Name="emoDataGrid" RowDetailsVisibilityMode="VisibleWhenSelected" ItemsSource="{Binding ElementName=UserControl, Path=effectContainerFile.Emo.ViewAssets}" SelectedItem="{Binding ElementName=UserControl, Path=SelectedEmo, UpdateSourceTrigger=PropertyChanged}" AutoGenerateColumns="False" CanUserAddRows="False" CanUserDeleteRows="False" CanUserReorderColumns="True" Margin="10,10,246.8,13.909" CanUserResizeRows="False">
                         <DataGrid.InputBindings>
                             <KeyBinding Key="C" Modifiers="Ctrl" Command="{Binding ElementName=UserControl, Path=AssetCopyCommand}" CommandParameter="{x:Static eepk:AssetType.EMO}"/>
                             <KeyBinding Key="V" Modifiers="Ctrl" Command="{Binding ElementName=UserControl, Path=AssetPasteCommand}" CommandParameter="{x:Static eepk:AssetType.EMO}"/>
@@ -899,10 +899,10 @@
                                 <MenuItem Header="Add File (EMD + ESK -> EMO)" Command="{Binding AssetEmoAddEmdFileCommand}" CommandParameter="{x:Static eepk:AssetType.EMO}"/>
                                 <MenuItem Header="Add File (EAN -> OBJ.EMA)" Command="{Binding AssetEmoAddEanFileCommand}" CommandParameter="{x:Static eepk:AssetType.EMO}" Visibility="Collapsed"/>
                                 <Separator/>
-                                <MenuItem Header="Paste Over (Replace)" Command="{Binding AssetPasteOverCommand}" CommandParameter="{x:Static eepk:AssetType.EMO}"/>
                                 <MenuItem Header="Merge" Command="{Binding AssetMergeCommand}" CommandParameter="{x:Static eepk:AssetType.EMO}"/>
                                 <MenuItem Header="Copy" Command="{Binding AssetCopyCommand}" CommandParameter="{x:Static eepk:AssetType.EMO}"/>
                                 <MenuItem Header="Paste" Command="{Binding AssetPasteCommand}" CommandParameter="{x:Static eepk:AssetType.EMO}"/>
+                                <MenuItem Header="Paste Over (Replace)" Command="{Binding AssetPasteOverCommand}" CommandParameter="{x:Static eepk:AssetType.EMO}"/>
                                 <MenuItem Header="Delete" Command="{Binding AssetDeleteCommand}" CommandParameter="{x:Static eepk:AssetType.EMO}"/>
                                 <MenuItem Header="Duplicate" Command="{Binding AssetDuplicateCommand}" CommandParameter="{x:Static eepk:AssetType.EMO}"/>
                                 <MenuItem Header="Used By?" Command="{Binding AssetUsedByCommand}" CommandParameter="{x:Static eepk:AssetType.EMO}"/>
@@ -918,8 +918,7 @@
 
                         <DataGrid.RowDetailsTemplate>
                             <DataTemplate>
-                                <ListBox x:Name="emoListBox" BorderBrush="{DynamicResource MahApps.Brushes.Accent2}" BorderThickness="1" ItemsSource="{Binding Files.Binding}">
-
+                                <ListBox BorderBrush="{DynamicResource MahApps.Brushes.Accent2}" BorderThickness="1" ItemsSource="{Binding Files.Binding}" SelectedItem="{Binding Data.SelectedEmoFile, UpdateSourceTrigger=PropertyChanged, Source={StaticResource proxy}}">
                                     <ListBox.ItemTemplate>
                                         <DataTemplate>
                                             <Grid Margin="0,2">
@@ -933,14 +932,18 @@
                                             </Grid>
                                         </DataTemplate>
                                     </ListBox.ItemTemplate>
+                                    <ListBox.InputBindings>
+                                        <KeyBinding Key="F2" Command="{Binding Data.AssetEmoFileRenameCommand, Source={StaticResource proxy}}"/>
+                                        <KeyBinding Key="Delete" Command="{Binding Data.AssetEmoFileDeleteCommand, Source={StaticResource proxy}}"/>
+                                        <KeyBinding Key="Return" Command="{Binding Data.AssetEmoFileEditCommand, Source={StaticResource proxy}}"/>
+                                    </ListBox.InputBindings>
                                     <ListBox.ContextMenu>
                                         <ContextMenu>
-                                            <!-- TODO: Move to commands-->
-                                            <MenuItem Header="Rename" Click="EMO_AssetContainer_RenameFile_Click"/>
-                                            <MenuItem Header="Replace" Click="EMO_AssetContainer_ReplaceFile_Click"/>
-                                            <MenuItem Header="Delete" Click="EMO_AssetContainer_DeleteFile_Click"/>
-                                            <MenuItem Header="Extract" Click="EMO_AssetContainer_ExtractFile_Click"/>
-                                            <MenuItem Header="Edit" Click="EMO_AssetContainer_EditFile_Click"/>
+                                            <MenuItem Header="Rename" Command="{Binding Data.AssetEmoFileRenameCommand, Source={StaticResource proxy}}"/>
+                                            <MenuItem Header="Replace" Command="{Binding Data.AssetEmoFileReplaceCommand, Source={StaticResource proxy}}"/>
+                                            <MenuItem Header="Delete" Command="{Binding Data.AssetEmoFileDeleteCommand, Source={StaticResource proxy}}"/>
+                                            <MenuItem Header="Extract" Command="{Binding Data.AssetEmoFileExtractCommand, Source={StaticResource proxy}}"/>
+                                            <MenuItem Header="Edit" Command="{Binding Data.AssetEmoFileEditCommand, Source={StaticResource proxy}}"/>
                                         </ContextMenu>
                                     </ListBox.ContextMenu>
                                 </ListBox>
@@ -985,7 +988,7 @@
             <Controls:MetroTabItem Header="LIGHT" Controls:HeaderedControlHelper.HeaderFontSize="14">
                 <Grid Background="Transparent">
 
-                    <DataGrid SelectionMode="Extended" x:Name="lightDataGrid" RowDetailsVisibilityMode="Collapsed" ItemsSource="{Binding ElementName=UserControl, Path=effectContainerFile.LightEma.ViewAssets}" AutoGenerateColumns="False" CanUserAddRows="False" CanUserDeleteRows="False" CanUserReorderColumns="True" Margin="10,10,246.8,13.909" CanUserResizeRows="False">
+                    <DataGrid SelectionMode="Extended" x:Name="lightDataGrid" RowDetailsVisibilityMode="Collapsed" ItemsSource="{Binding ElementName=UserControl, Path=effectContainerFile.LightEma.ViewAssets}" SelectedItem="{Binding ElementName=UserControl, Path=SelectedLight, UpdateSourceTrigger=PropertyChanged}" AutoGenerateColumns="False" CanUserAddRows="False" CanUserDeleteRows="False" CanUserReorderColumns="True" Margin="10,10,246.8,13.909" CanUserResizeRows="False">
                         <DataGrid.InputBindings>
                             <KeyBinding Key="C" Modifiers="Ctrl" Command="{Binding ElementName=UserControl, Path=AssetCopyCommand}" CommandParameter="{x:Static eepk:AssetType.LIGHT}"/>
                             <KeyBinding Key="V" Modifiers="Ctrl" Command="{Binding ElementName=UserControl, Path=AssetPasteCommand}" CommandParameter="{x:Static eepk:AssetType.LIGHT}"/>
@@ -1001,11 +1004,11 @@
                         <DataGrid.ContextMenu>
                             <ContextMenu FontSize="12">
                                 <MenuItem Header="Rename" Command="{Binding AssetRenameCommand}" CommandParameter="{x:Static eepk:AssetType.LIGHT}"/>
-                                <MenuItem Header="Paste Over (Replace)" Command="{Binding AssetPasteOverCommand}" CommandParameter="{x:Static eepk:AssetType.LIGHT}"/>
                                 <MenuItem Header="Merge" Command="{Binding AssetMergeCommand}" CommandParameter="{x:Static eepk:AssetType.LIGHT}"/>
                                 <MenuItem Header="Copy" Command="{Binding AssetCopyCommand}" CommandParameter="{x:Static eepk:AssetType.LIGHT}"/>
                                 <MenuItem Header="Paste" Command="{Binding AssetPasteCommand}" CommandParameter="{x:Static eepk:AssetType.LIGHT}"/>
                                 <MenuItem Header="Delete" Command="{Binding AssetDeleteCommand}" CommandParameter="{x:Static eepk:AssetType.LIGHT}"/>
+                                <MenuItem Header="Paste Over (Replace)" Command="{Binding AssetPasteOverCommand}" CommandParameter="{x:Static eepk:AssetType.LIGHT}"/>
                                 <MenuItem Header="Duplicate" Command="{Binding AssetDuplicateCommand}" CommandParameter="{x:Static eepk:AssetType.LIGHT}"/>
                                 <MenuItem Header="Extract" Command="{Binding AssetExtractCommand}" CommandParameter="{x:Static eepk:AssetType.LIGHT}"/>
                                 <MenuItem Header="Used By?" Command="{Binding AssetUsedByCommand}" CommandParameter="{x:Static eepk:AssetType.LIGHT}"/>
@@ -1068,7 +1071,7 @@
         <Grid HorizontalAlignment="Right" VerticalAlignment="Top" Width="216" Margin="0,0,10,0" IsEnabled="{Binding IsFileLoaded}">
 
             <!-- Tool menu for when embedded on XenoKit  -->
-            <Button x:Name="toolButton" lbUtils:ContextMenuLeftClickBehavior.IsLeftClickEnabled="True" HorizontalAlignment="Right" VerticalAlignment="Top" Width="25" Style="{DynamicResource MahApps.Styles.Button.Circle}" Height="25" Margin="0,0,181,0">
+            <Button lbUtils:ContextMenuLeftClickBehavior.IsLeftClickEnabled="True" HorizontalAlignment="Right" VerticalAlignment="Top" Width="25" Style="{DynamicResource MahApps.Styles.Button.Circle}" Height="25" Margin="0,0,181,0" Visibility="{Binding ElementName=UserControl, Path=XenoKitVisible}">
                 <iconPacks:Material Kind="Tools" />
                 <Button.ContextMenu>
                     <ContextMenu>

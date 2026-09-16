@@ -1657,7 +1657,7 @@ namespace Xv2CoreLib.EffectContainer
                     {
                         I_00 = assets.I_00,
                         Files = files,
-                        assetType = container.I_16
+                        AssetType = container.I_16
                     });
                 }
 
@@ -2741,7 +2741,7 @@ namespace Xv2CoreLib.EffectContainer
                     return _viewAssets;
                 }
                 _viewAssets = new ListCollectionView(Assets.Binding);
-                _viewAssets.GroupDescriptions.Add(new PropertyGroupDescription(nameof(Asset.assetType)));
+                _viewAssets.GroupDescriptions.Add(new PropertyGroupDescription(nameof(Asset.AssetType)));
                 _viewAssets.Filter = new Predicate<object>(AssetFilterCheck);
                 return _viewAssets;
             }
@@ -3091,7 +3091,7 @@ namespace Xv2CoreLib.EffectContainer
 
             foreach (var asset in Assets)
             {
-                if (asset.assetType == AssetType.PBIND && asset.Files.Count == 1)
+                if (asset.AssetType == AssetType.PBIND && asset.Files.Count == 1)
                 {
                     foreach (var textureDef in asset.Files[0].EmpFile.Textures)
                     {
@@ -3108,7 +3108,7 @@ namespace Xv2CoreLib.EffectContainer
         {
             foreach (var asset in Assets)
             {
-                if (asset.assetType == AssetType.PBIND)
+                if (asset.AssetType == AssetType.PBIND)
                 {
                     foreach (var textureDef in asset.Files[0].EmpFile.Textures)
                     {
@@ -3888,19 +3888,15 @@ namespace Xv2CoreLib.EffectContainer
         [field: NonSerialized]
         public event PropertyChangedEventHandler PropertyChanged;
 
-        private void NotifyPropertyChanged(String propertyName = "")
+        private void NotifyPropertyChanged(string propertyName = "")
         {
-            if (PropertyChanged != null)
-            {
-                PropertyChanged(this, new PropertyChangedEventArgs(propertyName));
-            }
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
         }
 
         //So we can identify assets accross multiple instances (mainly for copy/paste)
         public Guid InstanceID = Guid.NewGuid();
 
-
-        public AssetType assetType { get; set; }
+        public AssetType AssetType { get; set; }
 
         public string FileNamesPreview
         {
@@ -3920,46 +3916,20 @@ namespace Xv2CoreLib.EffectContainer
         {
             get
             {
-                return Files.Count > 0 ? String.Format("[{1}] {0}", Files[0].FileName, assetType) : $"[{assetType}] [No Files]";
+                return Files.Count > 0 ? string.Format("[{1}] {0}", Files[0].FileName, AssetType) : $"[{AssetType}] [No Files]";
             }
         }
 
+        public short I_00 { get; set; }
 
-        private short _I_00_value = 0;
-        public short I_00  //Still have no idea what this is
+        public AsyncObservableCollection<EffectFile> Files { get; set; } = new AsyncObservableCollection<EffectFile>();
+
+        public Asset() { }
+
+        public Asset(AssetType assetType)
         {
-            get
-            {
-                return this._I_00_value;
-            }
-            set
-            {
-                if (value != this._I_00_value)
-                {
-                    this._I_00_value = value;
-                    NotifyPropertyChanged(nameof(I_00));
-                }
-            }
+            AssetType = assetType;
         }
-
-        private AsyncObservableCollection<EffectFile> _filesValue = new AsyncObservableCollection<EffectFile>();
-        public AsyncObservableCollection<EffectFile> Files
-        {
-            get
-            {
-                return this._filesValue;
-            }
-            set
-            {
-                if (value != this._filesValue)
-                {
-                    this._filesValue = value;
-                    NotifyPropertyChanged(nameof(Files));
-                    NotifyPropertyChanged(nameof(FileNamesPreview));
-                }
-            }
-        }
-
 
         public bool Compare(Asset asset, AssetType type)
         {
@@ -3985,9 +3955,9 @@ namespace Xv2CoreLib.EffectContainer
             return true;
         }
 
-        public void AddFile(object data, string name, EffectFile.FileType type, List<IUndoRedo> undos = null)
+        public void AddFile(object data, string name, EffectFile.FileType type, List<IUndoRedo> undos = null, bool overwriteExisting = false)
         {
-            if (Files.Count == 5)
+            if (Files.Count == 5 && !overwriteExisting)
             {
                 throw new InvalidOperationException("Cannot add file because the maximum allowed amount of 5 is already reached.");
             }
@@ -4074,12 +4044,34 @@ namespace Xv2CoreLib.EffectContainer
                     break;
             }
 
-            Files.Add(newEffectFile);
-
-            if (undos != null)
+            if (HasFileType(type))
             {
-                undos.Add(new UndoableListAdd<EffectFile>(Files, newEffectFile));
+                if (overwriteExisting)
+                {
+                    int idx = Files.IndexOf(Files.FirstOrDefault(x => x.fileType == type));
+
+                    if (idx == -1)
+                        return;
+
+                    if (undos != null)
+                        undos.Add(new UndoableListIndexAssign<EffectFile>(Files, idx, newEffectFile, Files[idx]));
+
+                    Files[idx] = newEffectFile;
+
+                }
+                else
+                {
+                    throw new InvalidOperationException($"Cannot add a duplicate file type");
+                }
             }
+            else
+            {
+                Files.Add(newEffectFile);
+
+                if(undos != null)
+                    undos.Add(new UndoableListAdd<EffectFile>(Files, newEffectFile));
+            }
+
 
             RefreshNamePreview();
         }
@@ -4099,6 +4091,11 @@ namespace Xv2CoreLib.EffectContainer
             NotifyPropertyChanged(nameof(FileNamesPreview));
         }
 
+        public bool HasFileType(EffectFile.FileType type)
+        {
+            return Files.Any(x => x.fileType == type);
+        }
+
         public void RefreshNamePreview()
         {
             NotifyPropertyChanged(nameof(FileNamesPreview));
@@ -4115,7 +4112,6 @@ namespace Xv2CoreLib.EffectContainer
         {
             Asset newAsset = new Asset();
             newAsset.I_00 = I_00;
-            newAsset.Files = new AsyncObservableCollection<EffectFile>();
 
             foreach (var file in Files)
             {
@@ -4172,7 +4168,7 @@ namespace Xv2CoreLib.EffectContainer
         public static Asset Create(AssetType assetType)
         {
             Asset asset = new Asset();
-            asset.assetType = assetType;
+            asset.AssetType = assetType;
 
             return asset;
         }
@@ -4186,7 +4182,7 @@ namespace Xv2CoreLib.EffectContainer
         public static Asset Create(object data, string name, EffectFile.FileType fileType, AssetType assetType)
         {
             Asset asset = new Asset();
-            asset.assetType = assetType;
+            asset.AssetType = assetType;
             asset.AddFile(data, name, fileType);
             return asset;
         }
@@ -4215,7 +4211,7 @@ namespace Xv2CoreLib.EffectContainer
         {
             List<RgbColor> colors;
 
-            switch (assetType)
+            switch (AssetType)
             {
                 case AssetType.PBIND:
                     colors = Files[0].EmpFile.GetUsedColors();
@@ -4247,7 +4243,7 @@ namespace Xv2CoreLib.EffectContainer
 
                     break;
                 default:
-                    throw new InvalidOperationException(string.Format("Asset.GetUsedColors: Not supported for {0}.", assetType));
+                    throw new InvalidOperationException(string.Format("Asset.GetUsedColors: Not supported for {0}.", AssetType));
             }
 
             return colors;

@@ -2,33 +2,35 @@
 
 namespace Xv2CoreLib.Resource.UndoRedo
 {
-    public class UndoableListInsert<T> : IUndoRedo
+    public class UndoableListIndexAssign<T> : IUndoRedo
     {
         public string Message { get; set; }
         public bool doLast { get; set; }
 
         private int idx;
         private IList<T> list;
-        private T insertedItem;
+        private T newItem;
+        private T oldItem;
 
-        public UndoableListInsert(IList<T> _list, int _idx, T _insertedItem, string message = null)
+        public UndoableListIndexAssign(IList<T> list, int idx, T newItem, T oldItem, string message = null)
         {
-            idx = _idx;
-            list = _list;
+            this.idx = idx;
+            this.newItem = newItem;
+            this.oldItem = oldItem;
+            this.list = list;
             Message = message;
-            insertedItem = _insertedItem;
         }
 
         public void Undo()
         {
             if (idx >= 0 && idx <= list.Count - 1)
-                list.RemoveAt(idx);
+                list[idx] = oldItem;
         }
 
         public void Redo()
         {
             if (idx >= 0 && idx <= list.Count)
-                list.Insert(idx, insertedItem);
+                list[idx] = newItem;
         }
     }
 }

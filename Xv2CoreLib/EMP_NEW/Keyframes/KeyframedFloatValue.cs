@@ -41,6 +41,8 @@ namespace Xv2CoreLib.EMP_NEW.Keyframes
         public AsyncObservableCollection<KeyframeFloatValue> Keyframes { get; set; } = new AsyncObservableCollection<KeyframeFloatValue>();
 
         #region Init
+        public KeyframedFloatValue() { }
+
         public KeyframedFloatValue(float value, KeyframedValueType valueType, bool isEtr = false, bool isModifier = false)
         {
             ValueType = valueType;
@@ -255,6 +257,7 @@ namespace Xv2CoreLib.EMP_NEW.Keyframes
             }
         }
 
+        public KeyframeFloatValue() { }
 
         public KeyframeFloatValue(float time, float value)
         {

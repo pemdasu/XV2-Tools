@@ -3,6 +3,7 @@ using EEPK_Organiser.Forms;
 using EEPK_Organiser.Misc;
 using LB_Common.Forms;
 using LB_Common.Mvvm;
+using LB_Common.Utils;
 using MahApps.Metro.Controls;
 using Microsoft.Win32;
 using System;
@@ -14,6 +15,7 @@ using System.Windows;
 using System.Windows.Data;
 using Xv2CoreLib.EffectContainer;
 using Xv2CoreLib.EMB_CLASS;
+using Xv2CoreLib.EMM;
 using Xv2CoreLib.EMP_NEW;
 using Xv2CoreLib.Resource.UndoRedo;
 
@@ -533,14 +535,15 @@ namespace EEPK_Organiser.View
 
             if (selectedTextures.Count > 0)
             {
-                Clipboard.SetData(ClipboardDataTypes.EmbTexture, selectedTextures);
+                CustomClipboard.SetData(ClipboardDataTypes.EmbTexture, selectedTextures);
             }
         }
 
         [RelayCommand(CanExecute = nameof(CanPasteTexture))]
         private void PasteTexture()
         {
-            List<EmbEntry> copiedTextures = (List<EmbEntry>)Clipboard.GetData(ClipboardDataTypes.EmbTexture);
+            if (!CustomClipboard.TryGetData(ClipboardDataTypes.EmbTexture, out List<EmbEntry> copiedTextures))
+                return;
 
             if (copiedTextures != null)
             {
@@ -778,7 +781,7 @@ namespace EEPK_Organiser.View
 
         private bool CanPasteTexture()
         {
-            return Clipboard.ContainsData(ClipboardDataTypes.EmbTexture);
+            return CustomClipboard.ContainsData(ClipboardDataTypes.EmbTexture);
         }
 
         private bool CanCreateSuperTexture()

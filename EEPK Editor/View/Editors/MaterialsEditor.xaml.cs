@@ -3,6 +3,7 @@ using EEPK_Organiser.Forms;
 using EEPK_Organiser.ViewModel;
 using LB_Common.Forms;
 using LB_Common.Mvvm;
+using LB_Common.Utils;
 using MahApps.Metro.Controls;
 using System;
 using System.Collections.Generic;
@@ -13,6 +14,7 @@ using System.Windows.Data;
 using Xv2CoreLib.EffectContainer;
 using Xv2CoreLib.EMM;
 using Xv2CoreLib.EMM.Analyzer;
+using Xv2CoreLib.EMP_NEW;
 using Xv2CoreLib.Resource.UndoRedo;
 
 namespace EEPK_Organiser.View
@@ -579,14 +581,15 @@ namespace EEPK_Organiser.View
 
             if (selectedMaterials != null)
             {
-                Clipboard.SetData(Misc.ClipboardDataTypes.EmmMaterial, selectedMaterials);
+                CustomClipboard.SetData(Misc.ClipboardDataTypes.EmmMaterial, selectedMaterials);
             }
         }
 
         [RelayCommand(CanExecute = nameof(CanPasteMaterial))]
         private void PasteMaterial()
         {
-            List<EmmMaterial> copiedMaterials = (List<EmmMaterial>)Clipboard.GetData(Misc.ClipboardDataTypes.EmmMaterial);
+            if (!CustomClipboard.TryGetData(Misc.ClipboardDataTypes.EmmMaterial, out List<EmmMaterial> copiedMaterials))
+                return;
 
             if (copiedMaterials != null)
             {
@@ -611,7 +614,8 @@ namespace EEPK_Organiser.View
         [RelayCommand(CanExecute = nameof(CanPasteMaterialValues))]
         private void PasteMaterialValues()
         {
-            List<EmmMaterial> copiedMaterials = (List<EmmMaterial>)Clipboard.GetData(Misc.ClipboardDataTypes.EmmMaterial);
+            if (!CustomClipboard.TryGetData(Misc.ClipboardDataTypes.EmmMaterial, out List<EmmMaterial> copiedMaterials))
+                return;
 
             if (copiedMaterials != null)
             {
@@ -642,7 +646,7 @@ namespace EEPK_Organiser.View
 
         private bool CanPasteMaterial()
         {
-            return Clipboard.ContainsData(Misc.ClipboardDataTypes.EmmMaterial);
+            return CustomClipboard.ContainsData(Misc.ClipboardDataTypes.EmmMaterial);
         }
 
         private bool CanPasteMaterialValues()

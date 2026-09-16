@@ -142,7 +142,7 @@
                             </Grid.RowDefinitions>
                             <GridSplitter Grid.Row="1" Height="3" ResizeDirection="Rows" Background="{DynamicResource MahApps.Brushes.Accent}" HorizontalAlignment="Stretch"/>
                             <views:EmpNodeView x:Name="nodeView" Node="{Binding ElementName=UserControl, Path=SelectedNode}" AssetContainer="{Binding ElementName=UserControl, Path=AssetContainer}" EmpFile="{Binding ElementName=UserControl, Path=EmpFile}"/>
-                            <views:EmpKeyframesView Grid.Row="2" KeyframedValue="{Binding ElementName=UserControl, Path=SelectedNode.SelectedKeyframedValue}" Node="{Binding ElementName=UserControl, Path=SelectedNode}" Margin="0, 0, 0, 5" Background="{DynamicResource MahApps.Brushes.SystemControlBackgroundAltMediumLow}"/>
+                            <views:EmpKeyframesView Grid.Row="2" IsEnabledToggled="EmpKeyframesView_IsEnabledToggled" KeyframedValue="{Binding ElementName=UserControl, Path=SelectedNode.SelectedKeyframedValue}" Node="{Binding ElementName=UserControl, Path=SelectedNode}" Margin="0, 0, 0, 5" Background="{DynamicResource MahApps.Brushes.SystemControlBackgroundAltMediumLow}"/>
                         </Grid>
 
                     </Border>

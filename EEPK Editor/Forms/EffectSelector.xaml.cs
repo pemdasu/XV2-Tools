@@ -1,22 +1,20 @@
-﻿using System;
-using System.Collections.Generic;
-using System.ComponentModel;
+﻿using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Windows;
 using System.Windows.Controls;
-using MahApps.Metro.Controls;
 using CommunityToolkit.Mvvm.Input;
 using LB_Common.Forms;
 using Xv2CoreLib.EEPK;
 using Xv2CoreLib.EffectContainer;
+using LB_Common.Mvvm;
 
 namespace EEPK_Organiser.Forms
 {
     /// <summary>
     /// Interaction logic for EffectSelector.xaml
     /// </summary>
-    public partial class EffectSelector : MetroWindow, INotifyPropertyChanged
+    public partial class EffectSelector : AutoObservableWindow
     {
         public enum Mode
         {
@@ -24,57 +22,48 @@ namespace EEPK_Organiser.Forms
             ExportEffect
         }
 
-        public event PropertyChangedEventHandler PropertyChanged;
-
-        private void NotifyPropertyChanged(String propertyName = "")
-        {
-            if (PropertyChanged != null)
-            {
-                PropertyChanged(this, new PropertyChangedEventArgs(propertyName));
-            }
-        }
-
         private EffectContainerFile MainContainerFile { get; set; }
         public List<Effect> SelectedEffects = null;
-        public List<Effect> Effects { get; set; }
+        public List<EffectSelection> Effects { get; set; }
 
         private ushort _idIncreaseValue = 0;
         public ushort IdIncreaseValue
         {
-            get
-            {
-                return this._idIncreaseValue;
-            }
+            get => _idIncreaseValue;
             set
             {
-                if (value != this._idIncreaseValue)
+                if (value != _idIncreaseValue)
                 {
-                    this._idIncreaseValue = value;
-                    NotifyPropertyChanged("IdIncreaseValue");
+                   _idIncreaseValue = value;
+                    NotifyPropertyChanged(nameof(IdIncreaseValue));
                 }
             }
         }
 
-        private bool editModeCancelling = false;
-        private Mode currentMode;
+        private readonly Mode CurrentMode;
 
         public EffectSelector(IList<Effect> effects, EffectContainerFile mainContainerFile, Window parent, Mode mode = Mode.ImportEffect)
         {
-            currentMode = mode;
-            Effects = new List<Effect>(effects);
+            CurrentMode = mode;
+            Effects = new(effects.Count);
+
+            foreach (var effect in effects)
+                Effects.Add(new EffectSelection(effect));
+
             MainContainerFile = mainContainerFile;
             InitializeComponent();
             DataContext = this;
             Owner = parent;
 
-            switch (currentMode)
+            switch (CurrentMode)
             {
+                case Mode.ImportEffect:
+                    Title = "Import Effects";
+                    break;
                 case Mode.ExportEffect:
                     Title = "Export Effects";
                     break;
             }
-
-
         }
 
         private void Done_Click(object sender, RoutedEventArgs e)
@@ -83,17 +72,17 @@ namespace EEPK_Organiser.Forms
 
             if(selectedEffects.Count > 0)
             {
-                if(currentMode == Mode.ImportEffect)
+                if(CurrentMode == Mode.ImportEffect)
                 {
                     bool wasError = false;
                     StringBuilder str = new StringBuilder();
 
                     foreach (var effect in selectedEffects)
                     {
-                        if (MainContainerFile.IsEffectIdUsed(effect.ImportIdIncrease))
+                        if (MainContainerFile.IsEffectIdUsed(effect.NewEffectID))
                         {
                             wasError = true;
-                            str.Append(string.Format("Effect ID: {0} > New ID: {1}\r", effect.IndexNum, effect.ImportIdIncrease));
+                            str.Append(string.Format("Effect ID: {0} > New ID: {1}\r", effect.Effect.IndexNum, effect.NewEffectID));
                         }
                     }
 
@@ -104,16 +93,29 @@ namespace EEPK_Organiser.Forms
                     }
                     else
                     {
-                        SelectedEffects = selectedEffects;
+                        SelectedEffects = CreateOutputSelectedEffects();
                         Close();
                     }
                 }
                 else
                 {
-                    SelectedEffects = selectedEffects;
+                    SelectedEffects = CreateOutputSelectedEffects();
                     Close();
                 }
             }
+        }
+
+        private List<Effect> CreateOutputSelectedEffects()
+        {
+            var selection = Effects.Where(x => x.IsSelected).ToArray();
+            List<Effect> effects = new(selection.Length);
+
+            foreach(var effect in selection)
+            {
+                effects.Add(effect.Effect.ShallowClone(effect.NewEffectID));
+            }
+
+            return effects;
         }
 
         private void IdIncreaseValueButton_Click(object sender, RoutedEventArgs e)
@@ -122,7 +124,7 @@ namespace EEPK_Organiser.Forms
             {
                 foreach(var effect in Effects)
                 {
-                    effect.ImportIdIncrease += IdIncreaseValue;
+                    effect.NewEffectID += IdIncreaseValue;
                 }
             }
         }
@@ -133,73 +135,16 @@ namespace EEPK_Organiser.Forms
             {
                 foreach (var effect in Effects)
                 {
-                    effect.ImportIdIncrease -= IdIncreaseValue;
+                    effect.NewEffectID -= IdIncreaseValue;
                 }
             }
         }
-
-        private void EffectDataGrid_CellEditEnding(object sender, DataGridCellEditEndingEventArgs e)
-        {
-            if (editModeCancelling)
-            {
-                return;
-            }
-
-            var selectedEffect = effectDataGrid.SelectedItem as Effect;
-
-            if (selectedEffect != null)
-            {
-                if(e.EditingElement is TextBox textBpx)
-                {
-                    string value = textBpx.Text;
-                    ushort ret = 0;
-
-                    if (!ushort.TryParse(value, out ret))
-                    {
-                        //Value contained invalid text
-                        e.Cancel = true;
-                        try
-                        {
-                            MessagePrompt.Show(string.Format("The entered Effect ID contained invalid characters. Please enter a number between {0} and {1}.", ushort.MinValue, ushort.MaxValue), "Invalid ID", MessagePromptButtons.OK, MessagePromptIcon.Error);
-                            editModeCancelling = true;
-                            (sender as DataGrid).CancelEdit();
-                        }
-                        finally
-                        {
-                            editModeCancelling = false;
-                        }
-                    }
-                    else
-                    {
-                        //Value is a valid number.
-
-                        //Now check if it is used by another Effect
-                        if (ImportEffectIdInceaseUsedByOtherEffects(ret, selectedEffect))
-                        {
-                            e.Cancel = true;
-                            try
-                            {
-                                MessagePrompt.Show(string.Format("The entered New ID is already taken.", ushort.MinValue, ushort.MaxValue), "Invalid ID", MessagePromptButtons.OK, MessagePromptIcon.Error);
-                                editModeCancelling = true;
-                                (sender as DataGrid).CancelEdit();
-                            }
-                            finally
-                            {
-                                editModeCancelling = false;
-                            }
-                        }
-                    }
-
-                }
-            }
-        }
-
 
         public bool ImportEffectIdInceaseUsedByOtherEffects(ushort id, Effect effect)
         {
             foreach (var _effect in Effects)
             {
-                if (_effect != effect && _effect.ImportIdIncrease == id) return true;
+                if (_effect.Effect != effect && _effect.NewEffectID == id) return true;
             }
 
             return false;
@@ -221,33 +166,33 @@ namespace EEPK_Organiser.Forms
             }
         }
 
-        private List<Effect> GetSelectedEffects()
+        private List<EffectSelection> GetSelectedEffects()
         {
             return Effects.Where(p => p.IsSelected == true).ToList();
         }
 
         private void ContextMenu_IncreaseID_Click(object sender, RoutedEventArgs e)
         {
-            var selected = effectDataGrid.SelectedItems.Cast<Effect>().ToList();
+            var selected = effectDataGrid.SelectedItems.Cast<EffectSelection>().ToList();
 
             if (selected != null)
             {
                 foreach (var effect in selected)
                 {
-                    effect.ImportIdIncrease += IdIncreaseValue;
+                    effect.NewEffectID += IdIncreaseValue;
                 }
             }
         }
 
         private void ContextMenu_DecreaseID_Click(object sender, RoutedEventArgs e)
         {
-            var selected = effectDataGrid.SelectedItems.Cast<Effect>().ToList();
+            var selected = effectDataGrid.SelectedItems.Cast<EffectSelection>().ToList();
 
             if (selected != null)
             {
                 foreach (var effect in selected)
                 {
-                    effect.ImportIdIncrease -= IdIncreaseValue;
+                    effect.NewEffectID -= IdIncreaseValue;
                 }
             }
         }
@@ -277,15 +222,15 @@ namespace EEPK_Organiser.Forms
         {
             bool alreadyThisState = true;
 
-            List<Effect> selected = effectDataGrid.SelectedItems.Cast<Effect>().ToList();
+            List<EffectSelection> selected = effectDataGrid.SelectedItems.Cast<EffectSelection>().ToList();
 
             if (selected != null)
             {
-                foreach (Effect effect in selected)
+                foreach (var pair in selected)
                 {
-                    if(effect.IsSelected != state)
+                    if(pair.IsSelected != state)
                     {
-                        effect.IsSelected = state;
+                        pair.IsSelected = state;
                         alreadyThisState = false;
                     }
                 }
@@ -293,5 +238,46 @@ namespace EEPK_Organiser.Forms
 
             return alreadyThisState;
         }
+
+
+        public class EffectSelection : AutoObservableObject
+        {
+            private bool _isSelected = true;
+            private ushort _newId;
+
+            public bool IsSelected
+            {
+                get => _isSelected;
+                set
+                {
+                    if(value != _isSelected)
+                    {
+                        _isSelected = value;
+                        NotifyPropertyChanged(nameof(IsSelected));
+                    }
+                }
+            }
+            public ushort NewEffectID
+            {
+                get => _newId;
+                set
+                {
+                    if (value != _newId)
+                    {
+                        _newId = value;
+                        NotifyPropertyChanged(nameof(NewEffectID));
+                    }
+                }
+            }
+            public Effect Effect { get; set; }
+
+            public EffectSelection(Effect effect)
+            {
+                Effect = effect;
+                NewEffectID = effect.IndexNum;
+                IsSelected = true;
+            }
+        }
     }
+
 }

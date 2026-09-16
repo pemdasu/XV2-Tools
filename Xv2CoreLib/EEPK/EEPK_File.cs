@@ -322,12 +322,9 @@ namespace Xv2CoreLib.EEPK
         [field: NonSerialized]
         public event PropertyChangedEventHandler PropertyChanged;
 
-        private void NotifyPropertyChanged(String propertyName = "")
+        private void NotifyPropertyChanged(string propertyName = "")
         {
-            if (PropertyChanged != null)
-            {
-                PropertyChanged(this, new PropertyChangedEventArgs(propertyName));
-            }
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
         }
 
         #region NonSerialized
@@ -335,9 +332,10 @@ namespace Xv2CoreLib.EEPK
         public int SortID { get { return IndexNum; } set { IndexNum = (ushort)value; } }
         [YAXDontSerialize]
         public string Index { get { return IndexNum.ToString(); } set { IndexNum = ushort.Parse(value); } }
+        private ushort _index = 0;
         #endregion
 
-        #region EepkOrganiser
+        #region Name
         private string _userDefinedName = null; //New UserDefineName system (used in XenoKit, but still pulls names from the old system as a fallback)
         [YAXDontSerialize]
         public string UserDefinedName
@@ -358,65 +356,18 @@ namespace Xv2CoreLib.EEPK
         [YAXDontSerialize]
         public bool HasUserDefinedName => !string.IsNullOrWhiteSpace(_userDefinedName);
 
-        //UI Code.
-        private ushort _index = 0;
-        [NonSerialized]
-        private bool _IdIncreaseEqualized = false;
-        [NonSerialized]
-        private ushort _viewIdIncrease = 0;
-        [YAXDontSerialize]
-        public ushort ImportIdIncrease
-        {
-            get
-            {
-                if (!_IdIncreaseEqualized)
-                {
-                    _IdIncreaseEqualized = true;
-                    _viewIdIncrease = _index;
-                }
-                return this._viewIdIncrease;
-            }
-            set
-            {
-                if (value != this._viewIdIncrease)
-                {
-                    this._viewIdIncrease = value;
-                    NotifyPropertyChanged("ImportIdIncrease");
-                }
-            }
-        }
-        private bool _isSelected = true;
-        [YAXDontSerialize]
-        public bool IsSelected
-        {
-            get
-            {
-                return this._isSelected;
-            }
-            set
-            {
-                if (value != this._isSelected)
-                {
-                    this._isSelected = value;
-                    NotifyPropertyChanged("IsSelected");
-                }
-            }
-        }
         #endregion
 
         [YAXSerializeAs("ID")]
         [YAXAttributeForClass]
         public ushort IndexNum
         {
-            get
-            {
-                return this._index;
-            }
+            get => _index;
             set
             {
-                if (value != this._index)
+                if (value != _index)
                 {
-                    this._index = value;
+                    _index = value;
                     NotifyPropertyChanged(nameof(IndexNum));
                 }
             }
@@ -432,61 +383,11 @@ namespace Xv2CoreLib.EEPK
         [YAXDontSerialize]
         public VfxPackageExtendedEffect ExtendedEffectData { get; set; }
 
-        #region View
-        [YAXDontSerialize]
-        public ushort UndoableId
-        {
-            get { return IndexNum; }
-            set
-            {
-                if (value != IndexNum)
-                {
-                    UndoManager.Instance.AddUndo(new CompositeUndo(new List<IUndoRedo>() { new UndoableProperty<Effect>(nameof(IndexNum), this, IndexNum, value), new UndoActionDelegate(this, nameof(RefreshProperties), true) }, "Effect ID"));
-                    IndexNum = value;
-                }
-            }
-        }
-
-        public void RefreshProperties()
-        {
-            NotifyPropertyChanged(nameof(UndoableId));
-        }
-
-        [NonSerialized]
-        private ObservableCollection<EffectPart> _selectedEffectParts = new ObservableCollection<EffectPart>();
-        [YAXDontSerialize]
-        public ObservableCollection<EffectPart> SelectedEffectParts
-        {
-            get
-            {
-                return this._selectedEffectParts;
-            }
-        }
-        [NonSerialized]
-        private EffectPart _selectedEffectPart = null;
-        [YAXDontSerialize]
-        public EffectPart SelectedEffectPart
-        {
-            get
-            {
-                return this._selectedEffectPart;
-            }
-            set
-            {
-                if (value != this._selectedEffectPart)
-                {
-                    this._selectedEffectPart = value;
-                    NotifyPropertyChanged(nameof(SelectedEffectPart));
-                }
-            }
-        }
-
-        #endregion
 
         public Effect Clone()
         {
             Effect newEffect = new Effect();
-            newEffect.EffectParts = AsyncObservableCollection<EffectPart>.Create();
+            newEffect.EffectParts = new();
             newEffect.IndexNum = IndexNum;
             newEffect.I_02 = I_02;
 
@@ -499,6 +400,18 @@ namespace Xv2CoreLib.EEPK
             }
 
             return newEffect;
+        }
+
+        public Effect ShallowClone(ushort newID)
+        {
+            Effect clone = ShallowClone();
+            clone.IndexNum = newID;
+            return clone;
+        }
+
+        public Effect ShallowClone()
+        {
+            return FastCloner.FastCloner.ShallowClone(this);
         }
 
         public void RemoveNulls()
@@ -972,6 +885,4 @@ namespace Xv2CoreLib.EEPK
             undos.Add(new UndoActionPropNotify(this, true));
         }
     }
-
-
 }

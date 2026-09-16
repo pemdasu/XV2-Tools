@@ -77,7 +77,7 @@ namespace LB_Common.Numbers
         #region Operators
         public override bool Equals(object obj)
         {
-            return this == (CustomVector4)obj;
+            return this == obj as CustomVector4;
         }
 
         public override int GetHashCode()

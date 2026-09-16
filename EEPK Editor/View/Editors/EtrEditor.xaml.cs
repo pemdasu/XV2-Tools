@@ -1,19 +1,20 @@
-﻿using System;
-using System.Linq;
-using System.ComponentModel;
-using System.Collections.Generic;
-using System.Windows;
-using System.Windows.Controls;
-using LB_Common.Forms;
-using Xv2CoreLib.ETR;
-using Xv2CoreLib.EMP_NEW;
-using Xv2CoreLib.EffectContainer;
-using Xv2CoreLib.Resource.UndoRedo;
-using EEPK_Organiser.ViewModel;
+﻿using CommunityToolkit.Mvvm.Input;
 using EEPK_Organiser.Forms;
 using EEPK_Organiser.View.Controls;
+using EEPK_Organiser.ViewModel;
+using LB_Common.Forms;
 using LB_Common.Mvvm;
-using CommunityToolkit.Mvvm.Input;
+using LB_Common.Utils;
+using System;
+using System.Collections.Generic;
+using System.ComponentModel;
+using System.Linq;
+using System.Windows;
+using System.Windows.Controls;
+using Xv2CoreLib.EffectContainer;
+using Xv2CoreLib.EMP_NEW;
+using Xv2CoreLib.ETR;
+using Xv2CoreLib.Resource.UndoRedo;
 
 namespace EEPK_Organiser.View.Editors
 {
@@ -107,7 +108,7 @@ namespace EEPK_Organiser.View.Editors
                 }
                 else if (e.UndoContext is Asset asset)
                 {
-                    if (asset.assetType == Xv2CoreLib.EEPK.AssetType.TBIND)
+                    if (asset.AssetType == Xv2CoreLib.EEPK.AssetType.TBIND)
                     {
                         if (asset.Files[0].EtrFile == EtrFile)
                         {
@@ -160,13 +161,15 @@ namespace EEPK_Organiser.View.Editors
         [RelayCommand(CanExecute = nameof(IsNodeSelected))]
         private void CopyNode()
         {
-            Clipboard.SetData(ETR_Node.CLIPBOARD_ID, SelectedNodes);
+            CustomClipboard.SetData(ETR_Node.CLIPBOARD_ID, SelectedNodes);
         }
 
         [RelayCommand(CanExecute = nameof(CanPasteNode))]
         private void PasteNode()
         {
-            List<ETR_Node> nodes = (List<ETR_Node>)Clipboard.GetData(ETR_Node.CLIPBOARD_ID);
+            if (!CustomClipboard.TryGetData(ETR_Node.CLIPBOARD_ID, out List<ETR_Node> nodes))
+                return;
+
             List<IUndoRedo> undos = new List<IUndoRedo>();
 
             foreach (ETR_Node node in nodes)
@@ -223,7 +226,7 @@ namespace EEPK_Organiser.View.Editors
 
         private bool CanPasteNode()
         {
-            return Clipboard.ContainsData(ETR_Node.CLIPBOARD_ID) && IsETRLoaded();
+            return CustomClipboard.ContainsData(ETR_Node.CLIPBOARD_ID) && IsETRLoaded();
         }
 
         private bool IsNodeSelected()
@@ -317,13 +320,14 @@ namespace EEPK_Organiser.View.Editors
         private void CopyShapeDrawPoint()
         {
             List<ShapeDrawPoint> selectedPoints = shapeDrawPointDataGrid.SelectedItems.Cast<ShapeDrawPoint>().ToList();
-            Clipboard.SetData(EMP_File.CLIPBOARD_SHAP_DRAW_POINT, selectedPoints);
+            CustomClipboard.SetData(EMP_File.CLIPBOARD_SHAP_DRAW_POINT, selectedPoints);
         }
 
         [RelayCommand(CanExecute = nameof(CanPasteShapeDraw))]
         private void PasteShapeDrawPoint()
         {
-            List<ShapeDrawPoint> points = (List<ShapeDrawPoint>)Clipboard.GetData(EMP_File.CLIPBOARD_SHAP_DRAW_POINT);
+            if (!CustomClipboard.TryGetData(EMP_File.CLIPBOARD_SHAP_DRAW_POINT, out List<ShapeDrawPoint> points))
+                return;
 
             if (points != null)
             {
@@ -343,7 +347,9 @@ namespace EEPK_Organiser.View.Editors
         [RelayCommand(CanExecute = nameof(CanPasteShapeDrawValues))]
         private void PasteShapeDrawPointValues()
         {
-            List<ShapeDrawPoint> points = (List<ShapeDrawPoint>)Clipboard.GetData(EMP_File.CLIPBOARD_SHAP_DRAW_POINT);
+            if (!CustomClipboard.TryGetData(EMP_File.CLIPBOARD_SHAP_DRAW_POINT, out List<ShapeDrawPoint> points))
+                return;
+
             List<ShapeDrawPoint> selectedPoints = shapeDrawPointDataGrid.SelectedItems.Cast<ShapeDrawPoint>().ToList();
 
             if (points?.Count == selectedPoints.Count)
@@ -366,12 +372,12 @@ namespace EEPK_Organiser.View.Editors
 
         private bool CanPasteShapeDraw()
         {
-            return Clipboard.ContainsData(EMP_File.CLIPBOARD_SHAP_DRAW_POINT) && IsNodeSelected();
+            return CustomClipboard.ContainsData(EMP_File.CLIPBOARD_SHAP_DRAW_POINT) && IsNodeSelected();
         }
 
         private bool CanPasteShapeDrawValues()
         {
-            return Clipboard.ContainsData(EMP_File.CLIPBOARD_SHAP_DRAW_POINT) && IsPointSelected();
+            return CustomClipboard.ContainsData(EMP_File.CLIPBOARD_SHAP_DRAW_POINT) && IsPointSelected();
         }
 
         private bool IsPointSelected()
@@ -429,13 +435,14 @@ namespace EEPK_Organiser.View.Editors
         private void CopyPath()
         {
             List<ConeExtrudePoint> selectedPoints = pathDataGrid.SelectedItems.Cast<ConeExtrudePoint>().ToList();
-            Clipboard.SetData(EMP_File.CLIPBOARD_CONE_EXTRUSION, selectedPoints);
+            CustomClipboard.SetData(EMP_File.CLIPBOARD_CONE_EXTRUSION, selectedPoints);
         }
 
         [RelayCommand(CanExecute = nameof(CanPastePath))]
         private void PastePath()
         {
-            List<ConeExtrudePoint> points = (List<ConeExtrudePoint>)Clipboard.GetData(EMP_File.CLIPBOARD_CONE_EXTRUSION);
+            if (!CustomClipboard.TryGetData(EMP_File.CLIPBOARD_CONE_EXTRUSION, out List<ConeExtrudePoint> points))
+                return;
 
             if (points != null)
             {
@@ -460,7 +467,7 @@ namespace EEPK_Organiser.View.Editors
         
         private bool CanPastePath()
         {
-            return Clipboard.ContainsData(EMP_File.CLIPBOARD_CONE_EXTRUSION);
+            return CustomClipboard.ContainsData(EMP_File.CLIPBOARD_CONE_EXTRUSION);
         }
 
         private bool IsPathSelected()
@@ -488,6 +495,11 @@ namespace EEPK_Organiser.View.Editors
                     }
                 }
             }
+        }
+
+        private void EmpKeyframesView_IsEnabledToggled(object sender, EventArgs e)
+        {
+            SelectedNode.UpdatePreviewBrush();
         }
     }
 }

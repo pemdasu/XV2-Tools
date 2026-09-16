@@ -60,7 +60,7 @@ namespace LB_Common.Numbers
         #region Operators
         public override bool Equals(object obj)
         {
-            return this == (CustomMatUV)obj;
+            return this == obj as CustomMatUV;
         }
 
         public override int GetHashCode()

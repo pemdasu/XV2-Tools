@@ -1,12 +1,16 @@
-﻿using System.Linq;
-using System.Windows;
-using System.Collections.Generic;
-using System.Windows.Controls;
-using CommunityToolkit.Mvvm.Input;
-using LB_Common.Numbers;
+﻿using CommunityToolkit.Mvvm.Input;
+using EEPK_Organiser.Misc;
 using LB_Common.Mvvm;
-using Xv2CoreLib.ETR;
+using LB_Common.Numbers;
+using LB_Common.Utils;
+using System.Collections.Generic;
+using System.Collections.ObjectModel;
+using System.Linq;
+using System.Windows;
+using System.Windows.Controls;
+using Xv2CoreLib.EEPK;
 using Xv2CoreLib.EMP_NEW.Keyframes;
+using Xv2CoreLib.ETR;
 using Xv2CoreLib.Resource.UndoRedo;
 
 namespace EEPK_Organiser.ViewModel
@@ -233,15 +237,17 @@ namespace EEPK_Organiser.ViewModel
 
             if(selectedFloatKeyframes.Count > 0)
             {
-                Clipboard.SetData(KeyframedFloatValue.CLIPBOARD_ID, selectedFloatKeyframes);
+                CustomClipboard.SetData(KeyframedFloatValue.CLIPBOARD_ID, selectedFloatKeyframes);
             }
         }
 
         [RelayCommand(CanExecute = nameof(IsFloatInClipboard))]
         private void PasteFloatKeyframe()
         {
+            if (!CustomClipboard.TryGetData(KeyframedFloatValue.CLIPBOARD_ID, out List<KeyframeFloatValue> keyframes))
+                return;
+
             List<IUndoRedo> undos = new List<IUndoRedo>();
-            List<KeyframeFloatValue> keyframes = (List<KeyframeFloatValue>)Clipboard.GetData(KeyframedFloatValue.CLIPBOARD_ID);
 
             foreach(var keyframe in keyframes)
             {
@@ -253,7 +259,7 @@ namespace EEPK_Organiser.ViewModel
 
         private bool IsFloatInClipboard()
         {
-            return Clipboard.ContainsData(KeyframedFloatValue.CLIPBOARD_ID) && IsFloatValue();
+            return CustomClipboard.ContainsData(KeyframedFloatValue.CLIPBOARD_ID) && IsFloatValue();
         }
 
         private bool IsFloatValue()
@@ -296,15 +302,17 @@ namespace EEPK_Organiser.ViewModel
 
             if (selectedKeyframes.Count > 0)
             {
-                Clipboard.SetData(KeyframedColorValue.CLIPBOARD_ID, selectedKeyframes);
+                CustomClipboard.SetData(KeyframedColorValue.CLIPBOARD_ID, selectedKeyframes);
             }
         }
 
         [RelayCommand(CanExecute = nameof(IsColorInClipboard))]
         private void PasteColorKeyframe()
         {
+            if (!CustomClipboard.TryGetData(KeyframedColorValue.CLIPBOARD_ID, out List<KeyframeColorValue> keyframes))
+                return;
+
             List<IUndoRedo> undos = new List<IUndoRedo>();
-            List<KeyframeColorValue> keyframes = (List<KeyframeColorValue>)Clipboard.GetData(KeyframedColorValue.CLIPBOARD_ID);
 
             foreach (var keyframe in keyframes)
             {
@@ -316,7 +324,7 @@ namespace EEPK_Organiser.ViewModel
 
         private bool IsColorInClipboard()
         {
-            return Clipboard.ContainsData(KeyframedColorValue.CLIPBOARD_ID) && IsColorValue();
+            return CustomClipboard.ContainsData(KeyframedColorValue.CLIPBOARD_ID) && IsColorValue();
         }
 
         private bool IsColorValue()
@@ -358,15 +366,17 @@ namespace EEPK_Organiser.ViewModel
 
             if (selectedKeyframes.Count > 0)
             {
-                Clipboard.SetData(KeyframedVector2Value.CLIPBOARD_ID, selectedKeyframes);
+                CustomClipboard.SetData(KeyframedVector2Value.CLIPBOARD_ID, selectedKeyframes);
             }
         }
 
         [RelayCommand(CanExecute = nameof(IsVector2InClipboard))]
         private void PasteVector2Keyframe()
         {
+            if (!CustomClipboard.TryGetData(KeyframedVector2Value.CLIPBOARD_ID, out List<KeyframeVector2Value> keyframes))
+                return;
+
             List<IUndoRedo> undos = new List<IUndoRedo>();
-            List<KeyframeVector2Value> keyframes = (List<KeyframeVector2Value>)Clipboard.GetData(KeyframedVector2Value.CLIPBOARD_ID);
 
             foreach (var keyframe in keyframes)
             {
@@ -378,7 +388,7 @@ namespace EEPK_Organiser.ViewModel
 
         private bool IsVector2InClipboard()
         {
-            return Clipboard.ContainsData(KeyframedVector2Value.CLIPBOARD_ID) && IsVector2Value();
+            return CustomClipboard.ContainsData(KeyframedVector2Value.CLIPBOARD_ID) && IsVector2Value();
         }
 
         private bool IsVector2Value()
@@ -420,15 +430,17 @@ namespace EEPK_Organiser.ViewModel
 
             if (selectedKeyframes.Count > 0)
             {
-                Clipboard.SetData(KeyframedVector3Value.CLIPBOARD_ID, selectedKeyframes);
+                CustomClipboard.SetData(KeyframedVector3Value.CLIPBOARD_ID, selectedKeyframes);
             }
         }
 
         [RelayCommand(CanExecute = nameof(IsVector3InClipboard))]
         private void PasteVector3Keyframe()
         {
+            if (!CustomClipboard.TryGetData(KeyframedVector3Value.CLIPBOARD_ID, out List<KeyframeVector3Value> keyframes))
+                return;
+
             List<IUndoRedo> undos = new List<IUndoRedo>();
-            List<KeyframeVector3Value> keyframes = (List<KeyframeVector3Value>)Clipboard.GetData(KeyframedVector3Value.CLIPBOARD_ID);
 
             foreach (var keyframe in keyframes)
             {
@@ -440,7 +452,7 @@ namespace EEPK_Organiser.ViewModel
 
         private bool IsVector3InClipboard()
         {
-            return Clipboard.ContainsData(KeyframedVector3Value.CLIPBOARD_ID) && IsVector3Value();
+            return CustomClipboard.ContainsData(KeyframedVector3Value.CLIPBOARD_ID) && IsVector3Value();
         }
 
         private bool IsVector3Value()

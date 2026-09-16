@@ -86,7 +86,7 @@ namespace LB_Common.Numbers
         #region Operators
         public override bool Equals(object obj)
         {
-            return this == (CustomColor)obj;
+            return this == obj as CustomColor;
         }
 
         public override int GetHashCode()

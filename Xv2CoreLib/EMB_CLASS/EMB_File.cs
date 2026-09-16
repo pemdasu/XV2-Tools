@@ -769,8 +769,7 @@ namespace Xv2CoreLib.EMB_CLASS
 
         public bool IsNull()
         {
-            if (Data == null) return true;
-            if (Data.Length == 0) return true;
+            if (Data == null || Data.Length == 0 || Texture == null) return true;
 
             return false;
         }

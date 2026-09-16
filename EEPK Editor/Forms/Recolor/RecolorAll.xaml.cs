@@ -386,7 +386,7 @@ namespace EEPK_Organiser.Forms
 
         private void ChangeHueForAsset(Asset _asset, double hueChange, double saturationChange, double lightnessChange, List<IUndoRedo> undos, bool shiftGlareColor = true)
         {
-            switch (_asset.assetType)
+            switch (_asset.AssetType)
             {
                 case AssetType.PBIND:
                     _asset.Files[0].EmpFile.ChangeHue(hueChange, saturationChange, lightnessChange, undos, isHueSet, Variance, shiftGlareColor && ShiftGlareColor);

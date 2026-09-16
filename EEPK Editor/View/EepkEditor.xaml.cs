@@ -1,4 +1,14 @@
-﻿using System;
+﻿using CommunityToolkit.Mvvm.Input;
+using EEPK_Organiser.Forms;
+using EEPK_Organiser.Forms.Editors;
+using EEPK_Organiser.Misc;
+using EEPK_Organiser.ViewModel;
+using LB_Common.Forms;
+using LB_Common.Mvvm;
+using MahApps.Metro.Controls;
+using MahApps.Metro.Controls.Dialogs;
+using Microsoft.Win32;
+using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.IO;
@@ -8,12 +18,6 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
-using Application = System.Windows.Application;
-using Microsoft.Win32;
-using MahApps.Metro.Controls;
-using MahApps.Metro.Controls.Dialogs;
-using LB_Common.Forms;
-using LB_Common.Mvvm;
 using Xv2CoreLib;
 using Xv2CoreLib.ECF;
 using Xv2CoreLib.EEPK;
@@ -24,24 +28,12 @@ using Xv2CoreLib.EMP_NEW;
 using Xv2CoreLib.ETR;
 using Xv2CoreLib.Resource.App;
 using Xv2CoreLib.Resource.UndoRedo;
-using EEPK_Organiser.Forms;
-using EEPK_Organiser.Forms.Editors;
-using EEPK_Organiser.Misc;
-using EEPK_Organiser.ViewModel;
-
-#if XenoKit
-using XenoKit;
-using XenoKit.Engine;
-using XenoKit.Engine.Model;
-using XenoKit.Editor;
-using XenoKit.Views;
-#endif
+using Application = System.Windows.Application;
 
 namespace EEPK_Organiser.View
 {
     public partial class EepkEditor : AutoObservableUserControl
     {
-
         internal enum Tabs
         {
             //Number matches tab indexes.
@@ -55,7 +47,7 @@ namespace EEPK_Organiser.View
 
         public event EventHandler SelectedEffectTabChanged;
 
-        #region DependencyProperty
+#region DependencyProperty
         public static readonly DependencyProperty EepkInstanceProperty = DependencyProperty.Register(
             nameof(effectContainerFile), typeof(EffectContainerFile), typeof(EepkEditor), new PropertyMetadata(OnEepkChanged));
 
@@ -90,56 +82,6 @@ namespace EEPK_Organiser.View
             }
         }
         public bool IsFileLoaded => effectContainerFile != null;
-
-        //ViewModel
-        public EffectPartViewModel EffectPartViewModel { get; private set; }
-
-        //Effect View
-        private bool editModeCancelling = false;
-
-        //Selected Effect
-        public ObservableCollection<object> SelectedItems { get; private set; } = new ObservableCollection<object>();
-        private Effect _selectedEffect = null;
-        public Effect SelectedEffect
-        {
-            get => _selectedEffect;
-            set
-            {
-                _selectedEffect = value;
-                NotifyPropertyChanged(nameof(SelectedEffect));
-                NotifyPropertyChanged(nameof(SelectedEffectID));
-            }
-        }
-        public int SelectedEffectID
-        {
-            get => SelectedEffect != null ? SelectedEffect.IndexNum : 0;
-            set
-            {
-                if(SelectedEffect != null && SelectedEffect?.IndexNum != value)
-                {
-                    if(effectContainerFile.Effects.FirstOrDefault(x => x.IndexNum == value) == null)
-                    {
-                        List<IUndoRedo> undos = new List<IUndoRedo>();
-                        undos.Add(new UndoablePropertyGeneric(nameof(SelectedEffect.IndexNum), SelectedEffect, SelectedEffect.IndexNum, (ushort)value));
-                        undos.Add(new UndoActionDelegate(effectContainerFile, nameof(EffectContainerFile.UpdateEffectFilter), true));
-
-                        SelectedEffect.IndexNum = (ushort)value;
-
-                        UndoManager.Instance.AddCompositeUndo(undos, "Effect ID");
-                        NotifyPropertyChanged(nameof(SelectedEffectID));
-                        effectContainerFile.UpdateEffectFilter();
-
-                        effectDataGrid.ScrollIntoView(SelectedEffect);
-                    }
-                    else
-                    {
-                        MessagePrompt.Show($"This ID ({value}) is already used for another effect.", "ID Used", MessagePromptButtons.OK, MessagePromptIcon.Error);
-                    }
-                }
-
-            }
-        }
-
 
 #if !XenoKit
         //NameLists
@@ -192,29 +134,6 @@ namespace EEPK_Organiser.View
             }
         }
 
-        //Filtering
-        private string _searchFilter = null;
-        public string SearchFilter
-        {
-            get
-            {
-                return this._searchFilter;
-            }
-            set
-            {
-                if (value != this._searchFilter)
-                {
-                    this._searchFilter = value;
-                    NotifyPropertyChanged(nameof(SearchFilter));
-                }
-            }
-        }
-
-#if XenoKit
-        public Visibility XenoKitVisible => Visibility.Visible;
-#else
-        public Visibility XenoKitVisible => Visibility.Collapsed;
-#endif
 
         public EepkEditor()
         {
@@ -225,19 +144,12 @@ namespace EEPK_Organiser.View
             EepkChanged += EepkInstanceChanged;
             UndoManager.Instance.UndoOrRedoCalled += UndoManager_UndoOrRedoCalled;
 
-#if XenoKit
-            pbindDataGrid.SelectionChanged += PbindDataGrid_SelectionChanged;
-            tbindDataGrid.SelectionChanged += TbindDataGrid_SelectionChanged;
-            cbindDataGrid.SelectionChanged += CbindDataGrid_SelectionChanged;
-            emoDataGrid.SelectionChanged += EmoDataGrid_SelectionChanged;
-            lightDataGrid.SelectionChanged += LightDataGrid_SelectionChanged;
-            toolButton.Visibility = Visibility.Visible;
-#else
-            toolButton.Visibility = Visibility.Hidden;
-
+#if !XenoKit
             //Load NameLists
             nameListManager = new NameList.NameListManager();
 #endif
+
+            XenoKit_Init();
         }
 
         private void UndoManager_UndoOrRedoCalled(object sender, UndoEventRaisedEventArgs e)
@@ -292,7 +204,7 @@ namespace EEPK_Organiser.View
         {
             if (!SettingsManager.settings.ValidGameDir) throw new Exception("Game directory is not valid. Please set the game directory in the settings menu (File > Settings).");
 
-            Forms.EntitySelector entitySelector = new Forms.EntitySelector(loadHelper, type, App.Current.MainWindow);
+            Forms.EntitySelector entitySelector = new Forms.EntitySelector(loadHelper, type, Application.Current.MainWindow);
             entitySelector.ShowDialog();
 
             if (entitySelector.SelectedEntity != null)
@@ -326,7 +238,7 @@ namespace EEPK_Organiser.View
 
         private async Task<EffectContainerFile> LoadFileAsync(string path, bool fromGame, bool onlyFromCpk)
         {
-            var controller = await ((MetroWindow)App.Current.MainWindow).ShowProgressAsync($"Loading...", $"", false, new MetroDialogSettings() { DialogTitleFontSize = 16, DialogMessageFontSize = 12, AnimateHide = false, AnimateShow = false });
+            var controller = await ((MetroWindow)Application.Current.MainWindow).ShowProgressAsync($"Loading...", $"", false, new MetroDialogSettings() { DialogTitleFontSize = 16, DialogMessageFontSize = 12, AnimateHide = false, AnimateShow = false });
             controller.SetIndeterminate();
 
             EffectContainerFile loadedFile = null;
@@ -401,32 +313,15 @@ namespace EEPK_Organiser.View
         private void EffectPart_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
             CreateEffectPartViewModel();
-            SetEffectPartGizmo();
+            XenoKit_OnEffectPartSelectionChange();
         }
 
         private void EffectDataGrid_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
             CreateEffectPartViewModel();
-            PlaySelectedEffect();
-            SetEffectPartGizmo();
+            XenoKit_OnEffectSelectionChange();
         }
 
-        private void CreateEffectPartViewModel()
-        {
-            if (SelectedEffect?.SelectedEffectPart != null)
-            {
-                if (EffectPartViewModel != null) EffectPartViewModel.Dispose();
-
-                EffectPartViewModel = new EffectPartViewModel(SelectedEffect?.SelectedEffectPart);
-            }
-            else if (EffectPartViewModel != null)
-            {
-                EffectPartViewModel.Dispose();
-                EffectPartViewModel = null;
-            }
-
-            NotifyPropertyChanged(nameof(EffectPartViewModel));
-        }
 
         public static bool GameDirectoryCheck()
         {
@@ -436,40 +331,6 @@ namespace EEPK_Organiser.View
                 return false;
             }
             return true;
-        }
-
-        //Selection
-        private void SelectAsset(Asset asset)
-        {
-            switch (asset.assetType)
-            {
-                case AssetType.PBIND:
-                    pbindDataGrid.SelectedItem = asset;
-                    pbindDataGrid.ScrollIntoView(asset);
-                    break;
-                case AssetType.TBIND:
-                    tbindDataGrid.SelectedItem = asset;
-                    tbindDataGrid.ScrollIntoView(asset);
-                    break;
-                case AssetType.CBIND:
-                    cbindDataGrid.SelectedItem = asset;
-                    cbindDataGrid.ScrollIntoView(asset);
-                    break;
-                case AssetType.LIGHT:
-                    lightDataGrid.SelectedItem = asset;
-                    lightDataGrid.ScrollIntoView(asset);
-                    break;
-                case AssetType.EMO:
-                    emoDataGrid.SelectedItem = asset;
-                    emoDataGrid.ScrollIntoView(asset);
-                    break;
-            }
-        }
-        
-        private void SelectEffect(Effect effect)
-        {
-            effectDataGrid.SelectedItem = effect;
-            effectDataGrid.ScrollIntoView(effect);
         }
 
         #region CachedFiles
@@ -769,7 +630,7 @@ namespace EEPK_Organiser.View
 
         public static void CloseAllEditorForms()
         {
-            foreach (object window in App.Current.Windows)
+            foreach (object window in Application.Current.Windows)
             {
                 if (window is EmbEditForm ||
                     window is MaterialsEditorForm ||
@@ -842,236 +703,175 @@ namespace EEPK_Organiser.View
         }
 #endif
 
-        /// <summary>
-        /// Returns the SelectedEffectParts for the first SelectedEffect, if it exists.
-        /// </summary>
-        /// <returns></returns>
-        public ObservableCollection<EffectPart> GetSelectedEffectParts()
+        #region ToolMenu
+        [RelayCommand(CanExecute = nameof(IsFileLoaded))]
+        private void ToolMenu_HueAdjust()
         {
-            if (SelectedEffect != null)
+            RecolorAll recolor = new RecolorAll(effectContainerFile, false, Application.Current.MainWindow);
+
+            if (recolor.Initialize())
+                recolor.ShowDialog();
+        }
+
+        [RelayCommand(CanExecute = nameof(IsFileLoaded))]
+        private void ToolMenu_HueSet()
+        {
+            RecolorAll recolor = new RecolorAll(effectContainerFile, true, Application.Current.MainWindow);
+
+            if (recolor.Initialize())
+                recolor.ShowDialog();
+        }
+
+        [RelayCommand(CanExecute = nameof(IsFileLoaded))]
+        private void ToolMenu_CreateSuperTexture()
+        {
+            if (MessagePrompt.Show($"This feature will attempt to optimize the number of textures used by this EEPK by combining them together. The result will be fewer, but larger individual textures. This should significantly increase the amount of textures that can be used.\n\nIt is advised to make backups of your files before using this feature.",
+                "Optimize Textures (SuperTexture)", MessagePromptButtons.YesNo, MessagePromptIcon.Question) == MessagePromptResult.Yes)
             {
-                return SelectedEffect.SelectedEffectParts;
+                int[] ret = effectContainerFile.MergeAllTexturesIntoSuperTextures_PBIND();
+
+                MessagePrompt.Show($"{ret[0]} textures were merged together to create {ret[1]} Super Textures.", "Optimize Textures (SuperTexture)", MessagePromptButtons.OK, MessagePromptIcon.Information);
+
             }
-
-            return null;
         }
 
-#if XenoKit
-        
-        private void PbindDataGrid_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        [RelayCommand(CanExecute = nameof(IsFileLoaded))]
+        private void ToolMenu_CleanAll()
         {
-            PlayAsset(GetSelectedAsset(AssetType.PBIND));
-        }
-
-        private void TbindDataGrid_SelectionChanged(object sender, SelectionChangedEventArgs e)
-        {
-            PlayAsset(GetSelectedAsset(AssetType.TBIND));
-        }
-
-        private void CbindDataGrid_SelectionChanged(object sender, SelectionChangedEventArgs e)
-        {
-            PlayAsset(GetSelectedAsset(AssetType.CBIND));
-        }
-
-        private void EmoDataGrid_SelectionChanged(object sender, SelectionChangedEventArgs e)
-        {
-            PlayAsset(GetSelectedAsset(AssetType.EMO));
-        }
-
-        private void LightDataGrid_SelectionChanged(object sender, SelectionChangedEventArgs e)
-        {
-            PlayAsset(GetSelectedAsset(AssetType.LIGHT));
-        }
-
-        private void PlayAsset(Asset asset)
-        {
-            if (Viewport.Instance != null && asset != null)
-                Viewport.Instance.VfxPreview.PreviewAsset(asset);
-        }
-
-#else
-        private void PlayAsset(Asset asset)
-        {
-
-        }
-#endif
-
-
-        //TODO: Move these to commands
-        private void EMO_AssetContainer_RenameFile_Click(object sender, RoutedEventArgs e)
-        {
-            var menuItem = sender as MenuItem;
-
-            if (menuItem != null)
+            if (MessagePrompt.Show($"Delete all unused or duplicate assets, texture and material from this {effectContainerFile.saveFormat}?", "Clean All",
+                MessagePromptButtons.YesNo, MessagePromptIcon.Question) == MessagePromptResult.Yes)
             {
-                var nestedListBox = ((ContextMenu)menuItem.Parent).PlacementTarget as ListBox;
+                List<IUndoRedo> undos = new List<IUndoRedo>();
+                int[] totals = effectContainerFile.RemoveAllUnusedOrDuplicates(undos);
 
-                var selectedFile = nestedListBox.SelectedItem as EffectFile;
+                int emp = totals[0];
+                int etr = totals[1];
+                int ecf = totals[2];
+                int emo = totals[3];
+                int light = totals[4];
+                int empTextures = totals[5];
+                int textures = totals[6];
+                int materials = totals[7];
+                int total = totals[8];
 
-                if (selectedFile != null)
+                UndoManager.Instance.AddCompositeUndo(undos, $"Clean All ({total})");
+                MessagePrompt.Show($"{total} duplicate or unused references were purged.\n\nBreakdown by type:\nEMP: {emp}\nETR: {etr}\nECF: {ecf}\nEMO: {emo}\nLIGHT: {light}\nEMP Textures: {empTextures}\nTextures: {textures}\nMaterials: {materials}", "Clean All");
+            }
+        }
+
+        #endregion
+
+        #region Search 
+        private string _searchFilter = null;
+        public string SearchFilter
+        {
+            get => _searchFilter;
+            set
+            {
+                if (value != _searchFilter)
                 {
-                    var parentAsset = effectContainerFile.Emo.GetAssetByFileInstance(selectedFile);
-
-                    AssetContainer_RenameFile(selectedFile, parentAsset, effectContainerFile.Emo);
-
-                    if (parentAsset != null)
-                    {
-                        parentAsset.RefreshNamePreview();
-                    }
-
-                    emoDataGrid.Items.Refresh();
-                    emoDataGrid.SelectedItem = parentAsset;
-                    emoDataGrid.ScrollIntoView(parentAsset);
+                    _searchFilter = value;
+                    NotifyPropertyChanged(nameof(SearchFilter));
                 }
             }
         }
 
-        private void EMO_AssetContainer_ReplaceFile_Click(object sender, RoutedEventArgs e)
+        [RelayCommand]
+        private void ClearSearch()
         {
-            var menuItem = sender as MenuItem;
+            if (effectContainerFile == null) return;
 
-            if (menuItem != null)
+            SearchFilter = string.Empty;
+
+            switch ((Tabs)tabControl.SelectedIndex)
             {
-                var nestedListBox = ((ContextMenu)menuItem.Parent).PlacementTarget as ListBox;
-
-                var selectedFile = nestedListBox.SelectedItem as EffectFile;
-
-                if (selectedFile != null)
-                {
-                    OpenFileDialog openFile = new OpenFileDialog();
-                    openFile.Title = "Add file...";
-                    openFile.Filter = "XV2 effect files | *.emo; *.ema; *.emm; *.emb";
-                    openFile.ShowDialog();
-
-                    if (File.Exists(openFile.FileName) && !String.IsNullOrWhiteSpace(openFile.FileName))
-                    {
-                        if (EffectFile.GetExtension(openFile.FileName) != selectedFile.Extension)
-                        {
-                            MessagePrompt.Show(String.Format("The file type of the selected external file ({0}) does not match that of {1}.", openFile.FileName, selectedFile.FullFileName), "Replace", MessagePromptButtons.OK, MessagePromptIcon.Error);
-                            return;
-                        }
-
-                        string originalNewFileName = Path.GetFileName(openFile.FileName);
-                        byte[] bytes = File.ReadAllBytes(openFile.FileName);
-                        string newFileName = effectContainerFile.Emo.GetUnusedName(originalNewFileName); //To prevent duplicates
-
-                        object oldFile;
-
-                        switch (selectedFile.fileType)
-                        {
-                            case EffectFile.FileType.EMM:
-                                oldFile = selectedFile.EmmFile;
-                                selectedFile.EmmFile = EMM_File.LoadEmm(bytes);
-                                UndoManager.Instance.AddUndo(new UndoableProperty<EffectFile>(nameof(EffectFile.EmmFile), selectedFile, oldFile, selectedFile.EmmFile, "Replace File (EMO)"));
-                                break;
-                            case EffectFile.FileType.EMB:
-                                oldFile = selectedFile.EmbFile;
-                                selectedFile.EmbFile = EMB_File.LoadEmb(bytes);
-                                UndoManager.Instance.AddUndo(new UndoableProperty<EffectFile>(nameof(EffectFile.EmbFile), selectedFile, oldFile, selectedFile.EmbFile, "Replace File (EMO)"));
-                                break;
-                            default:
-                                oldFile = selectedFile.Bytes;
-                                selectedFile.Bytes = bytes;
-                                UndoManager.Instance.AddUndo(new UndoableProperty<EffectFile>(nameof(EffectFile.Bytes), selectedFile, oldFile, selectedFile.Bytes, "Replace File (EMO)"));
-                                break;
-                        }
-
-                        if (MessagePrompt.Show("Do you want to keep the old file name?", "Keep Name?", MessagePromptButtons.YesNo, MessagePromptIcon.Question) == MessagePromptResult.No)
-                        {
-                            selectedFile.SetName(newFileName);
-
-                            if (newFileName != originalNewFileName)
-                            {
-                                MessagePrompt.Show(String.Format("The added file was renamed to \"{0}\" because \"{1}\" was already used.", newFileName, originalNewFileName), "Add File", MessagePromptButtons.OK, MessagePromptIcon.Information);
-                            }
-                        }
-
-                        var selectedItem = emoDataGrid.SelectedItem;
-                        emoDataGrid.SelectedItem = selectedItem;
-                        emoDataGrid.ScrollIntoView(selectedItem);
-                    }
-                }
+                case Tabs.Effect:
+                    effectContainerFile.EffectSearchFilter = string.Empty;
+                    effectContainerFile.UpdateEffectFilter();
+                    break;
+                case Tabs.Pbind:
+                    effectContainerFile.Pbind.AssetSearchFilter = string.Empty;
+                    effectContainerFile.Pbind.UpdateAssetFilter();
+                    break;
+                case Tabs.Tbind:
+                    effectContainerFile.Tbind.AssetSearchFilter = string.Empty;
+                    effectContainerFile.Tbind.UpdateAssetFilter();
+                    break;
+                case Tabs.Cbind:
+                    effectContainerFile.Cbind.AssetSearchFilter = string.Empty;
+                    effectContainerFile.Cbind.UpdateAssetFilter();
+                    break;
+                case Tabs.Emo:
+                    effectContainerFile.Emo.AssetSearchFilter = string.Empty;
+                    effectContainerFile.Emo.UpdateAssetFilter();
+                    break;
+                case Tabs.Light:
+                    effectContainerFile.LightEma.AssetSearchFilter = string.Empty;
+                    effectContainerFile.LightEma.UpdateAssetFilter();
+                    break;
             }
         }
 
-        private void EMO_AssetContainer_DeleteFile_Click(object sender, RoutedEventArgs e)
+        [RelayCommand]
+        private void Search()
         {
-            var menuItem = sender as MenuItem;
+            if (effectContainerFile == null) return;
 
-            if (menuItem != null)
+            switch ((Tabs)tabControl.SelectedIndex)
             {
-                var nestedListBox = ((ContextMenu)menuItem.Parent).PlacementTarget as ListBox;
-
-                var selectedFile = nestedListBox.SelectedItem as EffectFile;
-
-                if (selectedFile != null)
-                {
-                    var parentAsset = effectContainerFile.Emo.GetAssetByFileInstance(selectedFile);
-
-                    List<IUndoRedo> undos = new List<IUndoRedo>();
-
-                    if (parentAsset != null)
-                    {
-                        if (parentAsset.Files.Count > 1)
-                        {
-                            parentAsset.RemoveFile(selectedFile, undos);
-                        }
-                        else
-                        {
-                            MessagePrompt.Show(string.Format("Cannot delete the last file."), "Error", MessagePromptButtons.OK, MessagePromptIcon.Error);
-                        }
-
-                        UndoManager.Instance.AddCompositeUndo(undos, "Delete File (EMO)");
-
-                        emoDataGrid.SelectedItem = parentAsset;
-                        emoDataGrid.ScrollIntoView(parentAsset);
-                    }
-                    else
-                    {
-                        MessagePrompt.Show(string.Format("Could not find the parent asset."), "Error", MessagePromptButtons.OK, MessagePromptIcon.Error);
-                    }
-                }
+                case Tabs.Effect:
+                    effectContainerFile.NewEffectFilter(SearchFilter);
+                    effectContainerFile.UpdateEffectFilter();
+                    break;
+                case Tabs.Pbind:
+                    effectContainerFile.Pbind.NewAssetFilter(SearchFilter);
+                    effectContainerFile.Pbind.UpdateAssetFilter();
+                    break;
+                case Tabs.Tbind:
+                    effectContainerFile.Tbind.NewAssetFilter(SearchFilter);
+                    effectContainerFile.Tbind.UpdateAssetFilter();
+                    break;
+                case Tabs.Cbind:
+                    effectContainerFile.Cbind.NewAssetFilter(SearchFilter);
+                    effectContainerFile.Cbind.UpdateAssetFilter();
+                    break;
+                case Tabs.Emo:
+                    effectContainerFile.Emo.NewAssetFilter(SearchFilter);
+                    effectContainerFile.Emo.UpdateAssetFilter();
+                    break;
+                case Tabs.Light:
+                    effectContainerFile.LightEma.NewAssetFilter(SearchFilter);
+                    effectContainerFile.LightEma.UpdateAssetFilter();
+                    break;
             }
         }
 
-        private void EMO_AssetContainer_ExtractFile_Click(object sender, RoutedEventArgs e)
+        private void TextBox_TextChanged(object sender, TextChangedEventArgs e)
         {
-            var menuItem = sender as MenuItem;
-
-            if (menuItem != null)
-            {
-                var nestedListBox = ((ContextMenu)menuItem.Parent).PlacementTarget as ListBox;
-
-                var selectedFile = nestedListBox.SelectedItem as EffectFile;
-
-                if (selectedFile != null)
-                {
-                    SaveFileDialog saveDialog = new SaveFileDialog();
-                    saveDialog.Title = "Extract file...";
-                    saveDialog.AddExtension = false;
-                    saveDialog.Filter = string.Format("{1} File | *{0}", System.IO.Path.GetExtension(selectedFile.Extension), System.IO.Path.GetExtension(selectedFile.Extension).Remove(0, 1).ToUpper());
-                    saveDialog.FileName = selectedFile.FullFileName;
-
-                    if (saveDialog.ShowDialog() == true)
-                    {
-                        File.WriteAllBytes(saveDialog.FileName, selectedFile.GetBytes());
-                    }
-                }
-            }
+            Search();
         }
 
-        private void EMO_AssetContainer_EditFile_Click(object sender, RoutedEventArgs e)
-        {
-            var menuItem = sender as MenuItem;
+        #endregion
 
-            if (menuItem != null)
-            {
-                var nestedListBox = ((ContextMenu)menuItem.Parent).PlacementTarget as ListBox;
+        #region XenoKit
+        //Partial declarations to be implemented in XenoKit
 
-                var selectedFile = nestedListBox.SelectedItem as EffectFile;
-                OpenEmoEffectFileEditor(selectedFile, true);
-            }
-        }
+        public Visibility XenoKitVisible { get; private set; } = Visibility.Collapsed;
+        private bool XenoKitAvailable { get; set; } = false;
 
+        partial void XenoKit_Init();
+
+        partial void XenoKit_OnEffectSelectionChange();
+
+        partial void XenoKit_OnEffectPartSelectionChange();
+
+        [RelayCommand(CanExecute = nameof(IsEffectSelected))]
+        partial void PlaySelectedEffect();
+
+        partial void PlayAsset(Asset asset);
+
+        partial void AssetEmoOpenEditor(Asset asset);
+
+        #endregion
     }
 }
