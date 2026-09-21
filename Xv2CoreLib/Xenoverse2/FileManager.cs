@@ -33,6 +33,8 @@ using Xv2CoreLib.FMP;
 using Xv2CoreLib.NSK;
 using Xv2CoreLib.Eternity;
 using Xv2CoreLib.CBS;
+using Xv2CoreLib.Resource.UndoRedo;
+using System.Timers;
 
 namespace Xv2CoreLib
 {
@@ -42,7 +44,23 @@ namespace Xv2CoreLib
         private static Lazy<FileManager> instance = new Lazy<FileManager>(() => new FileManager());
         public static FileManager Instance => instance.Value;
 
-        private FileManager() { }
+        private FileManager() 
+        {
+            CleanUpTimer = new Timer();
+            CleanUpTimer.Interval = 5.0 * 60.0 * 1000.0; //5 minutes
+            CleanUpTimer.Elapsed += CleanUpTimer_Elapsed;
+        }
+
+        private void CleanUpTimer_Elapsed(object sender, ElapsedEventArgs e)
+        {
+            lock (_lock)
+            {
+                if (CachedFiles != null && CpkCachedFiles != null)
+                {
+                    RemoveDeadReferences();
+                }
+            }
+        }
         #endregion
 
         public static string GameDir => Instance.fileIO?.GameDir;
@@ -50,17 +68,37 @@ namespace Xv2CoreLib
         internal FileWatcher fileWatcher { get; private set; } = new FileWatcher();
         public Xv2FileIO fileIO { get; private set; }
         private Dictionary<string, CachedFile> CachedFiles;
+        private Dictionary<string, CachedFile> CpkCachedFiles;
+        private LimitedStack<CachedFile> StrongReferenceStack;
+        private readonly Timer CleanUpTimer;
+
+        private int _strongReferenceLimit = 0;
 
         /// <summary>
-        /// Use direct references when caching loaded files, preventing them from being removed by the garbage collector. These files can later be freed up by calling <see cref="ClearStrongReferneces"/>.
+        /// Use direct references when caching loaded files, preventing them from being removed by the garbage collector.
         /// </summary>
+        /// <remarks>These files can later be freed up by calling <see cref="ClearStrongReferneces"/>.</remarks>
         public bool UseStrongReferences { get; set; }
+        /// <summary>
+        /// Gets or sets the maximum number of strong references to retain.
+        /// </summary>
+        /// <remarks>Default is 0, which will be treated as no limit.</remarks>
+        public int StrongReferenceLimit
+        {
+            get => _strongReferenceLimit;
+            set
+            {
+                _strongReferenceLimit = value;
+                InitStrongReferenceStack();
+            }
+        }
         /// <summary>
         /// When enabled, the file cache is ignored and files are always reloaded from loose files or CPK, with the cache entry being overwritten.
         /// </summary>
         public bool ForceReloadFiles { get; set; }
+        public bool UseCpkCache { get; set; }
 
-        private object _lock = new object();
+        private readonly object _lock = new object();
 
         //Events
         /// <summary>
@@ -87,7 +125,11 @@ namespace Xv2CoreLib
                     throw new FileNotFoundException("FileManager.Init: GameDirectory was not set or is not valid.");
                 }
 
-                CachedFiles = SettingsManager.Instance.CurrentApp == Application.XenoKit ? new Dictionary<string, CachedFile>(1024) : new Dictionary<string, CachedFile>();
+                bool largerCache = SettingsManager.Instance.CurrentApp == Application.XenoKit || SettingsManager.Instance.CurrentApp == Application.EepkOrganiser;
+                CachedFiles = largerCache ? new Dictionary<string, CachedFile>(1024) : new Dictionary<string, CachedFile>(128);
+                CpkCachedFiles = largerCache ? new Dictionary<string, CachedFile>(1024) : new Dictionary<string, CachedFile>(128);
+                StrongReferenceStack = new(StrongReferenceLimit);
+
             }
         }
 
@@ -160,6 +202,24 @@ namespace Xv2CoreLib
         #endregion
 
         #region Load
+        public T LoadFile<T>(string path, bool onlyFromCpk = false, bool raiseEx = true, bool ignoreCache = false) where T : class
+        {
+            if (string.IsNullOrWhiteSpace(path)) return null;
+
+            lock (_lock)
+            {
+                T file = (T)GetParsedFileFromGameInternal(path, onlyFromCpk, raiseEx, ignoreCache);
+
+                if (SettingsManager.Instance.CurrentApp == Application.XenoKit && file != null)
+                {
+                    CustomEntryNames.LoadNames(path, file);
+                }
+
+                return file;
+            }
+        }
+
+        [Obsolete("Use generic LoadFile<T> method")]
         public object GetParsedFileFromGame(string path, bool onlyFromCpk = false, bool raiseEx = true, bool ignoreCache = false)
         {
             if (string.IsNullOrWhiteSpace(path)) return null;
@@ -181,14 +241,16 @@ namespace Xv2CoreLib
         {
             CheckInitState();
 
-            //Check cache and return an existing file, if allowed (caching doesn't occur for CPK-only loads)
-            if (!onlyFromCpk && !ForceReloadFiles && !ignoreCache)
+            bool useCache = !ignoreCache && (!onlyFromCpk || (onlyFromCpk && UseCpkCache));
+
+            //Check cache and return an existing file, if allowed
+            if (!ForceReloadFiles && useCache)
             {
-                object cached = GetCachedFile(path);
+                object cached = GetCachedFile(path, onlyFromCpk);
                 if (cached != null) return cached;
             }
 
-            //Handle missing files in CPK only
+            //Handle missing files for CPK (when only loading from CPK)
             if (onlyFromCpk)
             {
                 if (!fileIO.FileExistsInCpk(path))
@@ -314,8 +376,8 @@ namespace Xv2CoreLib
                 }
             }
             
-            if(!onlyFromCpk)
-                AddCachedFile(path, file);
+            if(useCache)
+                AddCachedFile(path, file, onlyFromCpk);
 
             return file;
         }
@@ -332,6 +394,11 @@ namespace Xv2CoreLib
             return bytes;
         }
 
+        public string GetAbsolutePath(string relativePath)
+        {
+            CheckInitState();
+            return (fileIO != null) ? fileIO.PathInGameDir(relativePath) : relativePath;
+        }
         #endregion
 
         #region Save
@@ -403,22 +470,36 @@ namespace Xv2CoreLib
 
         #endregion
         
-        public string GetAbsolutePath(string relativePath)
+        #region Cache
+        private void InitStrongReferenceStack()
         {
-            CheckInitState();
-            return (fileIO != null) ? fileIO.PathInGameDir(relativePath) : relativePath;
+            if(StrongReferenceStack == null)
+            {
+                StrongReferenceStack = new LimitedStack<CachedFile>(StrongReferenceLimit);
+            }
+            else
+            {
+                if(StrongReferenceLimit < StrongReferenceStack.Capacity)
+                {
+                    for(int i = 0; i < StrongReferenceStack.Capacity - StrongReferenceLimit; i++)
+                    {
+                        StrongReferenceStack.Pop().ClearStrongReference();
+                    }
+                }
+
+                StrongReferenceStack.Resize(StrongReferenceLimit);
+            }
         }
 
-        private void RemoveDeadReferences()
-        {
-            CachedFiles.RemoveAll((k, v) => !v.ObjectReference.IsAlive);
-        }
-
-        private object GetCachedFile(string path)
+        private object GetCachedFile(string path, bool fromCpk)
         {
             RemoveDeadReferences();
 
-            if(CachedFiles.TryGetValue(path, out CachedFile file))
+            if (fromCpk && CpkCachedFiles.TryGetValue(path, out CachedFile cpkFile))
+            {
+                return cpkFile.ObjectReference.IsAlive ? cpkFile.ObjectReference.Target : null;
+            }
+            else if(CachedFiles.TryGetValue(path, out CachedFile file))
             {
                 return file.ObjectReference.IsAlive ? file.ObjectReference.Target : null;
             }
@@ -426,18 +507,37 @@ namespace Xv2CoreLib
             return null;
         }
 
-        private void AddCachedFile(string path, object data)
+        private void AddCachedFile(string path, object data, bool fromCpk)
         {
             path = Utils.SanitizePath(path);
-            CachedFile newCachedFile = new CachedFile(path, data, UseStrongReferences);
 
-            if (CachedFiles.TryGetValue(path, out CachedFile file))
+            if (fromCpk)
             {
-                CachedFiles[path] = newCachedFile;
+                AddCachedFileInternal(ref CpkCachedFiles, path, data);
             }
             else
             {
-                CachedFiles.Add(path, newCachedFile);
+                AddCachedFileInternal(ref CachedFiles, path, data);
+            }
+        }
+
+        private void AddCachedFileInternal(ref Dictionary<string, CachedFile> cache, string path, object data)
+        {
+            CachedFile newCachedFile = new CachedFile(path, data, UseStrongReferences);
+
+            if (cache.TryGetValue(path, out CachedFile file))
+            {
+                cache[path] = newCachedFile;
+            }
+            else
+            {
+                cache.Add(path, newCachedFile);
+            }
+
+            if(UseStrongReferences && StrongReferenceLimit > 0)
+            {
+                var outCachedObject = StrongReferenceStack.Push(newCachedFile);
+                outCachedObject?.ClearStrongReference();
             }
         }
     
@@ -447,7 +547,22 @@ namespace Xv2CoreLib
             {
                 file.Value?.ClearStrongReference();
             }
+
+            foreach (var file in CpkCachedFiles)
+            {
+                file.Value?.ClearStrongReference();
+            }
+
+            StrongReferenceStack.Clear();
         }
+
+        private void RemoveDeadReferences()
+        {
+            CachedFiles.RemoveAll((k, v) => !v.ObjectReference.IsAlive);
+            CpkCachedFiles.RemoveAll((k, v) => !v.ObjectReference.IsAlive);
+        }
+        #endregion
+
     }
 
     internal class CachedFile

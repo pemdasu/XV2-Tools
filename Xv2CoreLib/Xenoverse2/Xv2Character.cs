@@ -656,12 +656,20 @@ namespace Xv2CoreLib
             switch (FileType)
             {
                 case Type.EMD:
+                    File = FileManager.Instance.LoadFile<EMD_File>(RelativePath, onlyLoadFromCPK);
+                    break;
                 case Type.EMB:
                 case Type.DYT_EMB:
+                    File = FileManager.Instance.LoadFile<EMB_File>(RelativePath, onlyLoadFromCPK);
+                    break;
                 case Type.EMM:
+                    File = FileManager.Instance.LoadFile<EMM_File>(RelativePath, onlyLoadFromCPK);
+                    break;
                 case Type.EAN:
+                    File = FileManager.Instance.LoadFile<EAN_File>(RelativePath, onlyLoadFromCPK);
+                    break;
                 case Type.SCD_ESK:
-                    File = FileManager.Instance.GetParsedFileFromGame(RelativePath, onlyLoadFromCPK);
+                    File = FileManager.Instance.LoadFile<ESK_File>(RelativePath, onlyLoadFromCPK);
                     break;
                 case Type.SCD:
                     Bytes = FileManager.Instance.GetBytesFromGame(RelativePath, onlyLoadFromCPK);
