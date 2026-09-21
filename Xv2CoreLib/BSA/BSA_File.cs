@@ -194,7 +194,8 @@ namespace Xv2CoreLib.BSA
         [field: NonSerialized]
         public event PropertyChangedEventHandler PropertyChanged;
 
-        private void NotifyPropertyChanged(string propertyName)
+        //Public so ObjectExtensions.NotifyPropsChanged can reach it by reflection, as EffectPart does.
+        public void NotifyPropertyChanged(string propertyName)
         {
             PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
         }
