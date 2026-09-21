@@ -40,6 +40,16 @@ namespace Xv2CoreLib.ValuesDictionary
             { Xv2CoreLib.BSA.AcbType.Skill_SE, "Skill SE" }
         };
 
+        public static string GetEepkTypeName(Xv2CoreLib.BSA.EepkType type)
+        {
+            return EepkType.TryGetValue(type, out string name) ? name : type.ToString();
+        }
+
+        public static string GetAcbTypeName(Xv2CoreLib.BSA.AcbType type)
+        {
+            return AcbType.TryGetValue(type, out string name) ? name : type.ToString();
+        }
+
         public static Dictionary<Switch, string> Switch { get; private set; } = new Dictionary<Switch, string>()
         {
             { Xv2CoreLib.BSA.Switch.On, "On" },
