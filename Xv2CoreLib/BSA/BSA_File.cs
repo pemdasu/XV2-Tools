@@ -15,7 +15,7 @@ namespace Xv2CoreLib.BSA
         Common = 0,
         StageBG = 1,
         Character = 2,
-        AwokenSkill = 3,
+        AwokenSkill = 3, //Actually the currently loaded skill, not an awoken skill. Kept for serialization.
         SuperSkill = 5,
         UltimateSkill = 6,
         EvasiveSkill = 7,

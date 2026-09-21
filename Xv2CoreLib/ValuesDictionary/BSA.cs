@@ -5,6 +5,8 @@ namespace Xv2CoreLib.ValuesDictionary
 {
     // BSA numbers EepkType and AcbType differently to BAC, so these cannot be shared with ValuesDictionary.BAC.
     // BSA has no AwokenSkill = 12, and BSA AcbType 3 is Skill_SE while BAC AcbType 3 is Character_VOX.
+    // EepkType 3 is named AwokenSkill for serialization only. It means the skill that is currently loaded,
+    // not an awoken skill, so it is shown as Any Skill. The real awoken skill is BAC EepkType 12.
     public static class BSA
     {
         public static Dictionary<EepkType, string> EepkType { get; private set; } = new Dictionary<EepkType, string>()
@@ -12,7 +14,7 @@ namespace Xv2CoreLib.ValuesDictionary
             { Xv2CoreLib.BSA.EepkType.Common, "Common" },
             { Xv2CoreLib.BSA.EepkType.StageBG, "Stage BG" },
             { Xv2CoreLib.BSA.EepkType.Character, "Character" },
-            { Xv2CoreLib.BSA.EepkType.AwokenSkill, "Awoken Skill" },
+            { Xv2CoreLib.BSA.EepkType.AwokenSkill, "Any Skill" },
             { Xv2CoreLib.BSA.EepkType.SuperSkill, "Super Skill" },
             { Xv2CoreLib.BSA.EepkType.UltimateSkill, "Ultimate Skill" },
             { Xv2CoreLib.BSA.EepkType.EvasiveSkill, "Evasive Skill" },
