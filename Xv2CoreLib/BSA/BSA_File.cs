@@ -15,7 +15,7 @@ namespace Xv2CoreLib.BSA
         Common = 0,
         StageBG = 1,
         Character = 2,
-        AwokenSkill = 3, //Actually the currently loaded skill, not an awoken skill. Kept for serialization.
+        AwokenSkill = 3,
         SuperSkill = 5,
         UltimateSkill = 6,
         EvasiveSkill = 7,
@@ -1421,15 +1421,15 @@ namespace Xv2CoreLib.BSA
                 case BSA_Type4 type4:
                     return $"Deflection ({type4.I_00}, {type4.I_04})";
                 case BSA_Type6 type6:
-                    return $"Effect ({type6.EepkType}, {type6.SkillID}, {type6.EffectID}, {type6.I_08})";
+                    return $"Effect ({ValuesDictionary.BSA.GetEepkTypeName(type6.EepkType)}, {type6.SkillID}, {type6.EffectID}, {type6.I_08})";
                 case BSA_Type7 type7:
-                    return $"Sound ({type7.AcbType}, {type7.CueId})";
+                    return $"Sound ({ValuesDictionary.BSA.GetAcbTypeName(type7.AcbType)}, {type7.CueId})";
                 case BSA_Type8 type8:
                     return $"Screen Effect ({type8.I_00}, {type8.I_02})";
                 case BSA_Type10 type10:
                     return $"Unknown 10 ({type10.I_00}, {type10.I_04}, {type10.I_06})";
                 case BSA_Type12 type12:
-                    return $"Send Projectile Signal ({type12.EepkType}, {type12.SkillID}, {type12.I_12})";
+                    return $"Send Projectile Signal ({ValuesDictionary.BSA.GetEepkTypeName(type12.EepkType)}, {type12.SkillID}, {type12.I_12})";
                 case BSA_Type13 type13:
                     return $"Projectile Protection ({GetProtectionStateName(type13.I_00)}, {type13.F_04:0.###}, {type13.I_12:0.###})";
                 case BSA_Type14 type14:

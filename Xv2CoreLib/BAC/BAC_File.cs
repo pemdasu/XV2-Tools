@@ -2981,7 +2981,7 @@ namespace Xv2CoreLib.BAC
         public string CalculateTypeString()
         {
             string enable = EffectFlags.HasFlag(EffectFlagsEnum.Off) ? "Disable" : "Enable";
-            return $"Effect ({EepkType}, {EffectID}, {enable})";
+            return $"Effect ({Xv2CoreLib.ValuesDictionary.BAC.GetEepkTypeName((ushort)EepkType)}, {EffectID}, {enable})";
         }
     }
 
@@ -3478,7 +3478,7 @@ namespace Xv2CoreLib.BAC
     public class BAC_Type11 : BAC_TypeBase
     {
         [YAXDontSerialize]
-        public override string Type => $"Sound ({AcbType}, {CueId})";
+        public override string Type => $"Sound ({Xv2CoreLib.ValuesDictionary.BAC.GetAcbTypeName((ushort)AcbType)}, {CueId})";
         [YAXDontSerialize]
         public override int TypeID => 11;
 
