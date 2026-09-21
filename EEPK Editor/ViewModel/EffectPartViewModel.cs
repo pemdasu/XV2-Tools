@@ -1,6 +1,7 @@
 ﻿using LB_Common.Mvvm;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using Xv2CoreLib.EEPK;
 using Xv2CoreLib.Resource.UndoRedo;
 using static Xv2CoreLib.EEPK.EffectPart;
@@ -11,6 +12,12 @@ namespace EEPK_Organiser.ViewModel
     {
         private readonly EffectPart defaultModel = new EffectPart();
         private EffectPart effectPart;
+
+        private static readonly string[] KnownAxes = { "+X", "+Y", "-Z" };
+
+        public static IReadOnlyList<string> DirectionNames { get; } = Enumerable.Range(0, 256)
+            .Select(value => $"{value}: {(value < KnownAxes.Length ? KnownAxes[value] : "Unknown")}")
+            .ToArray();
 
         public bool IsNotTBIND => effectPart.AssetType != AssetType.TBIND;
 
@@ -69,7 +76,8 @@ namespace EEPK_Organiser.ViewModel
             }
             set
             {
-                UndoManager.Instance.AddUndo(new UndoableProperty<EffectPart>(nameof(effectPart.I_06), effectPart, effectPart.I_06, value, "I_06"));
+                if (effectPart.I_06 == value) return;
+                UndoManager.Instance.AddUndo(new UndoableProperty<EffectPart>(nameof(effectPart.I_06), effectPart, effectPart.I_06, value, "Direction"));
                 effectPart.I_06 = value;
             }
         }
