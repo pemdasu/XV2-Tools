@@ -8,6 +8,7 @@
              xmlns:lbUtils="clr-namespace:LB_Common.Utils;assembly=LB_Common"
              xmlns:helper="clr-namespace:LB_Common.AttachedProperties;assembly=LB_Common"
              xmlns:eepk="clr-namespace:Xv2CoreLib.EEPK;assembly=Xv2CoreLib"
+             xmlns:viewModel="clr-namespace:EEPK_Organiser.ViewModel"
              xmlns:sys="clr-namespace:System;assembly=mscorlib"
              xmlns:mvvm="clr-namespace:LB_Common.Mvvm;assembly=LB_Common"
              xmlns:forms="clr-namespace:EEPK_Organiser.Forms"
@@ -243,8 +244,10 @@
                                                             <ColumnDefinition Width="*"/>
                                                             <ColumnDefinition Width="*"/>
                                                         </Grid.ColumnDefinitions>
-                                                        <Label Content="Direction"/>
-                                                        <Controls:NumericUpDown Grid.Column="1" Value="{Binding EffectPartViewModel.I_06, UpdateSourceTrigger=PropertyChanged}" Maximum="2" Minimum="0"/>
+                                                        <Label Content="Direction axis"/>
+                                                        <ComboBox Grid.Column="1" SelectedIndex="{Binding EffectPartViewModel.I_06, UpdateSourceTrigger=PropertyChanged}"
+                                                                  ItemsSource="{x:Static viewModel:EffectPartViewModel.DirectionNames}"
+                                                                  ToolTip="Source axis for User and Rotate Movement orientation. Values 3-255 have no known axis name. You can save any byte value."/>
                                                     </Grid>
 
                                                 </StackPanel>
