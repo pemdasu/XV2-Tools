@@ -665,6 +665,11 @@ namespace Xv2CoreLib.ACB
                 path = string.Format("{0}/{1}", Path.GetDirectoryName(path), Path.GetFileNameWithoutExtension(path));
             }
 
+            if (!Directory.Exists(Path.GetDirectoryName(path)))
+            {
+                Directory.CreateDirectory(Path.GetDirectoryName(path));
+            }
+
             List<IUndoRedo> undos = null;
 
             //Clean tables up
