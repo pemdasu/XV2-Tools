@@ -469,9 +469,9 @@ namespace Xv2CoreLib.ValuesDictionary
         //Param1 ToolTips
         public static Dictionary<int, string> BacFunctionParam2ToolTips { get; private set; } = new Dictionary<int, string>()
         {
-            { 0x25 , "Skill Types:\nSuper = 5\nUltimate = 6\nAwoken = 3\nEvasive = 7\nKi Blast = 9" },
-            { 0x26 , "Skill Types:\nSuper = 5\nUltimate = 6\nAwoken = 3\nEvasive = 7\nKi Blast = 9" },
-            { 0x4e , "Skill Types:\nSuper = 5\nUltimate = 6\nAwoken = 3\nEvasive = 7\nKi Blast = 9" }
+            { 0x25 , "Skill Types:\nSuper = 5\nUltimate = 6\nAny = 3\nEvasive = 7\nKi Blast = 9" },
+            { 0x26 , "Skill Types:\nSuper = 5\nUltimate = 6\nAny = 3\nEvasive = 7\nKi Blast = 9" },
+            { 0x4e , "Skill Types:\nSuper = 5\nUltimate = 6\nAny = 3\nEvasive = 7\nKi Blast = 9" }
         };
 
         //Function Parameter count
@@ -575,7 +575,7 @@ namespace Xv2CoreLib.ValuesDictionary
             { 2f , "Character" },
             { 5f , "Super Skill" },
             { 6f , "Ultimate Skill" },
-            { 3f , "Awoken Skill" },
+            { 3f , "Any Skill" },
             { 7f , "Evasive Skill" },
             { 9f , "Ki Blast Skill" }
         };
