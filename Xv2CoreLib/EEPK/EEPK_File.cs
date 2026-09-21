@@ -793,6 +793,8 @@ namespace Xv2CoreLib.EEPK
         [YAXDontSerialize]
         public bool InstantUpdate => HasFlag1(EepkEffectPartFlags1.InstantUpdate);
         [YAXDontSerialize]
+        public bool OnGroundOnly => HasFlag1(EepkEffectPartFlags1.OnGroundOnly);
+        [YAXDontSerialize]
         public bool EnableRotationValues => HasFlag1(EepkEffectPartFlags1.EnableRotationValues);
         [YAXDontSerialize]
         public bool UseBoneDirection => HasFlag1(EepkEffectPartFlags1.UseBoneDirection);
