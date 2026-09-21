@@ -402,7 +402,7 @@ namespace EEPK_Organiser
                 {
                     StringBuilder str = new StringBuilder();
 
-                    foreach (string file in EepkFile.LoadedExternalFilesNotSaved)
+                    foreach (string file in EepkFile.GetUnusedFilePaths())
                     {
                         str.Append(string.Format("{0}\r", file));
                     }
@@ -422,7 +422,7 @@ namespace EEPK_Organiser
                 {
                     try
                     {
-                        foreach (string file in EepkFile.LoadedExternalFilesNotSaved)
+                        foreach (string file in EepkFile.GetUnusedFilePaths())
                         {
                             if (File.Exists(file))
                                 File.Delete(file);
