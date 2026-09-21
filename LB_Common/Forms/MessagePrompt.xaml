@@ -24,7 +24,7 @@
 
         <Grid Grid.Row="1" HorizontalAlignment="Center">
             <RichTextBox x:Name="richTextBox" IsReadOnly="True" Margin="15,5,15,0" Height="150" MinWidth="350" MaxWidth="500" VerticalScrollBarVisibility="Visible" HorizontalScrollBarVisibility="Auto">
-                <FlowDocument>
+                <FlowDocument TextAlignment="Left">
                     <Paragraph>
                         <Run Text=""/>
                     </Paragraph>
