@@ -618,7 +618,7 @@ namespace LB_Mod_Installer.Installer
                         }
                         else if (ext == ".eepk" && fileInstance.RenameEEPKContainers)
                         {
-                            EEPK_File eepkFile = EEPK_File.LoadEepk(zipManager.GetFileFromArchive(file.FullName));
+                            EEPK_File eepkFile = EEPK_File.Load(zipManager.GetFileFromArchive(file.FullName));
                             eepkFile.RenameContainersToSkillFolder(folderName);
                             fileManager.AddParsedFile(newFilePath, eepkFile);
                         }

@@ -24,23 +24,14 @@ namespace EEPK_Organiser.View
 {
     public partial class EepkEditor : AutoObservableUserControl
     {
-        public EffectPartViewModel EffectPartViewModel { get; private set; }
+        public EffectPartViewModel EffectPartViewModel { get; private set; } = new EffectPartViewModel();
+        public bool IsEffectPartEnabled => SelectedEffectPart != null;
+        public Visibility EffectPartVisibility => SelectedEffectPart != null ? Visibility.Visible : Visibility.Collapsed;
+        public Visibility NoEffectPartVisibility => SelectedEffectPart == null ? Visibility.Visible : Visibility.Collapsed;
 
-        private void CreateEffectPartViewModel()
+        private void UpdateViewModel()
         {
-            if (SelectedEffectPart != null)
-            {
-                if (EffectPartViewModel != null) EffectPartViewModel.Dispose();
-
-                EffectPartViewModel = new EffectPartViewModel(SelectedEffectPart);
-            }
-            else if (EffectPartViewModel != null)
-            {
-                EffectPartViewModel.Dispose();
-                EffectPartViewModel = null;
-            }
-
-            NotifyPropertyChanged(nameof(EffectPartViewModel));
+            EffectPartViewModel.ChangeModel(SelectedEffectPart);
         }
 
         #region Selection
@@ -53,6 +44,17 @@ namespace EEPK_Organiser.View
                 _selectedEffect = value;
                 NotifyPropertyChanged(nameof(SelectedEffect));
                 NotifyPropertyChanged(nameof(SelectedEffectID));
+
+                //Force unselect effect part if it does not belong to currently selected effect
+                if (SelectedEffectPart != null && !_selectedEffect.EffectParts.Contains(SelectedEffectPart))
+                {
+                    SelectedEffectPart = null;
+                    SelectedEffectParts.Clear();
+
+                    //Select first available effect part on effect
+                    //if(SelectedEffect.EffectParts.Count > 0)
+                    //    SelectedEffectPart = SelectedEffect.EffectParts[0];
+                }
             }
         }
         public int SelectedEffectID
@@ -98,7 +100,11 @@ namespace EEPK_Organiser.View
                 if (value != _selectedEffectPart)
                 {
                     _selectedEffectPart = value;
+                    UpdateViewModel();
                     NotifyPropertyChanged(nameof(SelectedEffectPart));
+                    NotifyPropertyChanged(nameof(IsEffectPartEnabled));
+                    NotifyPropertyChanged(nameof(EffectPartVisibility));
+                    NotifyPropertyChanged(nameof(NoEffectPartVisibility));
                 }
             }
         }
@@ -148,7 +154,7 @@ namespace EEPK_Organiser.View
                 if (SelectedEffect.EffectParts == null)
                     SelectedEffect.EffectParts = new AsyncObservableCollection<EffectPart>();
 
-                var newEffectPart = EffectPart.NewEffectPart();
+                var newEffectPart = new EffectPart();
                 SelectedEffect.EffectParts.Add(newEffectPart);
 
                 UndoManager.Instance.AddUndo(new UndoableListAdd<EffectPart>(SelectedEffect.EffectParts, newEffectPart, "New EffectPart"));

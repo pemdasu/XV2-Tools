@@ -1,318 +1,587 @@
 ﻿using System;
-using System.Xml.Serialization;
+using System.Buffers.Binary;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using YAXLib;
-using System.IO;
-using Xv2CoreLib.EffectContainer;
 using System.ComponentModel;
-using System.Collections.ObjectModel;
-using Xv2CoreLib.Resource.UndoRedo;
+using System.IO;
+using System.Linq;
+using System.Runtime.CompilerServices;
+using Xv2CoreLib.EffectContainer;
 using Xv2CoreLib.Resource;
+using Xv2CoreLib.Resource.UndoRedo;
+using YAXLib;
 
 namespace Xv2CoreLib.EEPK
 {
-    [Serializable]
-    public enum AssetType : ushort
-    {
-        EMO = 0,
-        PBIND = 1,
-        TBIND = 2,
-        LIGHT = 3,
-        CBIND = 4
-    }
-
     [Serializable]
     [YAXSerializeAs("EEPK")]
     public class EEPK_File : ISorting
     {
         public const int EEPK_SIGNATURE = 1263551779;
+        private const int EEPK_HEADER_SIZE = 24;
+        private const int EEPK_EFFECT_SIZE = 16;
+        private const int EEPK_EFFECT_PART_SIZE = 100;
+        private const int EEPK_ASSET_CONTAINER_SIZE = 48;
+        private const int EEPK_ASSET_SIZE = 12;
 
         public int Version = 37568;
         [YAXSerializeAs("Containers")]
         [YAXDontSerializeIfNull]
-        public List<AssetContainer> Assets { get; set; } = new List<AssetContainer>();
+        public List<AssetContainer> AssetContainers { get; set; } = new List<AssetContainer>();
         [YAXDontSerializeIfNull]
         public List<Effect> Effects { get; set; } = new List<Effect>();
 
+        #region LoadSave
+        public static EEPK_File Load(string path)
+        {
+            return Load(File.ReadAllBytes(path));
+        }
+
+        public static EEPK_File Load(byte[] bytes)
+        {
+            EEPK_File eepkFile = new EEPK_File();
+
+            //Header
+            if (BitConverter.ToInt32(bytes, 0) != EEPK_SIGNATURE)
+                throw new InvalidDataException("#EPK signature not found.\nLoad failed.");
+
+            eepkFile.Version = BitConverter.ToInt32(bytes, 8);
+            ushort assetContainerCount = BitConverter.ToUInt16(bytes, 12);
+            ushort effectCount = BitConverter.ToUInt16(bytes, 14);
+            int assetContainerOffset = BitConverter.ToInt32(bytes, 16);
+            int effectTableOffset = BitConverter.ToInt32(bytes, 20);
+
+            //Parse assets
+            for (ushort containerIdx = 0; containerIdx < assetContainerCount; containerIdx++)
+            {
+                int offset = assetContainerOffset + (EEPK_ASSET_CONTAINER_SIZE * containerIdx);
+                var assetContainer = new AssetContainer();
+
+                assetContainer.AssetSpawnLimit = BitConverter.ToInt32(bytes, offset);
+                assetContainer.I_04 = bytes[offset + 4];
+                assetContainer.I_05 = bytes[offset + 5];
+                assetContainer.I_06 = bytes[offset + 6];
+                assetContainer.I_07 = bytes[offset + 7];
+                assetContainer.AssetListLimit = BitConverter.ToInt32(bytes, offset + 8);
+                assetContainer.I_12 = BitConverter.ToInt32(bytes, offset + 12);
+                assetContainer.AssetType = (AssetType)BitConverter.ToUInt16(bytes, offset + 16);
+
+                ushort assetCount = BitConverter.ToUInt16(bytes, offset + 30);
+                int assetStartOffset = BitConverter.ToInt32(bytes, offset + 32) + offset; //relative to container
+
+                int embContainerOffset = BitConverter.ToInt32(bytes, offset + 36);
+                int emmOffset = BitConverter.ToInt32(bytes, offset + 40);
+                int embTextureOffset = BitConverter.ToInt32(bytes, offset + 44);
+
+                assetContainer.ContainerEmbPath = embContainerOffset > 0 ? bytes.GetStringASCII(embContainerOffset + offset) : null;
+                assetContainer.MaterialEmmPath = emmOffset > 0 ? bytes.GetStringASCII(emmOffset + offset) : null;
+                assetContainer.TextureEmbPath = embTextureOffset > 0 ? bytes.GetStringASCII(embTextureOffset + offset) : null;
+
+                //Parse assets
+                for (int assetIdx = 0; assetIdx < assetCount; assetIdx++)
+                {
+                    int assetOffset =  assetStartOffset + (EEPK_ASSET_SIZE * assetIdx);
+                    AssetEntry asset = new AssetEntry();
+
+                    asset.XML_Index = assetIdx;
+                    asset.I_00 = BitConverter.ToInt16(bytes, assetOffset);
+                    AssetType assetType = (AssetType)bytes[assetOffset + 2];
+                    byte assetFileCount = bytes[assetOffset + 3];
+                    int numberOffset = BitConverter.ToInt32(bytes, assetOffset + 4);
+                    int assetFilesOffset = BitConverter.ToInt32(bytes, assetOffset + 8); //relative
+
+                    if (assetType != assetContainer.AssetType)
+                        throw new InvalidDataException($"EEPK_File.Load: AssetType mismatch; found asset with type {assetType} in {assetContainer.AssetType} container");
+
+                    if (assetFilesOffset > 0)
+                    {
+                        for (int assetFileIdx = 0; assetFileIdx < assetFileCount; assetFileIdx++)
+                        {
+                            //EepkAssetFileType assetFileType = (EepkAssetFileType)bytes[numberOffset + assetFileIdx];
+                            int stringOffset = BitConverter.ToInt32(bytes, assetOffset + assetFilesOffset + (4 * assetFileIdx));
+
+                            if(stringOffset > 0)
+                            {
+                                asset.Files.Add(bytes.GetStringASCII(stringOffset + assetOffset));
+                            }
+                        }
+                    }
+
+                    assetContainer.Assets.Add(asset);
+                }
+
+                eepkFile.AssetContainers.Add(assetContainer);
+            }
+
+            //Parse effects
+            for(ushort effectIdx = 0; effectIdx < effectCount; effectIdx++)
+            {
+                int effectOffset = BitConverter.ToInt32(bytes, effectTableOffset + (effectIdx * 4));
+
+                if(effectOffset > 0)
+                {
+                    if (BitConverter.ToUInt16(bytes, effectOffset) != effectIdx)
+                        throw new InvalidDataException("EEPK_File.Load: EffectID does not match its index");
+
+                    Effect effect = new Effect();
+                    effect.IndexNum = effectIdx;
+                    effect.I_02 = BitConverter.ToUInt16(bytes, effectOffset + 2);
+                    //ushort I_04 = BitConverter.ToUInt16(bytes, effectOffset + 4); //always 0
+                    //ushort I_06 = BitConverter.ToUInt16(bytes, effectOffset + 6); //always 0
+                    //ushort I_08 = BitConverter.ToUInt16(bytes, effectOffset + 8); //always 0
+                    ushort effectPartCount = BitConverter.ToUInt16(bytes, effectOffset + 10);
+                    int effectPartOffset = BitConverter.ToInt32(bytes, effectOffset + 12) + effectOffset;
+
+                    for (int effectPartIdx = 0; effectPartIdx < effectPartCount; effectPartIdx++)
+                    {
+                        EffectPart effectPart = new EffectPart();
+
+                        //Read flag values
+                        uint flags36 = BitConverter.ToUInt32(bytes, effectPartOffset + 36);
+
+                        //The 3rd byte from flags2 is split out into 2 uint4 values (as was the case with the original parser)
+                        effectPart.I_38_a = (byte)((flags36 >> 16) & 0xFu);
+                        effectPart.I_38_b = (byte)((flags36 >> 20) & 0xFu);
+                        flags36 &= ~(0xFFu << 16); //Clear uint4 bits from flags36
+
+                        effectPart.Flags1 = (EepkEffectPartFlags1)bytes[effectPartOffset + 32];
+                        effectPart.Flags2 = (EepkEffectPartFlags2)flags36;
+
+                        //Read EffectPart
+                        effectPart.AssetIndex = BitConverter.ToUInt16(bytes, effectPartOffset);
+                        effectPart.AssetType = (AssetType)bytes[effectPartOffset + 2];
+                        effectPart.AttachementType = (Attachment)bytes[effectPartOffset + 3];
+                        effectPart.Orientation = (OrientationType)bytes[effectPartOffset + 4];
+                        effectPart.Deactivation = (DeactivationMode)bytes[effectPartOffset + 5];
+                        effectPart.I_06 = bytes[effectPartOffset + 6];
+                        effectPart.I_07 = bytes[effectPartOffset + 7];
+                        effectPart.I_08 = BitConverter.ToInt32(bytes, effectPartOffset + 8);
+                        effectPart.I_12 = BitConverter.ToInt32(bytes, effectPartOffset + 12);
+                        effectPart.I_16 = BitConverter.ToInt32(bytes, effectPartOffset + 16);
+                        effectPart.I_20 = BitConverter.ToInt32(bytes, effectPartOffset + 20);
+                        effectPart.AvoidSphere = BitConverter.ToSingle(bytes, effectPartOffset + 24);
+                        effectPart.StartTime = BitConverter.ToUInt16(bytes, effectPartOffset + 28);
+                        effectPart.EMA_AnimationIndex = BitConverter.ToUInt16(bytes, effectPartOffset + 30);
+                        effectPart.I_34 = BitConverter.ToInt16(bytes, effectPartOffset + 34);
+                        effectPart.PositionX = BitConverter.ToSingle(bytes, effectPartOffset + 40);
+                        effectPart.PositionY = BitConverter.ToSingle(bytes, effectPartOffset + 44);
+                        effectPart.PositionZ = BitConverter.ToSingle(bytes, effectPartOffset + 48);
+
+                        effectPart.RotationX_Min = (float)MathHelpers.ConvertRadiansToDegrees(BitConverter.ToSingle(bytes, effectPartOffset + 52));
+                        effectPart.RotationX_Max = (float)MathHelpers.ConvertRadiansToDegrees(BitConverter.ToSingle(bytes, effectPartOffset + 56));
+                        effectPart.RotationY_Min = (float)MathHelpers.ConvertRadiansToDegrees(BitConverter.ToSingle(bytes, effectPartOffset + 60));
+                        effectPart.RotationY_Max = (float)MathHelpers.ConvertRadiansToDegrees(BitConverter.ToSingle(bytes, effectPartOffset + 64));
+                        effectPart.RotationZ_Min = (float)MathHelpers.ConvertRadiansToDegrees(BitConverter.ToSingle(bytes, effectPartOffset + 68));
+                        effectPart.RotationZ_Max = (float)MathHelpers.ConvertRadiansToDegrees(BitConverter.ToSingle(bytes, effectPartOffset + 72));
+
+                        effectPart.ScaleMin = BitConverter.ToSingle(bytes, effectPartOffset + 76);
+                        effectPart.ScaleMax = BitConverter.ToSingle(bytes, effectPartOffset + 80);
+                        effectPart.NearFadeDistance = BitConverter.ToSingle(bytes, effectPartOffset + 84);
+                        effectPart.FarFadeDistance = BitConverter.ToSingle(bytes, effectPartOffset + 88);
+                        effectPart.EMA_LoopStartFrame = BitConverter.ToUInt16(bytes, effectPartOffset + 92);
+                        effectPart.EMA_LoopEndFrame = BitConverter.ToUInt16(bytes, effectPartOffset + 94);
+                        int eskOffset = BitConverter.ToInt32(bytes, effectPartOffset + 96);
+
+                        if(eskOffset > 0)
+                        {
+                            effectPart.ESK = bytes.GetStringASCII(effectPartOffset + eskOffset);
+                        }
+
+                        effectPartOffset += EEPK_EFFECT_PART_SIZE;
+                        effect.EffectParts.Add(effectPart);
+                    }
+
+                    eepkFile.Effects.Add(effect);
+                }
+            }
+
+            return eepkFile;
+        }
+
+        public void Save(string path)
+        {
+            File.WriteAllBytes(path, Write());
+        }
+
+        public byte[] Write()
+        {
+            //Note about file size difference for a small amount of EEPK files:
+            //There are a small number of vanilla EEPKs that include "empty" effect definitions in the files. These do not exist in the effect table and have no effect parts, but take up space in the file amongst all the other valid effects
+            //When loading these EEPKs, these empty effects are ignored, and thus when saving them the bytes are now different.
+            //The vast majority of EEPKs are rewritten with identical bytes (allowing for minor float precision issues), and nothing important is lost in the few that don't
+            
+            //Calculate section length and overall file size
+            int effectTableLength = Effects.Count > 0 ? Effects.Max(x => x.IndexNum) + 1 : 0;
+            int effectTableSize = effectTableLength * sizeof(int);
+            int assetContainerSectionSize = EEPK_ASSET_CONTAINER_SIZE * AssetContainers.Count;
+            CalculateFileSectionSizes(out int assetSectionSize, out int effectSectionSize, out int stringSectionSize, out int assetFileTableSectionSize);
+            //int assetSectionSize = CalculateAssetSectionSize();
+            //int assetFileTableSectionSize = CalculateAssetFileTableSectionSize();
+            //int effectSectionSize = CalculateEffectSectionSize();
+            //int stringSectionSize = CalculateStringSectionSize();
+
+            int fileSize = EEPK_HEADER_SIZE + effectTableSize + assetContainerSectionSize + assetSectionSize + assetFileTableSectionSize + effectSectionSize + stringSectionSize;
+
+            //Calculate start index into buffer for effects, assets and end string section
+            const int effectTableStart = EEPK_HEADER_SIZE;
+            int assetContainerStart = effectTableStart + effectTableSize;
+            int assetEntryStart = assetContainerStart + assetContainerSectionSize;
+            int assetFileTableStart = assetEntryStart + assetSectionSize;
+            int effectStart = assetFileTableStart + assetFileTableSectionSize;
+            int effectPartStart = effectStart + (Effects.Count * EEPK_EFFECT_SIZE);
+            int stringSectionStart = effectStart + effectSectionSize;
+
+            //Buffer positions
+            int stringBufferPosition = stringSectionStart;
+            int assetFileTableBufferPosition = assetFileTableStart;
+            int effectPartOffset = effectPartStart;
+
+            //Create buffer to write into
+            byte[] buffer = new byte[fileSize];
+            Span<byte> span = buffer;
+
+            //Header
+            Span<byte> header = span.Slice(0, EEPK_HEADER_SIZE);
+            BinaryPrimitives.WriteInt32LittleEndian(header, EEPK_SIGNATURE);
+            BinaryPrimitives.WriteUInt16LittleEndian(header.Slice(4, 2), 65534);
+            BinaryPrimitives.WriteUInt16LittleEndian(header.Slice(6, 2), EEPK_HEADER_SIZE);
+            BinaryPrimitives.WriteInt32LittleEndian(header.Slice(8, 4), Version);
+            BinaryPrimitives.WriteUInt16LittleEndian(header.Slice(12), (ushort)AssetContainers.Count);
+            BinaryPrimitives.WriteUInt16LittleEndian(header.Slice(14), (ushort)effectTableLength);
+            BinaryPrimitives.WriteInt32LittleEndian(header.Slice(16, 4), assetContainerStart);
+            BinaryPrimitives.WriteInt32LittleEndian(header.Slice(20, 4), effectTableStart);
+
+            //AssetContainer
+            for (int assetContainerIdx = 0; assetContainerIdx < AssetContainers.Count; assetContainerIdx++)
+            {
+                int containerOffset = assetContainerStart + (assetContainerIdx * EEPK_ASSET_CONTAINER_SIZE);
+                Span<byte> assetContainerSpan = span.Slice(containerOffset, EEPK_ASSET_CONTAINER_SIZE);
+                AssetContainer assetContainer = AssetContainers[assetContainerIdx];
+
+                BinaryPrimitives.WriteInt32LittleEndian(assetContainerSpan, assetContainer.AssetSpawnLimit);
+                assetContainerSpan[4] = assetContainer.I_04;
+                assetContainerSpan[5] = assetContainer.I_05;
+                assetContainerSpan[6] = assetContainer.I_06;
+                assetContainerSpan[7] = assetContainer.I_07;
+                BinaryPrimitives.WriteInt32LittleEndian(assetContainerSpan.Slice(8, 4), assetContainer.AssetListLimit);
+                BinaryPrimitives.WriteInt32LittleEndian(assetContainerSpan.Slice(12, 4), assetContainer.I_12);
+                BinaryPrimitives.WriteUInt16LittleEndian(assetContainerSpan.Slice(16, 2), (ushort)assetContainer.AssetType);
+                BinaryPrimitives.WriteUInt16LittleEndian(assetContainerSpan.Slice(30, 2), (ushort)assetContainer.Assets.Count);
+
+                if (!string.IsNullOrWhiteSpace(assetContainer.ContainerEmbPath))
+                {
+                    BinaryPrimitives.WriteInt32LittleEndian(assetContainerSpan.Slice(36, 4), stringBufferPosition - containerOffset);
+                    stringBufferPosition += buffer.WriteStringASCII(stringBufferPosition, assetContainer.ContainerEmbPath);
+                }
+
+                if (!string.IsNullOrWhiteSpace(assetContainer.MaterialEmmPath))
+                {
+                    BinaryPrimitives.WriteInt32LittleEndian(assetContainerSpan.Slice(40, 4), stringBufferPosition - containerOffset);
+                    stringBufferPosition += buffer.WriteStringASCII(stringBufferPosition, assetContainer.MaterialEmmPath);
+                }
+
+                if (!string.IsNullOrWhiteSpace(assetContainer.TextureEmbPath))
+                {
+                    BinaryPrimitives.WriteInt32LittleEndian(assetContainerSpan.Slice(44, 4), stringBufferPosition - containerOffset);
+                    stringBufferPosition += buffer.WriteStringASCII(stringBufferPosition, assetContainer.TextureEmbPath);
+                }
+
+
+                //Write offset to assets
+                //int assetSectionStartOffset = CalculateAssetSectionStart(assetContainerIdx, assetEntryStart);
+                BinaryPrimitives.WriteInt32LittleEndian(assetContainerSpan.Slice(32, 4), assetEntryStart - containerOffset); //Offset is relative to asset container
+
+                //Write assets
+                byte assetType = (byte)assetContainer.AssetType;
+
+                for (int assetIdx = 0; assetIdx < assetContainer.Assets.Count; assetIdx++)
+                {
+                    int assetOffset = assetEntryStart + (assetIdx * EEPK_ASSET_SIZE);
+                    Span<byte> assetSpan = span.Slice(assetOffset, EEPK_ASSET_SIZE);
+                    var asset = assetContainer.Assets[assetIdx];
+
+                    BinaryPrimitives.WriteInt16LittleEndian(assetSpan, asset.I_00);
+                    assetSpan[2] = assetType;
+                    assetSpan[3] = (byte)asset.Files.Count;
+
+                    //File type bytes
+                    BinaryPrimitives.WriteInt32LittleEndian(assetSpan.Slice(4, 4), stringBufferPosition - assetOffset); //Offset to numbers
+
+                    for (int i = 0; i < asset.Files.Count; i++)
+                        buffer[stringBufferPosition++] = (byte)AssetEntry.GetAssetFileType(asset.Files[i], true);
+
+                    //Write paths
+                    BinaryPrimitives.WriteInt32LittleEndian(assetSpan.Slice(8, 4), assetFileTableBufferPosition - assetOffset); //Offset to file path table
+
+                    for (int i = 0; i < asset.Files.Count; i++)
+                    {
+                        if (!string.IsNullOrWhiteSpace(asset.Files[i]))
+                        {
+                            BinaryPrimitives.WriteInt32LittleEndian(span.Slice(assetFileTableBufferPosition, 4), stringBufferPosition - assetOffset);
+                            stringBufferPosition += buffer.WriteStringASCII(stringBufferPosition, asset.Files[i]);
+                        }
+
+                        assetFileTableBufferPosition += 4;
+                    }
+                }
+
+                assetEntryStart += EEPK_ASSET_SIZE * assetContainer.Assets.Count;
+            }
+            
+            //Effect; main structure and offset table
+            for(int i = 0; i < Effects.Count; i++)
+            {
+                Effect effect = Effects[i];
+                int effectOffset = effectStart + (EEPK_EFFECT_SIZE * i);
+                ushort effectPartCount = effect.EffectParts != null ? (ushort)effect.EffectParts.Count : (ushort)0;
+
+                //Write effect offset
+                int tableOffset = effectTableStart + (effect.IndexNum * 4);
+                BinaryPrimitives.WriteInt32LittleEndian(span.Slice(tableOffset, 4), effectOffset);
+
+                //Write effect
+                Span<byte> effectSpan = span.Slice(effectOffset, EEPK_EFFECT_SIZE);
+                BinaryPrimitives.WriteUInt16LittleEndian(effectSpan, effect.IndexNum);
+                BinaryPrimitives.WriteUInt16LittleEndian(effectSpan.Slice(2, 2), effect.I_02);
+                BinaryPrimitives.WriteUInt16LittleEndian(effectSpan.Slice(10, 2), effectPartCount);
+
+                //int effectPartOffset = CalculateEffectPartStart(i, effectPartStart);
+                BinaryPrimitives.WriteInt32LittleEndian(effectSpan.Slice(12, 4), effectPartOffset - effectOffset);
+
+                for(int effectPartIdx = 0; effectPartIdx < effectPartCount; effectPartIdx++)
+                {
+                    Span<byte> effectPartSpan = span.Slice(effectPartOffset, EEPK_EFFECT_PART_SIZE);
+                    EffectPart effectPart = effect.EffectParts[effectPartIdx];
+                    
+                    //Create combined flag value from flags2 + both int4 values
+                    uint flags36 = (uint)effectPart.Flags2;
+                    flags36 &= ~(0xFFu << 16); //Clear the uint4 bits from flags36 before setting them
+                    flags36 |= ((uint)effectPart.I_38_a & 0xF) << 16;
+                    flags36 |= ((uint)effectPart.I_38_b & 0xF) << 20;
+
+                    BinaryPrimitives.WriteUInt16LittleEndian(effectPartSpan, effectPart.AssetIndex);
+                    effectPartSpan[2] = (byte)effectPart.AssetType;
+                    effectPartSpan[3] = (byte)effectPart.AttachementType;
+                    effectPartSpan[4] = (byte)effectPart.Orientation;
+                    effectPartSpan[5] = (byte)effectPart.Deactivation;
+                    effectPartSpan[6] = effectPart.I_06;
+                    effectPartSpan[7] = effectPart.I_07;
+                    BinaryPrimitives.WriteInt32LittleEndian(effectPartSpan.Slice(8, 4), effectPart.I_08);
+                    BinaryPrimitives.WriteInt32LittleEndian(effectPartSpan.Slice(12, 4), effectPart.I_12);
+                    BinaryPrimitives.WriteInt32LittleEndian(effectPartSpan.Slice(16, 4), effectPart.I_16);
+                    BinaryPrimitives.WriteInt32LittleEndian(effectPartSpan.Slice(20, 4), effectPart.I_20);
+                    BinaryPrimitivesHelper.WriteSingleLittleEndian(effectPartSpan.Slice(24, 4), effectPart.AvoidSphere);
+                    BinaryPrimitives.WriteUInt16LittleEndian(effectPartSpan.Slice(28, 2), effectPart.StartTime);
+                    BinaryPrimitives.WriteUInt16LittleEndian(effectPartSpan.Slice(30, 2), effectPart.EMA_AnimationIndex);
+                    effectPartSpan[32] = (byte)effectPart.Flags1;
+                    BinaryPrimitives.WriteInt16LittleEndian(effectPartSpan.Slice(34, 2), effectPart.I_34);
+                    BinaryPrimitives.WriteUInt32LittleEndian(effectPartSpan.Slice(36, 4), flags36);
+                    BinaryPrimitivesHelper.WriteSingleLittleEndian(effectPartSpan.Slice(40, 4), effectPart.PositionX);
+                    BinaryPrimitivesHelper.WriteSingleLittleEndian(effectPartSpan.Slice(44, 4), effectPart.PositionY);
+                    BinaryPrimitivesHelper.WriteSingleLittleEndian(effectPartSpan.Slice(48, 4), effectPart.PositionZ);
+                    BinaryPrimitivesHelper.WriteSingleLittleEndian(effectPartSpan.Slice(52, 4), (float)MathHelpers.ConvertDegreesToRadians(effectPart.RotationX_Min));
+                    BinaryPrimitivesHelper.WriteSingleLittleEndian(effectPartSpan.Slice(56, 4), (float)MathHelpers.ConvertDegreesToRadians(effectPart.RotationX_Max));
+                    BinaryPrimitivesHelper.WriteSingleLittleEndian(effectPartSpan.Slice(60, 4), (float)MathHelpers.ConvertDegreesToRadians(effectPart.RotationY_Min));
+                    BinaryPrimitivesHelper.WriteSingleLittleEndian(effectPartSpan.Slice(64, 4), (float)MathHelpers.ConvertDegreesToRadians(effectPart.RotationY_Max));
+                    BinaryPrimitivesHelper.WriteSingleLittleEndian(effectPartSpan.Slice(68, 4), (float)MathHelpers.ConvertDegreesToRadians(effectPart.RotationZ_Min));
+                    BinaryPrimitivesHelper.WriteSingleLittleEndian(effectPartSpan.Slice(72, 4), (float)MathHelpers.ConvertDegreesToRadians(effectPart.RotationZ_Max));
+                    BinaryPrimitivesHelper.WriteSingleLittleEndian(effectPartSpan.Slice(76, 4), effectPart.ScaleMin);
+                    BinaryPrimitivesHelper.WriteSingleLittleEndian(effectPartSpan.Slice(80, 4), effectPart.ScaleMax);
+                    BinaryPrimitivesHelper.WriteSingleLittleEndian(effectPartSpan.Slice(84, 4), effectPart.NearFadeDistance);
+                    BinaryPrimitivesHelper.WriteSingleLittleEndian(effectPartSpan.Slice(88, 4), effectPart.FarFadeDistance);
+                    BinaryPrimitives.WriteUInt16LittleEndian(effectPartSpan.Slice(92, 2), effectPart.EMA_LoopStartFrame);
+                    BinaryPrimitives.WriteUInt16LittleEndian(effectPartSpan.Slice(94, 2), effectPart.EMA_LoopEndFrame);
+
+                    if (!string.IsNullOrWhiteSpace(effectPart.ESK))
+                    {
+                        BinaryPrimitives.WriteInt32LittleEndian(effectPartSpan.Slice(96, 4), stringBufferPosition - effectPartOffset);
+                        stringBufferPosition += buffer.WriteStringASCII(stringBufferPosition, effectPart.ESK);
+                    }
+
+                    effectPartOffset += EEPK_EFFECT_PART_SIZE;
+                }
+            }
+
+            return buffer;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private void CalculateFileSectionSizes(out int assetSection, out int effectSection, out int stringSection, out int assetFileTableSection)
+        {
+            assetSection = 0;
+            effectSection = Effects.Count * EEPK_EFFECT_SIZE;
+            stringSection = 0;
+            assetFileTableSection = 0;
+
+            foreach (var effect in Effects)
+            {
+                effectSection += effect.EffectParts.Count * EEPK_EFFECT_PART_SIZE;
+
+                foreach (var effectPart in effect.EffectParts)
+                {
+                    if (!string.IsNullOrWhiteSpace(effectPart.ESK))
+                        stringSection += effectPart.ESK.Length + 1;
+                }
+            }
+
+            foreach (var assetContainer in AssetContainers)
+            {
+                if (!string.IsNullOrWhiteSpace(assetContainer.ContainerEmbPath))
+                    stringSection += assetContainer.ContainerEmbPath.Length + 1;
+
+                if (!string.IsNullOrWhiteSpace(assetContainer.MaterialEmmPath))
+                    stringSection += assetContainer.MaterialEmmPath.Length + 1;
+
+                if (!string.IsNullOrWhiteSpace(assetContainer.TextureEmbPath))
+                    stringSection += assetContainer.TextureEmbPath.Length + 1;
+
+                foreach (var asset in assetContainer.Assets)
+                {
+                    assetFileTableSection += 4 * asset.Files.Count;
+                    stringSection += asset.Files.Count;
+
+                    foreach (var file in asset.Files)
+                    {
+                        if (!string.IsNullOrWhiteSpace(file))
+                            stringSection += file.Length + 1;
+                    }
+                }
+
+                assetSection += assetContainer.Assets.Count * EEPK_ASSET_SIZE;
+            }
+        }
+
+        public byte[] SaveToBytes()
+        {
+            return Write();
+        }
+
+        //XML
+        public static void CreateXml(string path)
+        {
+            EEPK_File file = Load(File.ReadAllBytes(path));
+
+            YAXSerializer serializer = new YAXSerializer(typeof(EEPK_File));
+            serializer.SerializeToFile(file, path + ".xml");
+        }
+
+        public static void SaveXml(string xmlPath)
+        {
+            string path = string.Format("{0}/{1}", Path.GetDirectoryName(xmlPath), Path.GetFileNameWithoutExtension(xmlPath));
+            YAXSerializer serializer = new YAXSerializer(typeof(EEPK_File), YAXSerializationOptions.DontSerializeNullObjects);
+            EEPK_File eepkFile = (EEPK_File)serializer.DeserializeFromFile(xmlPath);
+            eepkFile.Save(path);
+        }
+
+        #endregion
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void SortEntries()
         {
             Effects = Sorting.SortEntries(Effects);
         }
 
-        /// <summary>
-        /// Loads the specified eepk file. It can be in either binary or xml format. 
-        /// 
-        /// If a file can not be found at the specified location, then a empty one will be returned.
-        /// </summary>
-        public static EEPK_File LoadEepk(string path, bool returnEmptyIfNotValid = true)
-        {
-            if (Path.GetExtension(path) == ".eepk")
-            {
-                return new Xv2CoreLib.EEPK.Parser(path, false).GetEepkFile();
-            }
-            else if (Path.GetExtension(path) == ".xml" && Path.GetExtension(Path.GetFileNameWithoutExtension(path)) == ".eepk")
-            {
-                YAXSerializer serializer = new YAXSerializer(typeof(Xv2CoreLib.EMM.EMM_File), YAXSerializationOptions.DontSerializeNullObjects);
-                return (Xv2CoreLib.EEPK.EEPK_File)serializer.DeserializeFromFile(path);
-            }
-            else
-            {
-                if (returnEmptyIfNotValid)
-                {
-                    return new EEPK_File()
-                    {
-                        Assets = new List<AssetContainer>(),
-                        Effects = new List<Effect>()
-                    };
-                }
-                else
-                {
-                    throw new FileNotFoundException("An .eppk could not be found at the specified location.");
-                }
-
-            }
-        }
-
-        public static EEPK_File LoadEepk(byte[] bytes)
-        {
-            return new Parser(bytes).eepkFile;
-        }
-
-
-        public int IndexOfContainer(AssetType _containerType)
-        {
-            for (int i = 0; i < Assets.Count(); i++)
-            {
-                if (Assets[i].I_16 == _containerType)
-                {
-                    return i;
-                }
-            }
-
-            return -1;
-        }
-
-        public void SaveXmlEepkFile(string saveLocation)
-        {
-            if (!Directory.Exists(Path.GetDirectoryName(saveLocation)))
-            {
-                Directory.CreateDirectory(Path.GetDirectoryName(saveLocation));
-            }
-
-            YAXSerializer serializer = new YAXSerializer(typeof(EEPK_File));
-            serializer.SerializeToFile(this, saveLocation);
-        }
-
-        public void SaveBinaryEepkFile(string saveLocation)
-        {
-            if (!Directory.Exists(Path.GetDirectoryName(saveLocation)))
-            {
-                Directory.CreateDirectory(Path.GetDirectoryName(saveLocation));
-            }
-            new Deserializer(this, saveLocation);
-        }
-
-        public byte[] SaveToBytes()
-        {
-            return new Deserializer(this).bytes.ToArray();
-        }
-
-        public AssetContainer GetContainer(AssetType type)
-        {
-            if (Assets == null) throw new Exception("Assets was null.");
-
-            //Check if it exists, and return it if it does.
-            foreach (var container in Assets)
-            {
-                if (container.I_16 == type) return container;
-            }
-
-            return null;
-        }
-
-        public void SetContainer(AssetType type, AssetContainer container)
-        {
-            if (Assets == null) throw new Exception("Assets was null.");
-
-            for (int i = 0; i < Assets.Count; i++)
-            {
-                if (Assets[i].I_16 == type)
-                {
-                    Assets[i] = container;
-                    return;
-                }
-            }
-
-            //A container of this type wasn't found in the eepk, so we must add it.
-            Assets.Add(container);
-        }
-
-        public int NextFreeId(int minId = 100)
-        {
-            int id = minId;
-            while (Effects.Any(x => x.SortID == id))
-                id++;
-            return id;
-        }
-
         public void RenameContainersToSkillFolder(string newName)
         {
-            foreach (AssetContainer container in Assets)
+            foreach (AssetContainer container in AssetContainers)
             {
-                string I_16 = container.I_16.ToString();
-
-                if (I_16 == "PBIND" || I_16 == "CBIND" || I_16 == "TBIND" || I_16 == "LIGHT")
+                if (container.AssetType != AssetType.EMO)
                 {
-                    List<string> filesList = container.FILES.ToList();
-
-                    for (int i = 0; i < filesList.Count; i++)
-                    {
-                        string file = filesList[i];
-                        if (file != "NULL")
-                        {
-                            string name = Path.GetFileNameWithoutExtension(file);
-                            string ext1 = Path.GetExtension(file);
-                            string ext2 = Path.GetExtension(Path.GetFileNameWithoutExtension(file));
-                            name = name.Replace(name, newName);
-
-                            string newFileName = string.Format("{0}{1}{2}", name, ext2, ext1);
-
-                            container.FILES[i] = newFileName;
-                        }
-                    }
+                    container.ContainerEmbPath = RenameContainerPathToSkillFolder(container.ContainerEmbPath, newName);
+                    container.MaterialEmmPath = RenameContainerPathToSkillFolder(container.MaterialEmmPath, newName);
+                    container.TextureEmbPath = RenameContainerPathToSkillFolder(container.TextureEmbPath, newName);
                 }
             }
-        }
 
+            static string RenameContainerPathToSkillFolder(string containerPath, string newName)
+            {
+                if (string.IsNullOrWhiteSpace(containerPath)) return containerPath;
+                string name = Path.GetFileNameWithoutExtension(containerPath);
+                string ext1 = Path.GetExtension(containerPath);
+                string ext2 = Path.GetExtension(Path.GetFileNameWithoutExtension(containerPath));
+                name = name.Replace(name, newName);
+
+                string newFileName = string.Format("{0}{1}{2}", name, ext2, ext1);
+
+                return newFileName;
+            }
+        }
     }
 
     [Serializable]
     [YAXSerializeAs("Container")]
     public class AssetContainer
     {
-
-        [YAXAttributeFor("AssetSpawnLimit")]
-        [YAXSerializeAs("value")]
+        [CustomSerialize]
         public int AssetSpawnLimit { get; set; } //Limits how many assets of this type that can be spawned. The number doesn't equal an exact amount of assets, and multiple users of an EEPK increase the limit. But generally, higher number = more assets.
-
-        [YAXAttributeFor("I_04")]
-        [YAXSerializeAs("value")]
-        [YAXHexValue]
-        public byte I_04 { get; set; } // int8
-        [YAXAttributeFor("I_05")]
-        [YAXSerializeAs("value")]
-        [YAXHexValue]
-        public byte I_05 { get; set; } // int8
-        [YAXAttributeFor("I_06")]
-        [YAXSerializeAs("value")]
-        [YAXHexValue]
-        public byte I_06 { get; set; } // int8
-        [YAXAttributeFor("I_07")]
-        [YAXSerializeAs("value")]
-        [YAXHexValue]
-        public byte I_07 { get; set; } // int8
-
-        [YAXAttributeFor("AssetListLimit")]
-        [YAXSerializeAs("value")]
+        [CustomSerialize(isHex: true)]
+        public byte I_04 { get; set; }
+        [CustomSerialize(isHex: true)]
+        public byte I_05 { get; set; }
+        [CustomSerialize(isHex: true)]
+        public byte I_06 { get; set; }
+        [CustomSerialize(isHex: true)]
+        public byte I_07 { get; set; }
+        [CustomSerialize]
         public int AssetListLimit { get; set; }  // Limits the amount of assets that can be loaded by the game before crashing.
-        [YAXAttributeFor("I_12")]
-        [YAXSerializeAs("value")]
-        public int I_12 { get; set; }  // int32
+        [CustomSerialize]
+        public int I_12 { get; set; }
         [YAXAttributeForClass]
-        [YAXSerializeAs("Type")]
-        public AssetType I_16 { get; set; }  // int16
-        [YAXCollection(YAXCollectionSerializationTypes.Serially, SeparateBy = ", ")]
-        [YAXAttributeFor("Files")]
-        [YAXSerializeAs("values")]
-        public string[] FILES { get; set; } //the container files, made into an Array now
-        [YAXSerializeAs("Asset Entries")]
-        [YAXCollection(YAXCollectionSerializationTypes.RecursiveWithNoContainingElement, EachElementName = "Container_Entry")]
-        public List<Asset_Entry> AssetEntries { get; set; } = new List<Asset_Entry>();
+        [YAXSerializeAs("AssetType")]
+        public AssetType AssetType { get; set; }
+        [CustomSerialize]
+        public string ContainerEmbPath { get; set; }
+        [CustomSerialize]
+        public string MaterialEmmPath { get; set; }
+        [CustomSerialize]
+        public string TextureEmbPath { get; set; }
 
-        //I_30 = Num of Asset Entries
-        //I_32 = Offset to Data Block start (Asset_Entry, relative)
-        //I_36 = Offset to Asset Container string 1
-        //I_40 = Offset to Asset Container string 2
-        //I_44 = Offset to Asset Container string 3
+        [YAXSerializeAs("Assets")]
+        [YAXCollection(YAXCollectionSerializationTypes.RecursiveWithNoContainingElement, EachElementName = "Asset")]
+        public List<AssetEntry> Assets { get; set; } = new List<AssetEntry>();
 
-        /// <summary>
-        /// Creates a duplicate of the Asset Container, but without the Asset_Entries
-        /// </summary>
-        public AssetContainer Clone()
-        {
-            return new AssetContainer()
-            {
-                AssetSpawnLimit = AssetSpawnLimit,
-                I_04 = I_04,
-                I_05 = I_05,
-                I_06 = I_06,
-                I_07 = I_07,
-                AssetListLimit = AssetListLimit,
-                I_12 = I_12,
-                I_16 = I_16,
-                FILES = FILES,
-                AssetEntries = new List<Asset_Entry>()
-            };
-        }
-
-        public int IndexOf(string file)
-        {
-            if (AssetEntries != null)
-            {
-                for (int i = 0; i < AssetEntries.Count(); i++)
-                {
-                    if (AssetEntries[i].FILES[0].Path == file)
-                    {
-                        return i;
-                    }
-                }
-            }
-
-            return -1;
-        }
-
-        public static AssetContainer Default()
-        {
-            return new AssetContainer()
-            {
-                AssetListLimit = 0x9c40,
-                AssetEntries = new List<Asset_Entry>(),
-                FILES = new string[3] { "NULL", "NULL", "NULL" }
-            };
-
-        }
     }
 
     [Serializable]
-    [YAXSerializeAs("Container_Entry")]
-    public class Asset_Entry
+    [YAXSerializeAs("Asset")]
+    public class AssetEntry
     {
         [YAXAttributeForClass]
         [YAXSerializeAs("Index")]
-        public int ReadOnly_Index { get; set; }
+        public int XML_Index { get; set; }
 
-        [YAXAttributeFor("I_00")]
-        [YAXSerializeAs("value")]
+        [CustomSerialize]
         public short I_00 { get; set; }
-        //I_03 (byte) = Num of Strings
-        //Equalize I_03 to Number of File Strings that are NOT = "NULL"
-        //Also, if Number of File Strings that are not = "NULL" is greater than UNK_NUMs that are not = "NULL", then automatically add the next number to keep them in sync.
+
         [YAXCollection(YAXCollectionSerializationTypes.RecursiveWithNoContainingElement, EachElementName = "File")]
-        public List<Asset_File> FILES { get; set; }
+        public List<string> Files { get; set; } = new List<string>();
 
-        [YAXCollection(YAXCollectionSerializationTypes.Serially, SeparateBy = ",")]
-        public string[] UNK_NUMBERS;
-        //0 = emo, 1 = emm, 2 = emb, 3 = ema, 4 = emp, 5 = etr, 6 = ???, 7 = ecf, 255 = no file
-    }
+        public static EepkAssetFileType GetAssetFileType(string assetName, bool allowNull = false)
+        {
+            if (allowNull && string.IsNullOrWhiteSpace(assetName)) return EepkAssetFileType.Null;
 
-    [YAXSerializeAs("File")]
-    public class Asset_File
-    {
-        [YAXAttributeForClass]
-        public string Path { get; set; }
+            string extension = System.IO.Path.GetExtension(assetName);
+
+            switch (extension)
+            {
+                case ".emo":
+                    return EepkAssetFileType.EMO;
+                case ".emm":
+                    return EepkAssetFileType.EMM;
+                case ".emb":
+                    return EepkAssetFileType.EMB;
+                case ".ema":
+                    return EepkAssetFileType.EMA;
+                case ".emp":
+                    return EepkAssetFileType.EMP;
+                case ".etr":
+                    return EepkAssetFileType.ETR;
+                case ".ecf":
+                    return EepkAssetFileType.ECF;
+                default:
+                    throw new ArgumentException($"EEPK_File.GetAssetFileType: Unknown asset file type ({assetName}).");
+            }
+        }
+
     }
 
     [Serializable]
@@ -439,347 +708,100 @@ namespace Xv2CoreLib.EEPK
     [Serializable]
     public class EffectPart : INotifyPropertyChanged
     {
-        #region INotifyPropChanged
-        [field: NonSerialized]
-        public event PropertyChangedEventHandler PropertyChanged;
-
-        public void NotifyPropertyChanged(String propertyName = "")
-        {
-            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
-        }
-        #endregion
-
-        #region EEPK_Organiser
-        [YAXDontSerialize]
-        public static List<string> CommonBones { get; private set; } = new List<string>()
-        {
-            "b_C_Base",
-            "b_C_Pelvis",
-            "g_C_Pelvis",
-            "b_C_Head",
-            "g_C_Head",
-            "b_C_Neck1",
-            "b_C_Chest",
-            "b_C_Spine1",
-            "b_C_Spine2",
-            "b_C_Hand",
-            "b_L_Shoulder",
-            "b_L_Arm1",
-            "b_L_Arm2",
-            "b_L_Elbow",
-            "b_L_Hand",
-            "g_L_Hand",
-            "b_R_Shoulder",
-            "b_R_Arm1",
-            "b_R_Arm2",
-            "b_R_Elbow",
-            "b_R_Hand",
-            "g_R_Hand",
-            "b_L_Leg1",
-            "b_L_Leg2",
-            "b_L_Knee",
-            "b_L_Foot",
-            "g_L_Foot",
-            "b_L_Toe",
-            "b_R_Leg1",
-            "b_R_Leg2",
-            "b_R_Knee",
-            "b_R_Foot",
-            "g_R_Foot",
-            "b_R_Toe",
-            "g_x_LND",
-            "TRS",
-            "SCENE_ROOT",
-            "f_L_Eye",
-            "f_R_Eye",
-        };
-
-        [YAXDontSerialize]
-        public string AssetRefDetails
-        {
-            get
-            {
-                if (AssetRef == null) return "Unassigned";
-                return String.Format("[{1}] {0}", AssetRef.FileNamesPreview, AssetType);
-            }
-        }
-        [YAXDontSerialize]
-        public string EffectPartDetails
-        {
-            get
-            {
-                if (AssetRef == null) return "Unassigned";
-                return !string.IsNullOrWhiteSpace(ESK) ? String.Format("[{1}] {0}  |  {2}", AssetRef.FileNamesPreview, AssetType, ESK) : AssetRefDetails;
-            }
-        }
-        private Asset _assetRef = null;
-        [YAXDontSerialize]
-        public Asset AssetRef
-        {
-            get
-            {
-                return this._assetRef;
-            }
-            set
-            {
-                if (value != this._assetRef)
-                {
-                    this._assetRef = value;
-                    AssetRefDetailsRefreash(value);
-                }
-            }
-        }
-        #endregion
-
-
         [YAXAttributeForClass]
-        [YAXSerializeAs("Container_Type")]
+        [YAXSerializeAs("ContainerType")]
         public AssetType AssetType { get; set; }
         [YAXAttributeForClass]
-        [YAXSerializeAs("Container_Index")]
+        [YAXSerializeAs("ContainerIndex")]
         public ushort AssetIndex { get; set; }
-        [YAXAttributeFor("StartTime")]
-        [YAXSerializeAs("Frames")]
+
+        [CustomSerialize("StartTime", "Frames")]
         public ushort StartTime { get; set; }
-        [YAXAttributeFor("Attachment")]
-        [YAXSerializeAs("value")]
+        [CustomSerialize]
         public Attachment AttachementType { get; set; }
-        [YAXAttributeFor("RotateOnMovement")]
-        [YAXSerializeAs("value")]
+        [CustomSerialize]
         public OrientationType Orientation { get; set; }
-        [YAXAttributeFor("Deactivation")]
-        [YAXSerializeAs("Mode")]
+        [CustomSerialize]
         public DeactivationMode Deactivation { get; set; }
-        [YAXAttributeFor("I_06")]
-        [YAXSerializeAs("value")]
+        [CustomSerialize]
         public byte I_06 { get; set; }
-        [YAXAttributeFor("I_07")]
-        [YAXSerializeAs("value")]
+        [CustomSerialize]
         public byte I_07 { get; set; }
-        [YAXAttributeFor("I_08")]
-        [YAXSerializeAs("value")]
+        [CustomSerialize]
         public int I_08 { get; set; }
-        [YAXAttributeFor("I_12")]
-        [YAXSerializeAs("value")]
+        [CustomSerialize]
         public int I_12 { get; set; }
-        [YAXAttributeFor("I_16")]
-        [YAXSerializeAs("value")]
+        [CustomSerialize]
         public int I_16 { get; set; }
-        [YAXAttributeFor("I_20")]
-        [YAXSerializeAs("value")]
+        [CustomSerialize]
         public int I_20 { get; set; }
-        [YAXAttributeFor("AvoidSphere")]
-        [YAXSerializeAs("Diameter")]
-        [YAXFormat("0.0#######")]
+        [CustomSerialize(parent: "AvoidSphere", serializeAs: "Diameter", isFloat: true)]
         public float AvoidSphere { get; set; }
-
-
-        [YAXAttributeFor("AttachFlags")]
-        [YAXSerializeAs("PositionUpdate")]
-        public bool PositionUpdate { get; set; } //I_32_0
-        [YAXAttributeFor("AttachFlags")]
-        [YAXSerializeAs("RotateUpdate")]
-        public bool RotateUpdate { get; set; } //I_32_1
-        [YAXAttributeFor("AttachFlags")]
-        [YAXSerializeAs("InstantUpdate")]
-        public bool InstantUpdate { get; set; } //I_32_2
-        [YAXAttributeFor("AttachFlags")]
-        [YAXSerializeAs("OnGroundOnly")]
-        public bool OnGroundOnly { get; set; } //I_32_3
-        [YAXAttributeFor("AttachFlags")]
-        [YAXSerializeAs("UseTimeScale")]
-        public bool UseTimeScale { get; set; } //I_32_4
-        [YAXAttributeFor("StartEffectPosition")]
-        [YAXSerializeAs("UseBoneDirection")]
-        public bool UseBoneDirection { get; set; } //I_32_5
-        [YAXAttributeFor("StartEffectPosition")]
-        [YAXSerializeAs("UseBoneToCameraDirection")]
-        public bool EnableRotationValues { get; set; } //I_32_6
-        [YAXAttributeFor("StartEffectPosition")]
-        [YAXSerializeAs("UseSceneCenterToBoneDirection")]
-        public bool UseScreenCenterToBoneDirection { get; set; } //I_32_7
-
-
-        [YAXAttributeFor("I_34")]
-        [YAXSerializeAs("value")]
+        [CustomSerialize]
         public short I_34 { get; set; }
 
-
-        [YAXAttributeFor("Flag_36")]
-        [YAXSerializeAs("Unk1")]
-        public bool I_36_1 { get; set; }
-        [YAXAttributeFor("Flag_36")]
-        [YAXSerializeAs("Unk2")]
-        public bool I_36_2 { get; set; }
-        [YAXAttributeFor("Flag_36")]
-        [YAXSerializeAs("Unk3")]
-        public bool I_36_3 { get; set; }
-        [YAXAttributeFor("Flag_36")]
-        [YAXSerializeAs("Unk4")]
-        public bool I_36_4 { get; set; }
-        [YAXAttributeFor("Flag_36")]
-        [YAXSerializeAs("Unk5")]
-        public bool I_36_5 { get; set; }
-        [YAXAttributeFor("Flag_36")]
-        [YAXSerializeAs("Unk6")]
-        public bool I_36_6 { get; set; }
-        [YAXAttributeFor("Flag_36")]
-        [YAXSerializeAs("Unk7")]
-        public bool I_36_7 { get; set; }
-        [YAXAttributeFor("Flag_37")]
-        [YAXSerializeAs("Unk0")]
-        public bool I_37_0 { get; set; }
-        [YAXAttributeFor("Flag_37")]
-        [YAXSerializeAs("Unk1")]
-        public bool I_37_1 { get; set; }
-        [YAXAttributeFor("Flag_37")]
-        [YAXSerializeAs("Unk2")]
-        public bool I_37_2 { get; set; }
-        [YAXAttributeFor("Flag_37")]
-        [YAXSerializeAs("Unk3")]
-        public bool I_37_3 { get; set; }
-        [YAXAttributeFor("Flag_37")]
-        [YAXSerializeAs("Unk4")]
-        public bool I_37_4 { get; set; }
-        [YAXAttributeFor("Flag_37")]
-        [YAXSerializeAs("Unk5")]
-        public bool I_37_5 { get; set; }
-        [YAXAttributeFor("Flag_37")]
-        [YAXSerializeAs("Unk6")]
-        public bool I_37_6 { get; set; }
-        [YAXAttributeFor("Flag_37")]
-        [YAXSerializeAs("Unk7")]
-        public bool I_37_7 { get; set; }
-
-
-        [YAXAttributeFor("Flag_38")]
-        [YAXSerializeAs("a")]
-        [YAXHexValue]
+        [CustomSerialize]
+        public EepkEffectPartFlags1 Flags1 { get; set; }
+        [CustomSerialize]
+        public EepkEffectPartFlags2 Flags2 { get; set; }
+        [CustomSerialize("Flag_38", "a", isHex: true)]
         public byte I_38_a { get; set; } //int4
-        [YAXAttributeFor("Flag_38")]
-        [YAXSerializeAs("b")]
-        [YAXHexValue]
+        [CustomSerialize("Flag_38", "b", isHex: true)]
         public byte I_38_b { get; set; } //int4
 
-        //Flag_39
-        [YAXAttributeFor("Flag_39")]
-        [YAXSerializeAs("NoGlare")]
-        public bool NoGlare { get; set; } //I_39_0
-        [YAXAttributeFor("Flag_39")]
-        [YAXSerializeAs("InverseTransparentDrawOrder")]
-        public bool InverseTransparentDrawOrder { get; set; } //I_39_2
-        [YAXAttributeFor("Flag_39")]
-        [YAXSerializeAs("Unk1")]
-        public bool I_39_1 { get; set; }
-        [YAXAttributeFor("Flag_39")]
-        [YAXSerializeAs("Unk5")]
-        public bool I_39_5 { get; set; }
-        [YAXAttributeFor("Flag_39")]
-        [YAXSerializeAs("Unk6")]
-        public bool I_39_6 { get; set; }
-        [YAXAttributeFor("LinkFlags")]
-        [YAXSerializeAs("RelativePositionZ_To_AbsolutePositionZ")]
-        public bool RelativePositionZ_To_AbsolutePositionZ { get; set; } //I_39_3
-        [YAXAttributeFor("LinkFlags")]
-        [YAXSerializeAs("ScaleZ_To_BonePositionZ")]
-        public bool ScaleZ_To_BonePositionZ { get; set; } //I_39_4
-        [YAXAttributeFor("LinkFlags")]
-        [YAXSerializeAs("ObjectOrientation_To_XXXX")]
-        public bool ObjectOrientation_To_XXXX { get; set; } //I_39_7
 
-
-        [YAXAttributeFor("Position")]
-        [YAXSerializeAs("X")]
-        [YAXFormat("0.0#######")]
-        public float PositionX { get; set; } //F_40
-        [YAXAttributeFor("Position")]
-        [YAXSerializeAs("Y")]
-        [YAXFormat("0.0#######")]
-        public float PositionY { get; set; } //F_44
-        [YAXAttributeFor("Position")]
-        [YAXSerializeAs("Z")]
-        [YAXFormat("0.0#######")]
-        public float PositionZ { get; set; } //F_48
-        [YAXAttributeFor("Orientation_X")]
-        [YAXSerializeAs("Min")]
-        [YAXFormat("0.0#######")]
+        [CustomSerialize("Position", "X", isFloat: true)]
+        public float PositionX { get; set; }
+        [CustomSerialize("Position", "Y", isFloat: true)]
+        public float PositionY { get; set; }
+        [CustomSerialize("Position", "Z", isFloat: true)]
+        public float PositionZ { get; set; }
+        [CustomSerialize("Orientation_X", "Min", isFloat: true)]
         public float RotationX_Min { get; set; }
-        [YAXAttributeFor("Orientation_X")]
-        [YAXSerializeAs("Max")]
-        [YAXFormat("0.0#######")]
+        [CustomSerialize("Orientation_X", "Max", isFloat: true)]
         public float RotationX_Max { get; set; }
-        [YAXAttributeFor("Orientation_Y")]
-        [YAXSerializeAs("Min")]
-        [YAXFormat("0.0#######")]
+        [CustomSerialize("Orientation_Y", "Min", isFloat: true)]
         public float RotationY_Min { get; set; }
-        [YAXAttributeFor("Orientation_Y")]
-        [YAXSerializeAs("Max")]
-        [YAXFormat("0.0#######")]
+        [CustomSerialize("Orientation_Y", "Max", isFloat: true)]
         public float RotationY_Max { get; set; }
-        [YAXAttributeFor("Orientation_Z")]
-        [YAXSerializeAs("Min")]
-        [YAXFormat("0.0#######")]
+        [CustomSerialize("Orientation_Z", "Min", isFloat: true)]
         public float RotationZ_Min { get; set; }
-        [YAXAttributeFor("Orientation_Z")]
-        [YAXSerializeAs("Max")]
-        [YAXFormat("0.0#######")]
+        [CustomSerialize("Orientation_Z", "Max", isFloat: true)]
         public float RotationZ_Max { get; set; }
-        [YAXAttributeFor("Scale")]
-        [YAXSerializeAs("Min")]
-        [YAXFormat("0.0#######")]
+        [CustomSerialize("Scale", "Min", isFloat: true)]
         public float ScaleMin { get; set; } = 1f;
-        [YAXAttributeFor("Scale")]
-        [YAXSerializeAs("Max")]
-        [YAXFormat("0.0#######")]
+        [CustomSerialize("Scale", "Max", isFloat: true)]
         public float ScaleMax { get; set; } = 1f;
-        [YAXAttributeFor("NearFadeDistance")]
-        [YAXSerializeAs("value")]
-        [YAXFormat("0.0#######")]
+        [CustomSerialize(isFloat: true)]
         public float NearFadeDistance { get; set; }
-        [YAXAttributeFor("FarFadeDistance")]
-        [YAXSerializeAs("value")]
-        [YAXFormat("0.0#######")]
+        [CustomSerialize(isFloat: true)]
         public float FarFadeDistance { get; set; }
-        [YAXAttributeFor("EMA_Animation")]
-        [YAXSerializeAs("Index")]
+        [CustomSerialize("EMA_Animation", "Index")]
         public ushort EMA_AnimationIndex { get; set; }
-        [YAXAttributeFor("EMA_Animation")]
-        [YAXSerializeAs("LoopStartFrame")]
+        [CustomSerialize("EMA_Animation", "LoopStartFrame")]
         public ushort EMA_LoopStartFrame { get; set; }
-        [YAXAttributeFor("EMA_Animation")]
-        [YAXSerializeAs("LoopEndFrame")]
+        [CustomSerialize("EMA_Animation", "LoopEndFrame")]
         public ushort EMA_LoopEndFrame { get; set; }
-        [YAXAttributeFor("EMA_Animation")]
-        [YAXSerializeAs("Loop")]
-        public bool EMA_Loop { get; set; } //I_36_0
-        [YAXAttributeFor("BoneToAttach")]
-        [YAXSerializeAs("name")]
+        [CustomSerialize("BoneToAttach", "Name")]
         public string ESK { get; set; }
 
-        public enum DeactivationMode : byte
-        {
-            Never = 0,
-            Immediate = 1,
-            LoopCancel = 2
-        }
-
-        public enum Attachment : byte
-        {
-            External = 0,
-            Unk1 = 1,
-            Bone = 2,
-            Camera = 3
-        }
-
-        public enum OrientationType : byte
-        {
-            None = 0,
-            User = 1,
-            AttachmentBone = 2,
-            Camera = 3,
-            RotateMovement = 4
-        }
-
+        //Helper Properties
+        [YAXDontSerialize]
+        public bool PositionUpdate => HasFlag1(EepkEffectPartFlags1.PositionUpdate);
+        [YAXDontSerialize]
+        public bool RotateUpdate => HasFlag1(EepkEffectPartFlags1.RotateUpdate);
+        [YAXDontSerialize]
+        public bool InstantUpdate => HasFlag1(EepkEffectPartFlags1.InstantUpdate);
+        [YAXDontSerialize]
+        public bool EnableRotationValues => HasFlag1(EepkEffectPartFlags1.EnableRotationValues);
+        [YAXDontSerialize]
+        public bool UseBoneDirection => HasFlag1(EepkEffectPartFlags1.UseBoneDirection);
+        [YAXDontSerialize]
+        public bool UseTimeScale => HasFlag1(EepkEffectPartFlags1.UseTimeScale);
+        [YAXDontSerialize]
+        public bool EMA_Loop => HasFlag2(EepkEffectPartFlags2.EMA_Loop);
+        [YAXDontSerialize]
+        public bool NoGlare => HasFlag2(EepkEffectPartFlags2.NoGlare);
 
         public EffectPart Clone()
         {
@@ -814,49 +836,80 @@ namespace Xv2CoreLib.EEPK
                 I_20 = I_20,
                 StartTime = StartTime,
                 EMA_AnimationIndex = EMA_AnimationIndex,
-                PositionUpdate = PositionUpdate,
-                RotateUpdate = RotateUpdate,
-                InstantUpdate = InstantUpdate,
-                OnGroundOnly = OnGroundOnly,
-                UseTimeScale = UseTimeScale,
-                UseBoneDirection = UseBoneDirection,
-                EnableRotationValues = EnableRotationValues,
-                UseScreenCenterToBoneDirection = UseScreenCenterToBoneDirection,
                 I_34 = I_34,
-                EMA_Loop = EMA_Loop,
-                I_36_1 = I_36_1,
-                I_36_2 = I_36_2,
-                I_36_3 = I_36_3,
-                I_36_4 = I_36_4,
-                I_36_5 = I_36_5,
-                I_36_6 = I_36_6,
-                I_36_7 = I_36_7,
-                I_37_0 = I_37_0,
-                I_37_1 = I_37_1,
-                I_37_2 = I_37_2,
-                I_37_3 = I_37_3,
-                I_37_4 = I_37_4,
-                I_37_5 = I_37_5,
-                I_37_6 = I_37_6,
-                I_37_7 = I_37_7,
                 I_38_a = I_38_a,
                 I_38_b = I_38_b,
-                NoGlare = NoGlare,
-                I_39_1 = I_39_1,
-                InverseTransparentDrawOrder = InverseTransparentDrawOrder,
-                RelativePositionZ_To_AbsolutePositionZ = RelativePositionZ_To_AbsolutePositionZ,
-                ScaleZ_To_BonePositionZ = ScaleZ_To_BonePositionZ,
-                I_39_5 = I_39_5,
-                I_39_6 = I_39_6,
-                ObjectOrientation_To_XXXX = ObjectOrientation_To_XXXX,
                 EMA_LoopStartFrame = EMA_LoopStartFrame,
-                EMA_LoopEndFrame = EMA_LoopEndFrame
+                EMA_LoopEndFrame = EMA_LoopEndFrame,
+                Flags1 = Flags1,
+                Flags2 = Flags2
             };
         }
 
-        public static EffectPart NewEffectPart()
+        public void CopyValues(EffectPart effectPart, List<IUndoRedo> undos)
         {
-            return new EffectPart();
+            undos.Add(new UndoableProperty<EffectPart>(nameof(AssetRef), this, AssetRef, effectPart.AssetRef));
+            AssetRef = effectPart.AssetRef;
+
+            undos.AddRange(Utils.CopyValues(this, effectPart));
+
+            ObjectExtensions.NotifyPropsChanged(this);
+            undos.Add(new UndoActionPropNotify(this, true));
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public bool HasFlag1(EepkEffectPartFlags1 flag)
+        {
+            return (Flags1 & flag) == flag;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public bool HasFlag2(EepkEffectPartFlags2 flag)
+        {
+            return (Flags2 & flag) == flag;
+        }
+
+
+        #region UserInterface
+        [field: NonSerialized]
+        public event PropertyChangedEventHandler PropertyChanged;
+
+        [YAXDontSerialize]
+        public string AssetRefDetails
+        {
+            get
+            {
+                if (AssetRef == null) return "Unassigned";
+                return string.Format("[{1}] {0}", AssetRef.FileNamesPreview, AssetType);
+            }
+        }
+        [YAXDontSerialize]
+        public string EffectPartDetails
+        {
+            get
+            {
+                if (AssetRef == null) return "Unassigned";
+                return !string.IsNullOrWhiteSpace(ESK) ? string.Format("[{1}] {0}  |  {2}", AssetRef.FileNamesPreview, AssetType, ESK) : AssetRefDetails;
+            }
+        }
+        private Asset _assetRef;
+        [YAXDontSerialize]
+        public Asset AssetRef
+        {
+            get => _assetRef;
+            set
+            {
+                if (value != _assetRef)
+                {
+                    _assetRef = value;
+                    AssetRefDetailsRefreash(value);
+                }
+            }
+        }
+
+        public void NotifyPropertyChanged(string propertyName = "")
+        {
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
         }
 
         public void AssetRefDetailsRefreash(Asset asset)
@@ -874,15 +927,95 @@ namespace Xv2CoreLib.EEPK
             NotifyPropertyChanged(nameof(EffectPartDetails));
         }
 
-        public void CopyValues(EffectPart effectPart, List<IUndoRedo> undos)
-        {
-            undos.Add(new UndoableProperty<EffectPart>(nameof(AssetRef), this, AssetRef, effectPart.AssetRef));
-            AssetRef = effectPart.AssetRef;
+        #endregion
 
-            undos.AddRange(Utils.CopyValues(this, effectPart));
+    }
 
-            ObjectExtensions.NotifyPropsChanged(this);
-            undos.Add(new UndoActionPropNotify(this, true));
-        }
+    public enum AssetType : ushort
+    {
+        EMO = 0,
+        PBIND = 1,
+        TBIND = 2,
+        LIGHT = 3,
+        CBIND = 4
+    }
+
+    public enum EepkAssetFileType : byte
+    {
+        EMO = 0,
+        EMM = 1,
+        EMB = 2,
+        EMA = 3,
+        EMP = 4,
+        ETR = 5,
+        ECF = 7,
+        Null = 255
+    }
+
+    [Flags]
+    public enum EepkEffectPartFlags1 : byte
+    {
+        PositionUpdate = 0x01,
+        RotateUpdate = 0x02,
+        InstantUpdate = 0x04,
+        OnGroundOnly = 0x08,
+        UseTimeScale = 0x10,
+        UseBoneDirection = 0x20,
+        EnableRotationValues = 0x40,
+        UseScreenCenterToBoneDirection = 0x80
+    }
+
+    [Flags]
+    public enum EepkEffectPartFlags2 : uint
+    {
+        EMA_Loop = 0x01,
+        I_36_1 = 0x02,
+        I_36_2 = 0x04,
+        I_36_3 = 0x08,
+        I_36_4 = 0x10,
+        I_36_5 = 0x20,
+        I_36_6 = 0x40,
+        I_36_7 = 0x80,
+        I_37_0 = 0x100,
+        I_37_1 = 0x200,
+        I_37_2 = 0x400,
+        I_37_3 = 0x800,
+        I_37_4 = 0x1000,
+        I_37_5 = 0x2000,
+        I_37_6 = 0x4000,
+        I_37_7 = 0x8000,
+        //0x10000 to 0x800000 is reserved for the 2 uint4 value (this could just be flags too...?)
+        NoGlare = 0x1000000,
+        I_39_1 = 0x2000000,
+        InverseTransparentDrawOrder = 0x4000000,
+        RelativePositionZ_To_AbsolutePositionZ = 0x8000000,
+        ScaleZ_To_BonePositionZ = 0x10000000,
+        I_39_5 = 0x20000000,
+        I_39_6 = 0x40000000,
+        ObjectOrientation_To_XXXX = 0x80000000
+    }
+
+    public enum DeactivationMode : byte
+    {
+        Never = 0,
+        Immediate = 1,
+        LoopCancel = 2
+    }
+
+    public enum Attachment : byte
+    {
+        External = 0,
+        Unk1 = 1,
+        Bone = 2,
+        Camera = 3
+    }
+
+    public enum OrientationType : byte
+    {
+        None = 0,
+        User = 1,
+        AttachmentBone = 2,
+        Camera = 3,
+        RotateMovement = 4
     }
 }

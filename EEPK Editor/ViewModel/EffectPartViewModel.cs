@@ -7,11 +7,12 @@ using static Xv2CoreLib.EEPK.EffectPart;
 
 namespace EEPK_Organiser.ViewModel
 {
-    public class EffectPartViewModel : AutoObservableObject, IDisposable
+    public class EffectPartViewModel : AutoObservableObject
     {
+        private readonly EffectPart defaultModel = new EffectPart();
         private EffectPart effectPart;
 
-        public bool IsNotTBIND { get { return effectPart.AssetType != AssetType.TBIND; } }
+        public bool IsNotTBIND => effectPart.AssetType != AssetType.TBIND;
 
         public ushort StartTime
         {
@@ -46,16 +47,16 @@ namespace EEPK_Organiser.ViewModel
                 effectPart.Orientation = value;
             }
         }
-        public byte Deactivation
+        public DeactivationMode Deactivation
         {
-            get => (byte)effectPart.Deactivation;
+            get => effectPart.Deactivation;
             set
             {
-                DeactivationMode newValue = (DeactivationMode)value;
+                DeactivationMode newValue = value;
 
                 if(newValue != effectPart.Deactivation)
                 {
-                    UndoManager.Instance.AddUndo(new UndoableProperty<EffectPart>(nameof(effectPart.Deactivation), effectPart, effectPart.Deactivation, newValue, "Deactivation"));
+                    UndoManager.Instance.AddUndo(new UndoableProperty<EffectPart>(nameof(effectPart.Deactivation), effectPart, effectPart.Deactivation, newValue, nameof(effectPart.Deactivation)));
                     effectPart.Deactivation = newValue;
                 }
             }
@@ -146,99 +147,43 @@ namespace EEPK_Organiser.ViewModel
         }
         public bool I_32_0
         {
-            get
-            {
-                return effectPart.PositionUpdate;
-            }
-            set
-            {
-                UndoManager.Instance.AddUndo(new UndoableProperty<EffectPart>(nameof(effectPart.PositionUpdate), effectPart, effectPart.PositionUpdate, value, "MoveWithBone"));
-                effectPart.PositionUpdate = value;
-            }
+            get => effectPart.HasFlag1(EepkEffectPartFlags1.PositionUpdate);
+            set => SetFlags1(EepkEffectPartFlags1.PositionUpdate, value);
         }
         public bool I_32_1
         {
-            get
-            {
-                return effectPart.RotateUpdate;
-            }
-            set
-            {
-                UndoManager.Instance.AddUndo(new UndoableProperty<EffectPart>(nameof(effectPart.RotateUpdate), effectPart, effectPart.RotateUpdate, value, "RotateWithBone"));
-                effectPart.RotateUpdate = value;
-            }
+            get => effectPart.HasFlag1(EepkEffectPartFlags1.RotateUpdate);
+            set => SetFlags1(EepkEffectPartFlags1.RotateUpdate, value);
         }
         public bool I_32_2
         {
-            get
-            {
-                return effectPart.InstantUpdate;
-            }
-            set
-            {
-                UndoManager.Instance.AddUndo(new UndoableProperty<EffectPart>(nameof(effectPart.InstantUpdate), effectPart, effectPart.InstantUpdate, value, "InstantMoveAndRotate"));
-                effectPart.InstantUpdate = value;
-            }
+            get => effectPart.HasFlag1(EepkEffectPartFlags1.InstantUpdate);
+            set => SetFlags1(EepkEffectPartFlags1.InstantUpdate, value);
         }
         public bool I_32_3
         {
-            get
-            {
-                return effectPart.OnGroundOnly;
-            }
-            set
-            {
-                UndoManager.Instance.AddUndo(new UndoableProperty<EffectPart>(nameof(effectPart.OnGroundOnly), effectPart, effectPart.OnGroundOnly, value, "OnGroundOnly"));
-                effectPart.OnGroundOnly = value;
-            }
+            get => effectPart.HasFlag1(EepkEffectPartFlags1.OnGroundOnly);
+            set => SetFlags1(EepkEffectPartFlags1.OnGroundOnly, value);
         }
         public bool I_32_4
         {
-            get
-            {
-                return effectPart.UseTimeScale;
-            }
-            set
-            {
-                UndoManager.Instance.AddUndo(new UndoableProperty<EffectPart>(nameof(effectPart.UseTimeScale), effectPart, effectPart.UseTimeScale, value, "UseTimeScale"));
-                effectPart.UseTimeScale = value;
-            }
+            get => effectPart.HasFlag1(EepkEffectPartFlags1.UseTimeScale);
+            set => SetFlags1(EepkEffectPartFlags1.UseTimeScale, value);
         }
         public bool I_32_5
         {
-            get
-            {
-                return effectPart.UseBoneDirection;
-            }
-            set
-            {
-                UndoManager.Instance.AddUndo(new UndoableProperty<EffectPart>(nameof(effectPart.UseBoneDirection), effectPart, effectPart.UseBoneDirection, value, "UseBoneDirection"));
-                effectPart.UseBoneDirection = value;
-            }
+            get => effectPart.HasFlag1(EepkEffectPartFlags1.UseBoneDirection);
+            set => SetFlags1(EepkEffectPartFlags1.UseBoneDirection, value);
         }
         public bool I_32_6
         {
-            get
-            {
-                return effectPart.EnableRotationValues;
-            }
-            set
-            {
-                UndoManager.Instance.AddUndo(new UndoableProperty<EffectPart>(nameof(effectPart.EnableRotationValues), effectPart, effectPart.EnableRotationValues, value, "UseBoneToCameraDirection"));
-                effectPart.EnableRotationValues = value;
-            }
+            get => effectPart.HasFlag1(EepkEffectPartFlags1.EnableRotationValues);
+            set => SetFlags1(EepkEffectPartFlags1.EnableRotationValues, value);
         }
         public bool I_32_7
         {
-            get
-            {
-                return effectPart.UseScreenCenterToBoneDirection;
-            }
-            set
-            {
-                UndoManager.Instance.AddUndo(new UndoableProperty<EffectPart>(nameof(effectPart.UseScreenCenterToBoneDirection), effectPart, effectPart.UseScreenCenterToBoneDirection, value, "UseSceneCenterToBoneDirection"));
-                effectPart.UseScreenCenterToBoneDirection = value;
-            }
+            get => effectPart.HasFlag1(EepkEffectPartFlags1.UseScreenCenterToBoneDirection);
+            set => SetFlags1(EepkEffectPartFlags1.UseScreenCenterToBoneDirection, value);
         }
         public short I_34
         {
@@ -254,183 +199,78 @@ namespace EEPK_Organiser.ViewModel
         }
         public bool I_36_1
         {
-            get
-            {
-                return effectPart.I_36_1;
-            }
-            set
-            {
-                UndoManager.Instance.AddUndo(new UndoableProperty<EffectPart>(nameof(effectPart.I_36_1), effectPart, effectPart.I_36_1, value, "Flag36_Unk1"));
-                effectPart.I_36_1 = value;
-            }
+            get => effectPart.HasFlag2(EepkEffectPartFlags2.I_36_1);
+            set => SetFlags2(EepkEffectPartFlags2.I_36_1, value);
         }
         public bool I_36_2
         {
-            get
-            {
-                return effectPart.I_36_2;
-            }
-            set
-            {
-                UndoManager.Instance.AddUndo(new UndoableProperty<EffectPart>(nameof(effectPart.I_36_2), effectPart, effectPart.I_36_2, value, "Flag36_Unk2"));
-                effectPart.I_36_2 = value;
-            }
+            get => effectPart.HasFlag2(EepkEffectPartFlags2.I_36_2);
+            set => SetFlags2(EepkEffectPartFlags2.I_36_2, value);
         }
         public bool I_36_3
         {
-            get
-            {
-                return effectPart.I_36_3;
-            }
-            set
-            {
-                UndoManager.Instance.AddUndo(new UndoableProperty<EffectPart>(nameof(effectPart.I_36_3), effectPart, effectPart.I_36_3, value, "Flag36_Unk3"));
-                effectPart.I_36_3 = value;
-            }
+            get => effectPart.HasFlag2(EepkEffectPartFlags2.I_36_3);
+            set => SetFlags2(EepkEffectPartFlags2.I_36_3, value);
         }
         public bool I_36_4
         {
-            get
-            {
-                return effectPart.I_36_4;
-            }
-            set
-            {
-                UndoManager.Instance.AddUndo(new UndoableProperty<EffectPart>(nameof(effectPart.I_36_4), effectPart, effectPart.I_36_4, value, "Flag36_Unk4"));
-                effectPart.I_36_4 = value;
-            }
+            get => effectPart.HasFlag2(EepkEffectPartFlags2.I_36_4);
+            set => SetFlags2(EepkEffectPartFlags2.I_36_4, value);
         }
         public bool I_36_5
         {
-            get
-            {
-                return effectPart.I_36_5;
-            }
-            set
-            {
-                UndoManager.Instance.AddUndo(new UndoableProperty<EffectPart>(nameof(effectPart.I_36_5), effectPart, effectPart.I_36_5, value, "Flag36_Unk5"));
-                effectPart.I_36_5 = value;
-            }
+            get => effectPart.HasFlag2(EepkEffectPartFlags2.I_36_5);
+            set => SetFlags2(EepkEffectPartFlags2.I_36_5, value);
         }
         public bool I_36_6
         {
-            get
-            {
-                return effectPart.I_36_6;
-            }
-            set
-            {
-                UndoManager.Instance.AddUndo(new UndoableProperty<EffectPart>(nameof(effectPart.I_36_6), effectPart, effectPart.I_36_6, value, "Flag36_Unk6"));
-                effectPart.I_36_6 = value;
-            }
+            get => effectPart.HasFlag2(EepkEffectPartFlags2.I_36_6);
+            set => SetFlags2(EepkEffectPartFlags2.I_36_6, value);
         }
         public bool I_36_7
         {
-            get
-            {
-                return effectPart.I_36_7;
-            }
-            set
-            {
-                UndoManager.Instance.AddUndo(new UndoableProperty<EffectPart>(nameof(effectPart.I_36_7), effectPart, effectPart.I_36_7, value, "Flag36_Unk7"));
-                effectPart.I_36_7 = value;
-            }
+            get => effectPart.HasFlag2(EepkEffectPartFlags2.I_36_7);
+            set => SetFlags2(EepkEffectPartFlags2.I_36_7, value);
         }
         public bool I_37_0
         {
-            get
-            {
-                return effectPart.I_37_0;
-            }
-            set
-            {
-                UndoManager.Instance.AddUndo(new UndoableProperty<EffectPart>(nameof(effectPart.I_37_0), effectPart, effectPart.I_37_0, value, "Flag37_Unk0"));
-                effectPart.I_37_0 = value;
-            }
+            get => effectPart.HasFlag2(EepkEffectPartFlags2.I_37_0);
+            set => SetFlags2(EepkEffectPartFlags2.I_37_0, value);
         }
         public bool I_37_1
         {
-            get
-            {
-                return effectPart.I_37_1;
-            }
-            set
-            {
-                UndoManager.Instance.AddUndo(new UndoableProperty<EffectPart>(nameof(effectPart.I_37_1), effectPart, effectPart.I_37_1, value, "Flag37_Unk1"));
-                effectPart.I_37_1 = value;
-            }
+            get => effectPart.HasFlag2(EepkEffectPartFlags2.I_37_1);
+            set => SetFlags2(EepkEffectPartFlags2.I_37_1, value);
         }
         public bool I_37_2
         {
-            get
-            {
-                return effectPart.I_37_2;
-            }
-            set
-            {
-                UndoManager.Instance.AddUndo(new UndoableProperty<EffectPart>(nameof(effectPart.I_37_2), effectPart, effectPart.I_37_2, value, "Flag37_Unk2"));
-                effectPart.I_37_2 = value;
-            }
+            get => effectPart.HasFlag2(EepkEffectPartFlags2.I_37_2);
+            set => SetFlags2(EepkEffectPartFlags2.I_37_2, value);
         }
         public bool I_37_3
         {
-            get
-            {
-                return effectPart.I_37_3;
-            }
-            set
-            {
-                UndoManager.Instance.AddUndo(new UndoableProperty<EffectPart>(nameof(effectPart.I_37_3), effectPart, effectPart.I_37_3, value, "Flag37_Unk3"));
-                effectPart.I_37_3 = value;
-            }
+            get => effectPart.HasFlag2(EepkEffectPartFlags2.I_37_3);
+            set => SetFlags2(EepkEffectPartFlags2.I_37_3, value);
         }
         public bool I_37_4
         {
-            get
-            {
-                return effectPart.I_37_4;
-            }
-            set
-            {
-                UndoManager.Instance.AddUndo(new UndoableProperty<EffectPart>(nameof(effectPart.I_37_4), effectPart, effectPart.I_37_4, value, "Flag37_Unk4"));
-                effectPart.I_37_4 = value;
-            }
+            get => effectPart.HasFlag2(EepkEffectPartFlags2.I_37_4);
+            set => SetFlags2(EepkEffectPartFlags2.I_37_4, value);
         }
         public bool I_37_5
         {
-            get
-            {
-                return effectPart.I_37_5;
-            }
-            set
-            {
-                UndoManager.Instance.AddUndo(new UndoableProperty<EffectPart>(nameof(effectPart.I_37_5), effectPart, effectPart.I_37_5, value, "Flag37_Unk5"));
-                effectPart.I_37_5 = value;
-            }
+            get => effectPart.HasFlag2(EepkEffectPartFlags2.I_37_5);
+            set => SetFlags2(EepkEffectPartFlags2.I_37_5, value);
         }
         public bool I_37_6
         {
-            get
-            {
-                return effectPart.I_37_6;
-            }
-            set
-            {
-                UndoManager.Instance.AddUndo(new UndoableProperty<EffectPart>(nameof(effectPart.I_37_6), effectPart, effectPart.I_37_6, value, "Flag37_Unk6"));
-                effectPart.I_37_6 = value;
-            }
+            get => effectPart.HasFlag2(EepkEffectPartFlags2.I_37_6);
+            set => SetFlags2(EepkEffectPartFlags2.I_37_6, value);
         }
         public bool I_37_7
         {
-            get
-            {
-                return effectPart.I_37_7;
-            }
-            set
-            {
-                UndoManager.Instance.AddUndo(new UndoableProperty<EffectPart>(nameof(effectPart.I_37_7), effectPart, effectPart.I_37_7, value, "Flag37_Unk7"));
-                effectPart.I_37_7 = value;
-            }
+            get => effectPart.HasFlag2(EepkEffectPartFlags2.I_37_7);
+            set => SetFlags2(EepkEffectPartFlags2.I_37_7, value);
         }
         public byte I_38_a
         {
@@ -458,99 +298,43 @@ namespace EEPK_Organiser.ViewModel
         }
         public bool I_39_0
         {
-            get
-            {
-                return effectPart.NoGlare;
-            }
-            set
-            {
-                UndoManager.Instance.AddUndo(new UndoableProperty<EffectPart>(nameof(effectPart.NoGlare), effectPart, effectPart.NoGlare, value, "NoGlare"));
-                effectPart.NoGlare = value;
-            }
+            get => effectPart.HasFlag2(EepkEffectPartFlags2.NoGlare);
+            set => SetFlags2(EepkEffectPartFlags2.NoGlare, value);
         }
         public bool I_39_1
         {
-            get
-            {
-                return effectPart.I_39_1;
-            }
-            set
-            {
-                UndoManager.Instance.AddUndo(new UndoableProperty<EffectPart>(nameof(effectPart.I_39_1), effectPart, effectPart.I_39_1, value, "Flag39_Unk1"));
-                effectPart.I_39_1 = value;
-            }
+            get => effectPart.HasFlag2(EepkEffectPartFlags2.I_39_1);
+            set => SetFlags2(EepkEffectPartFlags2.I_39_1, value);
         }
         public bool I_39_2
         {
-            get
-            {
-                return effectPart.InverseTransparentDrawOrder;
-            }
-            set
-            {
-                UndoManager.Instance.AddUndo(new UndoableProperty<EffectPart>(nameof(effectPart.InverseTransparentDrawOrder), effectPart, effectPart.InverseTransparentDrawOrder, value, "InverseTransparentDrawOrder"));
-                effectPart.InverseTransparentDrawOrder = value;
-            }
+            get => effectPart.HasFlag2(EepkEffectPartFlags2.InverseTransparentDrawOrder);
+            set => SetFlags2(EepkEffectPartFlags2.InverseTransparentDrawOrder, value);
         }
         public bool I_39_3
         {
-            get
-            {
-                return effectPart.RelativePositionZ_To_AbsolutePositionZ;
-            }
-            set
-            {
-                UndoManager.Instance.AddUndo(new UndoableProperty<EffectPart>(nameof(effectPart.RelativePositionZ_To_AbsolutePositionZ), effectPart, effectPart.RelativePositionZ_To_AbsolutePositionZ, value, "ScaleZ_To_BonePositionZ"));
-                effectPart.RelativePositionZ_To_AbsolutePositionZ = value;
-            }
+            get => effectPart.HasFlag2(EepkEffectPartFlags2.RelativePositionZ_To_AbsolutePositionZ);
+            set => SetFlags2(EepkEffectPartFlags2.RelativePositionZ_To_AbsolutePositionZ, value);
         }
         public bool I_39_4
         {
-            get
-            {
-                return effectPart.ScaleZ_To_BonePositionZ;
-            }
-            set
-            {
-                UndoManager.Instance.AddUndo(new UndoableProperty<EffectPart>(nameof(effectPart.ScaleZ_To_BonePositionZ), effectPart, effectPart.ScaleZ_To_BonePositionZ, value, "ScaleZ_To_BonePositionZ"));
-                effectPart.ScaleZ_To_BonePositionZ = value;
-            }
+            get => effectPart.HasFlag2(EepkEffectPartFlags2.ScaleZ_To_BonePositionZ);
+            set => SetFlags2(EepkEffectPartFlags2.ScaleZ_To_BonePositionZ, value);
         }
         public bool I_39_5
         {
-            get
-            {
-                return effectPart.I_39_5;
-            }
-            set
-            {
-                UndoManager.Instance.AddUndo(new UndoableProperty<EffectPart>(nameof(effectPart.I_39_5), effectPart, effectPart.I_39_5, value, "Flag39_Unk5"));
-                effectPart.I_39_5 = value;
-            }
+            get => effectPart.HasFlag2(EepkEffectPartFlags2.I_39_5);
+            set => SetFlags2(EepkEffectPartFlags2.I_39_5, value);
         }
         public bool I_39_6
         {
-            get
-            {
-                return effectPart.I_39_6;
-            }
-            set
-            {
-                UndoManager.Instance.AddUndo(new UndoableProperty<EffectPart>(nameof(effectPart.I_39_6), effectPart, effectPart.I_39_6, value, "Flag39_Unk6"));
-                effectPart.I_39_6 = value;
-            }
+            get => effectPart.HasFlag2(EepkEffectPartFlags2.I_39_6);
+            set => SetFlags2(EepkEffectPartFlags2.I_39_6, value);
         }
         public bool I_39_7
         {
-            get
-            {
-                return effectPart.ObjectOrientation_To_XXXX;
-            }
-            set
-            {
-                UndoManager.Instance.AddUndo(new UndoableProperty<EffectPart>(nameof(effectPart.ObjectOrientation_To_XXXX), effectPart, effectPart.ObjectOrientation_To_XXXX, value, "ObjectOrientation_To_XXXX"));
-                effectPart.ObjectOrientation_To_XXXX = value;
-            }
+            get => effectPart.HasFlag2(EepkEffectPartFlags2.ObjectOrientation_To_XXXX);
+            set => SetFlags2(EepkEffectPartFlags2.ObjectOrientation_To_XXXX, value);
         }
         public float POSITION_X
         {
@@ -746,15 +530,8 @@ namespace EEPK_Organiser.ViewModel
         }
         public bool I_36_0
         {
-            get
-            {
-                return effectPart.EMA_Loop;
-            }
-            set
-            {
-                UndoManager.Instance.AddUndo(new UndoableProperty<EffectPart>(nameof(effectPart.EMA_Loop), effectPart, effectPart.EMA_Loop, value, "EMA Loop"));
-                effectPart.EMA_Loop = value;
-            }
+            get => effectPart.HasFlag2(EepkEffectPartFlags2.EMA_Loop);
+            set => SetFlags2(EepkEffectPartFlags2.EMA_Loop, value);
         }
         public string ESK
         {
@@ -782,18 +559,18 @@ namespace EEPK_Organiser.ViewModel
         public bool IsUsingEma => effectPart?.AssetType == AssetType.EMO || effectPart?.AssetType == AssetType.LIGHT;
         public bool IsNotCBIND => effectPart?.AssetType != AssetType.CBIND;
 
-        public EffectPartViewModel(EffectPart _effectPart)
+        public EffectPartViewModel()
         {
-            effectPart = _effectPart;
+            effectPart = defaultModel;
 
             if (UndoManager.Instance != null)
                 UndoManager.Instance.UndoOrRedoCalled += Instance_UndoOrRedoCalled;
         }
 
-        public void Dispose()
+        public void ChangeModel(EffectPart effectPart)
         {
-            if (UndoManager.Instance != null)
-                UndoManager.Instance.UndoOrRedoCalled -= Instance_UndoOrRedoCalled;
+            this.effectPart = effectPart ?? defaultModel;
+            UpdateProperties();
         }
 
         private void Instance_UndoOrRedoCalled(object sender, System.EventArgs e)
@@ -871,5 +648,46 @@ namespace EEPK_Organiser.ViewModel
             RaisePropertyChanged(() => IsUsingEma);
         }
 
+        private void SetFlags1(EepkEffectPartFlags1 flag, bool state)
+        {
+            byte mask = (byte)flag;
+            byte flag1 = (byte)effectPart.Flags1;
+            EepkEffectPartFlags1 originalValue = effectPart.Flags1;
+
+            if (state)
+            {
+                flag1 |= mask;
+            }
+            else
+            {
+                flag1 &= (byte)~mask;
+            }
+
+            effectPart.Flags1 = (EepkEffectPartFlags1)flag1;
+
+            if(effectPart.Flags1 != originalValue)
+                UndoManager.Instance.AddUndo(new UndoablePropertyGeneric(nameof(effectPart.Flags1), effectPart, originalValue, effectPart.Flags1, "EEPK Flags"));
+        }
+
+        private void SetFlags2(EepkEffectPartFlags2 flag, bool state)
+        {
+            byte mask = (byte)flag;
+            uint flag2 = (uint)effectPart.Flags2;
+            EepkEffectPartFlags2 originalValue = effectPart.Flags2;
+
+            if (state)
+            {
+                flag2 |= mask;
+            }
+            else
+            {
+                flag2 &= (uint)~mask;
+            }
+
+            effectPart.Flags2 = (EepkEffectPartFlags2)flag2;
+
+            if (effectPart.Flags2 != originalValue)
+                UndoManager.Instance.AddUndo(new UndoablePropertyGeneric(nameof(effectPart.Flags2), effectPart, originalValue, effectPart.Flags2, "EEPK Flags"));
+        }
     }
 }

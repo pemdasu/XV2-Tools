@@ -312,13 +312,11 @@ namespace EEPK_Organiser.View
 
         private void EffectPart_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
-            CreateEffectPartViewModel();
             XenoKit_OnEffectPartSelectionChange();
         }
 
         private void EffectDataGrid_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
-            CreateEffectPartViewModel();
             XenoKit_OnEffectSelectionChange();
         }
 

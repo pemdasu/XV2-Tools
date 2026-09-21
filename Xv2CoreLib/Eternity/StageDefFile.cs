@@ -47,7 +47,7 @@ namespace Xv2CoreLib.Eternity
 
         public static StageDefFile Load(byte[] bytes)
         {
-            return Parse(StringEx.GetStringUTF8(bytes));
+            return Parse(StringEx.GetXmlStringUTF8(bytes));
         }
 
         private static StageDefFile Parse(string xmlText)

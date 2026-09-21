@@ -15,6 +15,7 @@ using System.Runtime.ExceptionServices;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows;
+using Xv2CoreLib.EAN;
 using Xv2CoreLib.ECF;
 using Xv2CoreLib.EEPK;
 using Xv2CoreLib.EffectContainer;
@@ -814,7 +815,7 @@ namespace EEPK_Organiser.View
             //TODO: Make worky
             var asset = GetSelectedAsset(AssetType.EMO);
 
-            if (asset.Files.Any(x => x.Extension == ".obj.ema"))
+            if (asset.Files.Any(x => x.Extension.ToLower() == ".obj.ema"))
             {
                 MessagePrompt.Show($"An OBJ.EMA already exists on the selected asset.", "File Already Exists", MessagePromptIcon.Warning);
                 return;
@@ -826,15 +827,12 @@ namespace EEPK_Organiser.View
 
             if (openFile.ShowDialog() == true)
             {
-                /*
-                EAN_File eanFile = EAN_File.Load(openFile.FileName);
-                EMA_File emaFile = EMA_File.ConvertToEma(eanFile);
-
+                Xv2CoreLib.AnimationFramework.AnimationFile animationFile = new Xv2CoreLib.AnimationFramework.AnimationFile(EAN_File.Load(openFile.FileName));
+                EMA_File emaFile = animationFile.ConvertToEma();
                 List<IUndoRedo> undos = new List<IUndoRedo>();
                 asset.AddFile(emaFile, $"{Path.GetFileNameWithoutExtension(openFile.FileName)}.obj.ema", EffectFile.FileType.EMA, undos);
 
                 UndoManager.Instance.AddCompositeUndo(undos, "EAN -> EMA");
-                */
             }
         }
 
