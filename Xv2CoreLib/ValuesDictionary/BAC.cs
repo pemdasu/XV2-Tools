@@ -204,6 +204,16 @@ namespace Xv2CoreLib.ValuesDictionary
             { 0x5 , "Unknown (5)" },
         };
 
+        public static string GetEepkTypeName(ushort type)
+        {
+            return EepkType.TryGetValue(type, out string name) ? name : type.ToString();
+        }
+
+        public static string GetAcbTypeName(ushort type)
+        {
+            return AcbType.TryGetValue(type, out string name) ? name : type.ToString();
+        }
+
         //AcbType
         public static Dictionary<ushort, string> AcbType { get; private set; } = new Dictionary<ushort, string>()
         {
