@@ -953,5 +953,9 @@ namespace Xv2CoreLib.EMB_CLASS
                 undos.Add(new UndoableProperty<EmbEntry>(nameof(Texture), this, editOperation.SourceBitmap, editOperation.OutputBitmap));
         }
 
+        public BitmapSource GetBitmap()
+        {
+            return Texture;
+        }
     }
 }

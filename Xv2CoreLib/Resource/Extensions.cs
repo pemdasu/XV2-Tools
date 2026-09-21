@@ -15,6 +15,5 @@ namespace Xv2CoreLib
         {
             return str.Split(splitStrings, options);
         }
-
     }
 }

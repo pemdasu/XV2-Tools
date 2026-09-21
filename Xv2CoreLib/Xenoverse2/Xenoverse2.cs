@@ -1,37 +1,39 @@
-﻿using System;
-using System.Linq;
-using System.IO;
-using System.Globalization;
+﻿using LB_Common.Forms;
+using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
-using Xv2CoreLib.CMS;
-using Xv2CoreLib.CUS;
-using Xv2CoreLib.MSG;
-using Xv2CoreLib.BCS;
+using System.Globalization;
+using System.IO;
+using System.Linq;
+using System.Threading.Tasks;
+using Xv2CoreLib.ACB;
+using Xv2CoreLib.AMK;
 using Xv2CoreLib.BAC;
+using Xv2CoreLib.BAI;
+using Xv2CoreLib.BAS;
+using Xv2CoreLib.BCM;
+using Xv2CoreLib.BCS;
 using Xv2CoreLib.BDM;
 using Xv2CoreLib.BSA;
+using Xv2CoreLib.CBS;
+using Xv2CoreLib.CMS;
 using Xv2CoreLib.CSO;
+using Xv2CoreLib.CUS;
+using Xv2CoreLib.DEM;
 using Xv2CoreLib.EAN;
-using Xv2CoreLib.ERS;
-using Xv2CoreLib.IDB;
-using Xv2CoreLib.PUP;
-using Xv2CoreLib.BCM;
-using Xv2CoreLib.ACB;
-using Xv2CoreLib.BAI;
-using Xv2CoreLib.AMK;
-using Xv2CoreLib.BAS;
-using Xv2CoreLib.ESK;
-using Xv2CoreLib.EMD;
-using Xv2CoreLib.PSC;
-using Xv2CoreLib.EMM;
-using Xv2CoreLib.EMB_CLASS;
 using Xv2CoreLib.EffectContainer;
+using Xv2CoreLib.EMB_CLASS;
+using Xv2CoreLib.EMD;
+using Xv2CoreLib.EMM;
+using Xv2CoreLib.ERS;
+using Xv2CoreLib.ESK;
+using Xv2CoreLib.Eternity;
+using Xv2CoreLib.IDB;
+using Xv2CoreLib.MSG;
+using Xv2CoreLib.PSC;
+using Xv2CoreLib.PUP;
 using Xv2CoreLib.Resource;
 using static Xv2CoreLib.CUS.CUS_File;
-using System.Threading.Tasks;
-using Xv2CoreLib.Eternity;
-using Xv2CoreLib.CBS;
 
 namespace Xv2CoreLib
 {
@@ -110,6 +112,7 @@ namespace Xv2CoreLib
         public const string CUS_PATH = "system/custom_skill.cus";
         public const string CMS_PATH = "system/char_model_spec.cms";
         public const string CHARA_PORTRAIT_EMB_PATH = "ui/texture/CHARA01.emb";
+        public const string STAGE_PREVIEW_EMB_PATH = "ui/texture/STAGE01.emb";
         public const string PUP_PATH = "system/powerup_parameter.pup";
         public const string CSO_PATH = "system/chara_sound.cso";
         public const string PSC_PATH = "system/parameter_spec_char.psc";
@@ -720,19 +723,19 @@ namespace Xv2CoreLib
             return SkillIdbFile.Entries.FirstOrDefault(i => i.ID == id2 && i.Type == (int)skillType);
         }
 
-        public List<Xv2Item> GetSkillList(CUS_File.SkillType skillType)
+        public List<Item> GetSkillList(CUS_File.SkillType skillType)
         {
-            List<Xv2Item> items = new List<Xv2Item>();
+            List<Item> items = new List<Item>();
 
             foreach (var skill in CusFile.GetSkills(skillType))
             {
                 if (skillType == CUS_File.SkillType.Blast)
                 {
-                    items.Add(new Xv2CodedItem(skill.ID1, skill.ShortName, skill.ShortName));
+                    items.Add(new ItemExtended(skill.ID1, skill.ShortName, skill.ShortName, null));
                 }
                 else
                 {
-                    items.Add(new Xv2CodedItem(skill.ID1, GetSkillName(skillType, skill.ID2, skill.ShortName, PreferedLanguage), skill.ShortName));
+                    items.Add(new ItemExtended(skill.ID1, GetSkillName(skillType, skill.ID2, skill.ShortName, PreferedLanguage), skill.ShortName, null));
                 }
             }
 
@@ -1012,10 +1015,32 @@ namespace Xv2CoreLib
             }
         }
 
-        public List<Xv2Item> GetCharacterList()
+        public List<Item> GetCacList(SAV.SAV_File savFile)
+        {
+            List<Item> items = new List<Item>();
+
+            EMB_File portraitEmb = null;
+            try
+            {
+                portraitEmb = (EMB_File)FileManager.Instance.GetParsedFileFromGame(CHARA_PORTRAIT_EMB_PATH);
+            }
+            catch { }
+
+            EmbEntry fallbackPortrait = portraitEmb?.Entry.FirstOrDefault(x => x.Name.Equals("FOF_000.dds", StringComparison.OrdinalIgnoreCase));
+
+            for (int i = 0; i < savFile.Characters.Count; i++)
+            {
+                if (!string.IsNullOrWhiteSpace(savFile.Characters[i].Name))
+                    items.Add(new ItemExtendedImage(i, savFile.Characters[i].Name, savFile.Characters[i].RaceName, null, GetCharacterPortrait(savFile.Characters[i].I_20.ToString(), portraitEmb, fallbackPortrait).GetBitmap));
+            }
+
+            return items;
+        }
+
+        public List<Item> GetCharacterList()
         {
             if (!loadCharacters) throw new InvalidOperationException("Xenoverse2.GetCharacterList: characters are not loaded.");
-            List<Xv2Item> items = new List<Xv2Item>();
+            List<Item> items = new List<Item>();
 
             EMB_File portraitEmb = null;
             try
@@ -1030,7 +1055,7 @@ namespace Xv2CoreLib
             {
                 string name = (IsCac(character.ID)) ? GetCacRaceName(character.ID) : charaNameMsgFile[(int)PreferedLanguage].GetCharacterName(character.ShortName);
 
-                items.Add(new Xv2CharaItem(character.ID, name, character.ShortName, GetCharacterPortrait(character.ShortName, portraitEmb, fallbackPortrait)));
+                items.Add(new ItemExtendedImage(character.ID, name, character.ShortName, null, GetCharacterPortrait(character.ShortName, portraitEmb, fallbackPortrait).GetBitmap));
             }
 
             return items;
@@ -1070,7 +1095,7 @@ namespace Xv2CoreLib
             catch { return null; }
         }
 
-        public List<Xv2Item> GetPartSetList(int cmsId, bool onlyLoadFromCPK = false)
+        public List<Item> GetPartSetList(int cmsId, bool onlyLoadFromCPK = false)
         {
             var cmsEntry = CmsFile.CMS_Entries.FirstOrDefault(x => x.ID == cmsId);
             if (cmsEntry == null) throw new InvalidOperationException($"Xenoverse2.GetPartSetList: Character was not found in the system (ID: {cmsId}).");
@@ -1078,10 +1103,10 @@ namespace Xv2CoreLib
             string bcsPath = Utils.ResolveRelativePath(string.Format("chara/{0}/{1}.bcs", cmsEntry.ShortName, cmsEntry.BcsPath));
             BCS_File bcsFile = (BCS_File)FileManager.Instance.GetParsedFileFromGame(bcsPath, onlyLoadFromCPK);
 
-            List<Xv2Item> items = new List<Xv2Item>();
+            List<Item> items = new List<Item>();
 
             foreach (var partSet in bcsFile.PartSets)
-                items.Add(new Xv2Item(partSet.ID, partSet.ID.ToString()));
+                items.Add(new Item(partSet.ID, partSet.ID.ToString()));
 
             return items;
         }
@@ -1358,17 +1383,22 @@ namespace Xv2CoreLib
 
         #region Stages
 
-        public List<Xv2Item> GetStageList()
+        public List<Item> GetStageList()
         {
-            List<Xv2Item> items = new List<Xv2Item>();
+            List<Item> items = new List<Item>();
+
+            EMB_File stageEmb = (EMB_File)FileManager.Instance.GetParsedFileFromGame(STAGE_PREVIEW_EMB_PATH);
+            EmbEntry fallback = stageEmb.GetEntry("Random.dds");
 
             foreach(StageDef stage in StageDefFile.Stages)
             {
                 if (BlacklistedStageCodes.Contains(stage.CODE)) continue;
                 if (!fileIO.FileExists($"stage/{stage.CODE}.map")) continue;
 
+                EmbEntry stageEmbEntry = stageEmb.GetEntry(stage.CODE + ".dds") ?? fallback;
+
                 string name = GetStageName(stage.CODE, stage.NAME_EN, PreferedLanguage);
-                items.Add(new Xv2Item((int)stage.Index, name != null ? name : stage.NAME_EN));
+                items.Add(new ItemExtendedImage((int)stage.Index, name != null ? name : stage.NAME_EN, stage.CODE, null, stageEmbEntry.GetBitmap));
             }   
 
             return items;
@@ -1714,49 +1744,49 @@ namespace Xv2CoreLib
             return AccessoryIdbFile.Entries.Any(x => x.ID == idbID) ? AccessoryIdbFile.Entries.FirstOrDefault(x => x.ID == idbID).I_32 : -1;
         }
 
-        public List<Xv2Item> GetTopCostumeNames(SAV.Race race, bool includeDefault = true)
+        public List<Item> GetTopCostumeNames(SAV.Race race, bool includeDefault = true)
         {
             InitCostumes();
             return GetCostumeNames(TopIdbFile, costumeMsgFile[(int)PreferedLanguage], race, includeDefault);
         }
 
-        public List<Xv2Item> GetBottomCostumeNames(SAV.Race race, bool includeDefault = true)
+        public List<Item> GetBottomCostumeNames(SAV.Race race, bool includeDefault = true)
         {
             InitCostumes();
             return GetCostumeNames(BottomIdbFile, costumeMsgFile[(int)PreferedLanguage], race, includeDefault);
         }
 
-        public List<Xv2Item> GetGlovesCostumeNames(SAV.Race race, bool includeDefault = true)
+        public List<Item> GetGlovesCostumeNames(SAV.Race race, bool includeDefault = true)
         {
             InitCostumes();
             return GetCostumeNames(GlovesIdbFile, costumeMsgFile[(int)PreferedLanguage], race, includeDefault);
         }
 
-        public List<Xv2Item> GetShoesCostumeNames(SAV.Race race, bool includeDefault = true)
+        public List<Item> GetShoesCostumeNames(SAV.Race race, bool includeDefault = true)
         {
             InitCostumes();
             return GetCostumeNames(ShoesIdbFile, costumeMsgFile[(int)PreferedLanguage], race, includeDefault);
         }
 
-        public List<Xv2Item> GetAccessoryCostumeNames(SAV.Race race, bool includeDefault = true)
+        public List<Item> GetAccessoryCostumeNames(SAV.Race race, bool includeDefault = true)
         {
             InitCostumes();
             return GetCostumeNames(AccessoryIdbFile, accessoryMsgFile[(int)PreferedLanguage], race, includeDefault);
         }
 
-        private List<Xv2Item> GetCostumeNames(IDB_File idbFile, MSG_File msgFile, SAV.Race race, bool includeDefault)
+        private List<Item> GetCostumeNames(IDB_File idbFile, MSG_File msgFile, SAV.Race race, bool includeDefault)
         {
-            List<Xv2Item> costumes = new List<Xv2Item>();
+            List<Item> costumes = new List<Item>();
 
             if (includeDefault)
-                costumes.Add(new Xv2Item(-1, "---"));
+                costumes.Add(new Item(-1, "---"));
 
             foreach (IDB_Entry entry in idbFile.Entries)
             {
                 if (entry.CanRaceUseItem(race))
                 {
                     string name = msgFile.GetEntryText(entry.NameMsgID);
-                    costumes.Add(new Xv2Item(entry.ID, string.IsNullOrWhiteSpace(name) ? $"Unknown Item ({entry.ID})" : name));
+                    costumes.Add(new Item(entry.ID, string.IsNullOrWhiteSpace(name) ? $"Unknown Item ({entry.ID})" : name));
                 }
             }
 
@@ -1798,44 +1828,4 @@ namespace Xv2CoreLib
         }
 
     }
-
-    public class Xv2Item
-    {
-        public int ID { get; private set; }
-        public string Name { get; private set; }
-
-        public Xv2Item(int id, string name)
-        {
-            ID = id;
-            Name = name;
-        }
-
-    }
-
-    // Xv2Item plus a short code (a CMS/CUS ShortName) shown as its own selector column.
-    public class Xv2CodedItem : Xv2Item
-    {
-        public string Code { get; private set; }
-
-        public Xv2CodedItem(int id, string name, string code) : base(id, name)
-        {
-            Code = code;
-        }
-    }
-
-    // Character entry: a select portrait on top of the coded ID/Name/Code.
-    public class Xv2CharaItem : Xv2CodedItem
-    {
-        // Decodes on first read, so a virtualized list only decodes the rows it shows.
-        private readonly EmbEntry _portrait;
-        public System.Windows.Media.Imaging.WriteableBitmap Portrait => _portrait?.Texture;
-        // True when a portrait exists, without running the DDS decode that reading Portrait triggers.
-        public bool HasPortrait => _portrait != null;
-
-        public Xv2CharaItem(int id, string name, string code, EmbEntry portrait) : base(id, name, code)
-        {
-            _portrait = portrait;
-        }
-    }
-
 }

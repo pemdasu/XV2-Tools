@@ -1425,6 +1425,16 @@ namespace Xv2CoreLib.SAV
         }
 
         [YAXDontSerialize]
+        public string RaceName
+        {
+            get
+            {
+                string name = "";
+                SAV.CaC.RaceEnumDictionary.TryGetValue(I_20, out name);
+                return name;
+            }
+        }
+        [YAXDontSerialize]
         public string DisplayName
         {
             get

@@ -5,17 +5,26 @@ namespace Xv2CoreLib.Resource.UndoRedo
     public class LimitedStack<T> : LinkedList<T>
     {
         private int _maxSize;
+        public int Capacity => _maxSize;
+
         public LimitedStack(int maxSize)
         {
             _maxSize = maxSize;
         }
 
-        public void Push(T item)
+        public T Push(T item)
         {
             this.AddFirst(item);
 
+
             if (this.Count > _maxSize)
+            {
+                T last = this.Last.Value;
                 this.RemoveLast();
+                return last;
+            }
+
+            return default;
         }
 
         public T Pop()
