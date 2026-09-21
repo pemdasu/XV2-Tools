@@ -43,6 +43,10 @@ namespace Xv2CoreLib.BAS
 
         public void Save(string path)
         {
+            if (!Directory.Exists(Path.GetDirectoryName(path)))
+            {
+                Directory.CreateDirectory(Path.GetDirectoryName(path));
+            }
             new Deserializer(this, path);
         }
 
