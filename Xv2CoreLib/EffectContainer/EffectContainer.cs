@@ -161,10 +161,10 @@ namespace Xv2CoreLib.EffectContainer
             }
         }
 
-        //For tracking files that were loaded with this EEPK (disabled for ZIP format)
+        //File names of the files loaded with this EEPK (disabled for ZIP format). Directory can change between load and save, so this holds names and not full paths.
         public List<string> LoadedExternalFiles = new List<string>();
 
-        //For tracking files that were loaded with this EEPK, but weren't accounted for when saving last (which would happen if they were deleted, for example)
+        //File names from LoadedExternalFiles that the last save did not write. An asset deleted from the EEPK ends up here. GetUnusedFilePaths returns the full paths.
         public List<string> LoadedExternalFilesNotSaved = new List<string>();
 
         //File IO
@@ -1203,7 +1203,7 @@ namespace Xv2CoreLib.EffectContainer
         private byte[] LoadExternalFile(string path, bool log = true)
         {
             if (log && saveFormat != SaveFormat.VfxPackage)
-                LoadedExternalFiles.Add(path);
+                LoadedExternalFiles.Add(Path.GetFileName(path));
 
             return GetFile(path, xv2FileIO, OnlyLoadFromCpk, zipReader);
         }
@@ -1212,8 +1212,17 @@ namespace Xv2CoreLib.EffectContainer
         {
             if (saveFormat == SaveFormat.VfxPackage) return;
 
-            LoadedExternalFilesNotSaved.Remove(path);
-            LoadedExternalFiles.Add(path);
+            string name = Path.GetFileName(path);
+            LoadedExternalFilesNotSaved.Remove(name);
+            LoadedExternalFiles.Add(name);
+        }
+
+        /// <summary>
+        /// Full paths of the asset files that were loaded with this EEPK but that the last save did not write. The paths are resolved against the current <see cref="Directory"/>.
+        /// </summary>
+        public List<string> GetUnusedFilePaths()
+        {
+            return LoadedExternalFilesNotSaved.Select(name => Path.Combine(Directory, name)).ToList();
         }
 
         private void InitExternalLoadedFileNotSavedList()
