@@ -58,10 +58,36 @@ namespace Xv2CoreLib
         }
 
         /// <summary>
+        /// Write a fixed length ASCII encoded string to a byte array. Any characters past the passed in fixedLength will be trimmed.
+        /// </summary>
+        /// <param name="span">Input array. This must contain enough space for the input string.</param>
+        /// <param name="str">Input string</param>
+        /// <returns>The number of bytes written. Will always return the passed in fixedLength. </returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static int WriteFixedStringASCII(this byte[] bytes, int offset, string str, int fixedLength)
+        {
+            _ = Encoding.ASCII.GetBytes(str, 0, Math.Min(str.Length, fixedLength), bytes, offset);
+            return fixedLength;
+        }
+
+        /// <summary>
+        /// Write a fixed length UTF8 encoded string to a byte array. Any characters past the passed in fixedLength will be trimmed.
+        /// </summary>
+        /// <param name="span">Input array. This must contain enough space for the input string.</param>
+        /// <param name="str">Input string</param>
+        /// <returns>The number of bytes written. Will always return the passed in fixedLength. </returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static int WriteFixedStringUTF8(this byte[] bytes, int offset, string str, int fixedLength)
+        {
+            _ = Encoding.UTF8.GetBytes(str, 0, Math.Min(str.Length, fixedLength), bytes, offset);
+            return fixedLength;
+        }
+
+        /// <summary>
         /// Reads a null-terminated ASCII encoded string from the byte array
         /// </summary>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static string GetStringASCII(this byte[] bytes, int index)
+        public static string ReadStringASCII(this byte[] bytes, int index)
         {
             int nullByte = FindNullTerminatorByte(bytes, index);
             return nullByte > index ? Encoding.ASCII.GetString(bytes, index, nullByte - index) : null;
@@ -71,7 +97,7 @@ namespace Xv2CoreLib
         /// Reads a null-terminated UTF8 encoded string from the byte array
         /// </summary>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static string GetStringUTF8(this byte[] bytes, int index)
+        public static string ReadStringUTF8(this byte[] bytes, int index)
         {
             int nullByte = FindNullTerminatorByte(bytes, index);
             return nullByte > index ? Encoding.UTF8.GetString(bytes, index, nullByte - index) : null;
@@ -81,13 +107,30 @@ namespace Xv2CoreLib
         /// Reads a null-terminated UTF16 encoded string from the byte array
         /// </summary>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static string GetStringUTF16(this byte[] bytes, int index)
+        public static string ReadStringUTF16(this byte[] bytes, int index)
         {
             int nullByte = FindNullTerminatorBytesUTF16(bytes, index);
             return nullByte > index ? Encoding.Unicode.GetString(bytes, index, nullByte - index) : null;
         }
 
+        /// <summary>
+        /// Reads up to a fixed number of ASCII characters from the byte array, stopping at the first null byte.
+        /// </summary>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static string ReadFixedStringASCII(this byte[] bytes, int index, int length)
+        {
+            return Encoding.ASCII.GetString(bytes, index, CalculateFixedStringLength(bytes, index, length));
+        }
+
+        /// <summary>
+        /// Reads up to a fixed number of UTF8 characters from the byte array, stopping at the first null byte.
+        /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static string ReadFixedStringUTF8(this byte[] bytes, int index, int length)
+        {
+            return Encoding.UTF8.GetString(bytes, index, CalculateFixedStringLength(bytes, index, length));
+        }
+
         private static int FindNullTerminatorByte(byte[] bytes, int index)
         {
             if (index >= bytes.Length)
@@ -102,7 +145,6 @@ namespace Xv2CoreLib
             throw new Exception("StringEx.FindNullTerminatorByte: null terminator byte not found");
         }
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static int FindNullTerminatorBytesUTF16(byte[] bytes, int index)
         {
             if (index >= bytes.Length)
@@ -120,6 +162,20 @@ namespace Xv2CoreLib
             }
 
             throw new Exception("StringEx.FindNullTerminatorByteUTF16: null terminator byte not found");
+        }
+
+        private static int CalculateFixedStringLength(byte[] bytes, int index, int maxSize)
+        {
+            if (index >= bytes.Length)
+                throw new ArgumentOutOfRangeException($"StringEx.FindNullTerminatorByte: index was out of range");
+
+            for (int i = index; i < index + maxSize; i++)
+            {
+                if (bytes[i] == 0)
+                    return i - index;
+            }
+
+            return maxSize;
         }
 
         public static string GetXmlStringUTF8(byte[] bytes)

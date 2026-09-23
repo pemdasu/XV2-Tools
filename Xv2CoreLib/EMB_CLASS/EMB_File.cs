@@ -1,13 +1,14 @@
 ﻿using CSharpImageLibrary;
 using System;
+using System.Buffers.Binary;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using System.Windows.Media.Imaging;
-using Xv2CoreLib.BEV;
 using Xv2CoreLib.EffectContainer;
+using Xv2CoreLib.EMZ;
 using Xv2CoreLib.HslColor;
 using Xv2CoreLib.Resource;
 using Xv2CoreLib.Resource.Image;
@@ -29,6 +30,9 @@ namespace Xv2CoreLib.EMB_CLASS
     public class EMB_File
     {
         internal const int SIGNATURE = 1112360227;
+        private const int EMB_HEADER_SIZE = 32;
+        private const int EMB_DATA_TABLE_SIZE = 8;
+        private const int DATA_BYTE_ALIGNMENT = 64;
         public const int MAX_EFFECT_TEXTURES = 128;
 
         public event EventHandler TexturesChanged;
@@ -44,7 +48,7 @@ namespace Xv2CoreLib.EMB_CLASS
 
         [YAXAttributeForClass]
         [YAXSerializeAs("I_08")]
-        public ushort I_08 { get; set; }
+        public ushort Version { get; set; }
         [YAXAttributeForClass]
         [YAXSerializeAs("I_10")]
         public ushort I_10 { get; set; }
@@ -52,85 +56,243 @@ namespace Xv2CoreLib.EMB_CLASS
         public bool UseFileNames { get; set; }
         [YAXAttributeForClass]
         [YAXSerializeAs("InstallMode")]
-        public InstallMode installMode { get; set; } = InstallMode.MatchName;
+        public InstallMode InstallMode { get; set; } = InstallMode.MatchName;
 
         [YAXCollection(YAXCollectionSerializationTypes.RecursiveWithNoContainingElement, EachElementName = "EmbEntry")]
-        public AsyncObservableCollection<EmbEntry> Entry { get; set; } = new AsyncObservableCollection<EmbEntry>();
+        public AsyncObservableCollection<EmbEntry> Entry { get; set; } = new();
 
-        public byte[] SaveToBytes()
+        #region LoadSave
+        public static EMB_File Load(string path)
         {
-            return new Deserializer(this).bytes.ToArray();
+            return Load(File.ReadAllBytes(path));
         }
 
-        public static EMB_File LoadEmb(byte[] bytes)
+        public static EMB_File Load(byte[] rawBytes)
         {
-            return new Parser(bytes).embFile;
-        }
+            EMB_File embFile = new EMB_File();
 
-        /// <summary>
-        /// Loads the specified emb file. It can be in either binary or xml format. 
-        /// 
-        /// If a file can not be found at the specified location, then a empty one will be returned.
-        /// </summary>
-        public static EMB_File LoadEmb(string path, bool returnEmptyIfNotValid = true)
-        {
-            if (Path.GetExtension(path) == ".emb")
+            if (rawBytes.Length < EMB_HEADER_SIZE)
+                return embFile;
+
+            //Check if input bytes are for a EMZ file -> if it is, load the EMZ as a EMB
+            if (BitConverter.ToInt32(rawBytes, 0) == EMZ_File.SIGNATURE)
             {
-                return new Xv2CoreLib.EMB_CLASS.Parser(path, false).GetEmbFile();
+                EMZ_File emz = EMZ_File.Load(rawBytes);
+                rawBytes = emz.Data;
+                embFile.IsEMZ = true;
+
+                if (rawBytes.Length < EMB_HEADER_SIZE)
+                    return embFile;
             }
-            else if (Path.GetExtension(path) == ".xml" && Path.GetExtension(Path.GetFileNameWithoutExtension(path)) == ".emb")
+
+            if(BitConverter.ToInt32(rawBytes, 0) != SIGNATURE)
             {
-                YAXSerializer serializer = new YAXSerializer(typeof(Xv2CoreLib.EMB_CLASS.EMB_File), YAXSerializationOptions.DontSerializeNullObjects);
-                return (Xv2CoreLib.EMB_CLASS.EMB_File)serializer.DeserializeFromFile(path);
+                throw new InvalidDataException("EMB_File.Load: EMB magic bytes not found. This is not a EMB file.");
             }
-            else
+
+            //Read header
+            embFile.Version = BitConverter.ToUInt16(rawBytes, 8);
+            embFile.I_10 = BitConverter.ToUInt16(rawBytes, 10);
+            int count = BitConverter.ToInt32(rawBytes, 12);
+            int offset = BitConverter.ToInt32(rawBytes, 24);
+            int namesTableOffset = BitConverter.ToInt32(rawBytes, 28);
+            embFile.UseFileNames = namesTableOffset != 0;
+
+            //Parse entries
+            for(int i = 0; i < count; i++)
             {
-                if (returnEmptyIfNotValid)
+                int dataTableOffset = offset + (i * EMB_DATA_TABLE_SIZE);
+
+                int dataOffset = BitConverter.ToInt32(rawBytes, dataTableOffset);
+                int dataSize = BitConverter.ToInt32(rawBytes, dataTableOffset + 4);
+
+                string name = null;
+
+                if (embFile.UseFileNames)
                 {
-                    return new EMB_File()
-                    {
-                        I_08 = 37568,
-                        I_10 = 0,
-                        UseFileNames = true,
-                        Entry = new AsyncObservableCollection<EmbEntry>()
-                    };
+                    int nameOffset = BitConverter.ToInt32(rawBytes, namesTableOffset + (i * 4));
+                    name = nameOffset > 0 ? rawBytes.ReadStringASCII(nameOffset) : null;
                 }
                 else
                 {
-                    throw new FileNotFoundException("An .emb could not be found at the specified location.");
+                    name = $"DATA{i:####000}";
                 }
 
-            }
-        }
 
-        public void SaveXmlEmbFile(string saveLocation)
-        {
-            if (Entry != null)
-            {
-                for (int i = 0; i < Entry.Count(); i++)
+                byte[] data = new byte[dataSize];
+
+                if (dataOffset > 0 && dataSize > 0)
+                    Buffer.BlockCopy(rawBytes, dataOffset + dataTableOffset, data, 0, dataSize);
+
+                embFile.Entry.Add(new EmbEntry()
                 {
-                    Entry[i].Index = i.ToString();
+                    ID = i,
+                    Name = name,
+                    Data = data
+                });
+            }
+
+            return embFile;
+        }
+
+        public byte[] Write()
+        {
+            CalculateFileSize(out int fileSize, out int nameOffsetTableStart, out int dataStart, out int namesStart);
+            byte[] buffer = new byte[fileSize];
+            Span<byte> span = buffer;
+
+            //Header
+            BinaryPrimitives.WriteInt32LittleEndian(span.Slice(0, 4), SIGNATURE);
+            BinaryPrimitives.WriteUInt16LittleEndian(span.Slice(4, 2), 65534);
+            BinaryPrimitives.WriteUInt16LittleEndian(span.Slice(6, 2), EMB_HEADER_SIZE);
+            BinaryPrimitives.WriteUInt16LittleEndian(span.Slice(8, 2), Version);
+            BinaryPrimitives.WriteUInt16LittleEndian(span.Slice(10, 2), I_10);
+            BinaryPrimitives.WriteUInt16LittleEndian(span.Slice(12, 2), (ushort)Entry.Count);
+            BinaryPrimitives.WriteInt32LittleEndian(span.Slice(24, 4), Entry.Count > 0 ? EMB_HEADER_SIZE : 0); //DataOffsetTable
+            BinaryPrimitives.WriteInt32LittleEndian(span.Slice(28, 4), UseFileNames ? nameOffsetTableStart : 0);
+
+            //Write data to buffer
+            int dataBufferPosition = dataStart;
+            int nameBufferPosition = namesStart;
+
+            for (int i = 0; i < Entry.Count; i++)
+            {
+                EmbEntry entry = Entry[i];
+
+                int dataOffsetTable = EMB_HEADER_SIZE + (EMB_DATA_TABLE_SIZE * i);
+                dataBufferPosition += Utils.CalculatePadding(dataBufferPosition, DATA_BYTE_ALIGNMENT);
+
+                //Write to data table
+                BinaryPrimitives.WriteInt32LittleEndian(span.Slice(dataOffsetTable, 4), dataBufferPosition - dataOffsetTable);
+                BinaryPrimitives.WriteInt32LittleEndian(span.Slice(dataOffsetTable + 4, 4), entry.Data?.Length ?? 0);
+
+                //Copy Data into buffer
+                if (entry.Data?.Length > 0)
+                {
+                    Buffer.BlockCopy(entry.Data, 0, buffer, dataBufferPosition, entry.Data.Length);
+                    dataBufferPosition += entry.Data.Length;
+                }
+
+                //Write names
+                if (UseFileNames)
+                {
+                    int nameTableOffset = nameOffsetTableStart + (4 * i);
+
+                    BinaryPrimitives.WriteInt32LittleEndian(span.Slice(nameTableOffset, 4), nameBufferPosition);
+
+                    if (entry.Name != null)
+                    {
+                        nameBufferPosition += buffer.WriteStringASCII(nameBufferPosition, entry.Name);
+                    }
+                    else
+                    {
+                        nameBufferPosition++;
+                    }
                 }
             }
 
-
-            if (!Directory.Exists(Path.GetDirectoryName(saveLocation)))
+            if (IsEMZ)
             {
-                Directory.CreateDirectory(Path.GetDirectoryName(saveLocation));
+                EMZ_File emz = new EMZ_File(buffer);
+                return emz.Write();
             }
-            YAXSerializer serializer = new YAXSerializer(typeof(EMB_File));
-            serializer.SerializeToFile(this, saveLocation);
+            else
+            {
+                return buffer;
+            }
         }
 
-        public void SaveBinaryEmbFile(string saveLocation)
+        private void CalculateFileSize(out int fileSize, out int nameOffsetTableStart, out int dataStart, out int namesStart)
         {
-            if (!Directory.Exists(Path.GetDirectoryName(saveLocation)))
+            //realCount = Entry.Max(x => x.ID) + 1;
+
+            //Calculate file size and section starts
+            fileSize = EMB_HEADER_SIZE;
+            fileSize += EMB_DATA_TABLE_SIZE * Entry.Count;
+            nameOffsetTableStart = fileSize;
+
+            if (UseFileNames)
             {
-                Directory.CreateDirectory(Path.GetDirectoryName(saveLocation));
+                fileSize += 4 * Entry.Count;
             }
 
-            new Deserializer(saveLocation, this);
+            fileSize += Utils.CalculatePadding(fileSize, DATA_BYTE_ALIGNMENT);
+            dataStart = fileSize;
+
+            for(int i = 0; i < Entry.Count; i++)
+            {
+                fileSize += Entry[i].Data.Length;
+
+                if (UseFileNames || i < Entry.Count - 1)
+                    fileSize += Utils.CalculatePadding(fileSize, DATA_BYTE_ALIGNMENT);
+            }
+
+            namesStart = fileSize;
+            if (UseFileNames)
+            {
+                for (int i = 0; i < Entry.Count; i++)
+                {
+                    if (!Entry[i].IsNull())
+                    {
+                        fileSize += Entry[i].Name != null ? Entry[i].Name.Length + 1 : 1;
+                    }
+                    else
+                    {
+                        //This is a dummy / null entry, so use the standard dummy name length (any name it has assigned to it will be ignored)
+                        fileSize += 12;
+                    }
+                }
+
+                //Space for the "dummy" entries. The names for these entries are always formated to have 11 characters (dummy_00000) so it is easy to calculate how much space is required
+                //fileSize += 12 * (realCount - Entry.Count);
+            }
         }
+
+        public void Save(string path)
+        {
+            File.WriteAllBytes(path, Write());
+        }
+
+        //XML
+        public static void CreateXml(string path)
+        {
+            EMB_File file = Load(File.ReadAllBytes(path));
+            file.SaveAsXml(path + ".xml");
+        }
+
+        public static void SaveXml(string xmlPath)
+        {
+            string path = string.Format("{0}/{1}", Path.GetDirectoryName(xmlPath), Path.GetFileNameWithoutExtension(xmlPath));
+            YAXSerializer serializer = new YAXSerializer(typeof(EMB_File), YAXSerializationOptions.DontSerializeNullObjects);
+            EMB_File embFile = (EMB_File)serializer.DeserializeFromFile(xmlPath);
+            embFile.Save(path);
+        }
+
+        public void SaveAsXml(string xmlPath)
+        {
+            YAXSerializer serializer = new YAXSerializer(typeof(EMB_File));
+            serializer.SerializeToFile(this, xmlPath);
+        }
+
+        //Indexing
+        public void TrimNullEntries()
+        {
+            for (int i = Entry.Count - 1; i >= 0; i--)
+            {
+                if (Entry[i].Name != null && !Entry[i].Name.StartsWith("dummy_"))
+                    break;
+
+                if (Entry[i].IsNull())
+                {
+                    Entry.RemoveAt(i);
+                }
+                else
+                {
+                    break;
+                }
+            }
+        }
+        #endregion
 
         public static EMB_File DefaultEmbFile(bool textureEmb)
         {
@@ -138,48 +300,20 @@ namespace Xv2CoreLib.EMB_CLASS
             {
                 return new EMB_File()
                 {
-                    I_08 = 1,
+                    Version = 1,
                     I_10 = 1,
-                    UseFileNames = true,
-                    Entry = new AsyncObservableCollection<EmbEntry>()
+                    UseFileNames = true
                 };
             }
             else
             {
                 return new EMB_File()
                 {
-                    I_08 = 37568,
+                    Version = 37568,
                     I_10 = 0,
-                    UseFileNames = true,
-                    Entry = new AsyncObservableCollection<EmbEntry>()
+                    UseFileNames = true
                 };
             }
-
-        }
-
-        public bool DoesFileExist(string file)
-        {
-            for (int i = 0; i < Entry.Count(); i++)
-            {
-                if (Entry[i].Name == file)
-                {
-                    return true;
-                }
-            }
-            return false;
-        }
-
-        public bool ContainsFileType(string extension)
-        {
-            foreach (var e in Entry)
-            {
-                if (Path.GetExtension(e.Name) == extension)
-                {
-                    return true;
-                }
-            }
-
-            return false;
         }
 
         public void AddEntry(byte[] data)
@@ -191,39 +325,6 @@ namespace Xv2CoreLib.EMB_CLASS
                 Data = data,
                 Index = Entry.Count.ToString()
             });
-        }
-
-        public int AddEntry(string name, byte[] bytes, bool overWrite, int expectedSize = -1)
-        {
-            if (expectedSize != -1 && Entry.Count != expectedSize)
-            {
-                throw new Exception(String.Format("The EEPK container and EMB are out of sync. Cannot add the entry."));
-            }
-
-            //Check if entry exists
-            for (int i = 0; i < Entry.Count; i++)
-            {
-                if (Entry[i].Name == name)
-                {
-                    if (overWrite)
-                    {
-                        Entry[i].Data = bytes;
-                    }
-                    return i;
-                }
-
-            }
-
-            //Add it
-            int newIdx = Entry.Count;
-            Entry.Add(new EmbEntry()
-            {
-                Index = newIdx.ToString(),
-                Name = name,
-                Data = bytes
-            });
-
-            return newIdx;
         }
 
         public EmbEntry GetEntry(int index)
@@ -238,7 +339,14 @@ namespace Xv2CoreLib.EMB_CLASS
 
         public EmbEntry GetEntryWithID(int id)
         {
-            return Entry.FirstOrDefault(x => x.ID == id);
+            for(int i = 0; i < Entry.Count; i++)
+            {
+                if (Entry[i].ID == id) 
+                    return Entry[i];
+            }
+
+            return null;
+            //return Entry.FirstOrDefault(x => x.ID == id);
         }
 
         public EmbEntry GetEntry(string name)
@@ -316,7 +424,7 @@ namespace Xv2CoreLib.EMB_CLASS
 
             while (NameUsed(newName))
             {
-                newName = String.Format("{0}_{1}{2}", nameWithoutExtension, num, extension);
+                newName = string.Format("{0}_{1}{2}", nameWithoutExtension, num, extension);
                 num++;
             }
 
@@ -373,28 +481,20 @@ namespace Xv2CoreLib.EMB_CLASS
 
         public void ValidateNames()
         {
-            List<string> names = new List<string>();
-
             for (int i = 0; i < Entry.Count; i++)
             {
-                if (names.Contains(Entry[i].Name))
+                if(Entry.Any(x => x != Entry[i] && x.Name == Entry[i].Name))
                 {
-                    //Name was used previously
                     Entry[i].Name = GetUnusedName(Entry[i].Name);
-                }
-                else
-                {
-                    //Name is unused
-                    names.Add(Entry[i].Name);
                 }
             }
         }
 
-        public int AddEntry(EmbEntry embEntry, string _idx, InstallMode _installMode)
+        public int AddEntry(EmbEntry embEntry, string idxStr, InstallMode installMode)
         {
-            if (_installMode == InstallMode.MatchIndex)
+            if (installMode == InstallMode.MatchIndex)
             {
-                int idx = int.Parse(_idx);
+                int idx = int.Parse(idxStr);
 
                 if (idx <= (Entry.Count - 1))
                 {
@@ -406,14 +506,14 @@ namespace Xv2CoreLib.EMB_CLASS
                     //Add empty entries until idx is reached
                     while ((Entry.Count - 1) < (idx - 1))
                     {
-                        Entry.Add(new EmbEntry() { Name = "dummy_" + (Entry.Count - 1).ToString(), Data = new byte[0] });
+                        Entry.Add(new EmbEntry() { Name = "dummy_" + (Entry.Count - 1).ToString(), Data = Array.Empty<byte>() });
                     }
 
                     Entry.Add(embEntry);
                     return Entry.Count - 1;
                 }
             }
-            else if (_installMode == InstallMode.MatchName)
+            else if (installMode == InstallMode.MatchName)
             {
                 for (int i = 0; i < Entry.Count; i++)
                 {
@@ -457,27 +557,8 @@ namespace Xv2CoreLib.EMB_CLASS
             }
         }
 
-        public void TrimNullEntries()
-        {
-            for (int i = Entry.Count - 1; i >= 0; i--)
-            {
-                if (!Entry[i].Name.Contains("dummy_"))
-                    break;
-
-                if (Entry[i].IsNull())
-                {
-                    Entry.RemoveAt(i);
-                }
-                else
-                {
-                    break;
-                }
-            }
-        }
-
         public List<RgbColor> GetUsedColors()
         {
-            if (Entry == null) Entry = AsyncObservableCollection<EmbEntry>.Create();
             List<RgbColor> colors = new List<RgbColor>();
 
             foreach (var entry in Entry)
@@ -674,7 +755,7 @@ namespace Xv2CoreLib.EMB_CLASS
             get
             {
                 //It is possible for the texture to not be DDS (and loads perfectly fine ingame), so we must check.
-                if (IsNull()) return 0;
+                if (IsNull() || Texture == null) return 0;
                 return (BitConverter.ToInt32(Data, 0) == DDS_SIGNATURE) ? BitConverter.ToInt32(Data, 16) : (int)Texture.Height;
             }
         }
@@ -683,7 +764,7 @@ namespace Xv2CoreLib.EMB_CLASS
         {
             get
             {
-                if (IsNull()) return 0;
+                if (IsNull() || Texture == null) return 0;
                 return (BitConverter.ToInt32(Data, 0) == DDS_SIGNATURE) ? BitConverter.ToInt32(Data, 12) : (int)Texture.Width;
             }
         }
@@ -769,9 +850,7 @@ namespace Xv2CoreLib.EMB_CLASS
 
         public bool IsNull()
         {
-            if (Data == null || Data.Length == 0 || Texture == null) return true;
-
-            return false;
+            return Data == null || Data.Length == 0;
         }
 
         public EmbEntry Clone()

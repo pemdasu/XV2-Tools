@@ -104,7 +104,7 @@ namespace Xv2CoreLib.EMZ
                     sds.IsEMZ = true;
                     return sds;
                 case EMB_File.SIGNATURE:
-                    EMB_File emb =  EMB_File.LoadEmb(Data);
+                    EMB_File emb =  EMB_File.Load(Data);
                     emb.IsEMZ = true;
                     return emb;
                 default:

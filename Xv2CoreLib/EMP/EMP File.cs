@@ -1091,7 +1091,7 @@ namespace Xv2CoreLib.EMP
                 FloatPart_02_01 = FloatPart_02_01.Clone(),
                 FloatPart_02_02 = FloatPart_02_02.Clone(),
                 FloatPart_03_01 = FloatPart_03_01.Clone(),
-                Name = Utils.CloneString(Name),
+                Name = Name,
                 Type_0 = _type0,
                 Type_1 = Type_1,
                 Type_Model = Type_Model.Clone(),

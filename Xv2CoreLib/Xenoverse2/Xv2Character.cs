@@ -691,7 +691,7 @@ namespace Xv2CoreLib
                     break;
                 case Type.EMB:
                 case Type.DYT_EMB:
-                    File = EMB_File.LoadEmb(path);
+                    File = EMB_File.Load(path);
                     break;
                 case Type.EMM:
                     File = EMM_File.LoadEmm(path);

@@ -893,7 +893,7 @@ namespace Xv2CoreLib.EMP_NEW
                 F_132 = F_132,
                 Position = Position.Copy(),
                 Position_Variance = Position_Variance.Copy(),
-                Name = Utils.CloneString(Name),
+                Name = Name,
                 KeyframedValues = KeyframedValues.Copy(),
                 Modifiers = Modifiers.Copy(),
                 EmissionNode = EmissionNode.Clone(),

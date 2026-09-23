@@ -680,7 +680,7 @@ namespace EEPK_Organiser.View
                             asset.AddFile(EMM_File.LoadEmm(bytes), newName, EffectFile.FileType.EMM, undos);
                             break;
                         case ".emb":
-                            asset.AddFile(EMB_File.LoadEmb(bytes), newName, EffectFile.FileType.EMB, undos);
+                            asset.AddFile(EMB_File.Load(bytes), newName, EffectFile.FileType.EMB, undos);
                             break;
                         case ".light.ema":
                             asset.AddFile(EMA_File.Load(bytes), newName, EffectFile.FileType.EMA, undos);
@@ -756,7 +756,7 @@ namespace EEPK_Organiser.View
                         }
 
                         EMD_File emd = EMD_File.Load(file);
-                        EMB_File emb = EMB_File.LoadEmb(embPath);
+                        EMB_File emb = EMB_File.Load(embPath);
                         EMM_File emm = EMM_File.LoadEmm(emmPath);
                         EMB_File dyt = null;
 
@@ -767,7 +767,7 @@ namespace EEPK_Organiser.View
                         if (File.Exists(dytPath))
                         {
                             hasDyt = true;
-                            dyt = EMB_File.LoadEmb(dytPath);
+                            dyt = EMB_File.Load(dytPath);
                             dytFiles.Add(dyt);
                         }
 
@@ -894,7 +894,7 @@ namespace EEPK_Organiser.View
                             break;
                         case EffectFile.FileType.EMB:
                             oldFile = SelectedEmoFile.EmbFile;
-                            SelectedEmoFile.EmbFile = EMB_File.LoadEmb(bytes);
+                            SelectedEmoFile.EmbFile = EMB_File.Load(bytes);
                             UndoManager.Instance.AddUndo(new UndoableProperty<EffectFile>(nameof(EffectFile.EmbFile), SelectedEmoFile, oldFile, SelectedEmoFile.EmbFile, "Replace File (EMO)"));
                             break;
                         default:
@@ -1174,7 +1174,7 @@ namespace EEPK_Organiser.View
                     switch (EffectFile.GetFileType(file))
                     {
                         case EffectFile.FileType.EMB:
-                            asset.AddFile(EMB_File.LoadEmb(file), newName, EffectFile.FileType.EMB);
+                            asset.AddFile(EMB_File.Load(file), newName, EffectFile.FileType.EMB);
                             break;
                         case EffectFile.FileType.EMM:
                             asset.AddFile(EMM_File.LoadEmm(file), newName, EffectFile.FileType.EMM);

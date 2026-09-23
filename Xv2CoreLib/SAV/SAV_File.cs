@@ -235,7 +235,7 @@ namespace Xv2CoreLib.SAV
             int ret = (int)(increasePerLevel * (level - 1));
 
 
-            return Utils.RoundOff(ret);
+            return ((int)Math.Round(ret / 10.0)) * 10;
         }
 
         public static int GetMaxLevel(int rarity)

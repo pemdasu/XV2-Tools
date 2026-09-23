@@ -60,9 +60,9 @@ namespace Xv2CoreLib.TSR
         public string DecodeString(ref int enc_pos)
         {
             int size = BitConverter.ToInt32(rawBytes, Position);
-            List<byte> encStringBytes = Utils.GetRangeFromByteArray(rawBytes, Position + 4, size).ToList(); //bytes.GetRange(Position + 4, size);
+            byte[] encStringBytes = rawBytes.GetRange(Position + 4, size);
 
-            if (enc_pos >= TSR_File.XOR_TABLE.Count())
+            if (enc_pos >= TSR_File.XOR_TABLE.Length)
                 enc_pos = 0;
 
             for (int i = 0; i < size; i++)
@@ -71,7 +71,7 @@ namespace Xv2CoreLib.TSR
                 encStringBytes[i] = b;
 
                 enc_pos++;
-                if (enc_pos == TSR_File.XOR_TABLE.Count())
+                if (enc_pos == TSR_File.XOR_TABLE.Length)
                     enc_pos = 0;
 
                 if (b == 0 && i == (size - 1))
@@ -80,7 +80,7 @@ namespace Xv2CoreLib.TSR
 
             Position += 4 + size;
 
-            return Utils.GetString(encStringBytes, 0, size);
+            return encStringBytes.ReadFixedStringASCII(0, size);
         }
     }
 }

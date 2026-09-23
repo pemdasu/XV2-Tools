@@ -72,9 +72,9 @@ namespace Xv2CoreLib.EEPK
                 int emmOffset = BitConverter.ToInt32(bytes, offset + 40);
                 int embTextureOffset = BitConverter.ToInt32(bytes, offset + 44);
 
-                assetContainer.ContainerEmbPath = embContainerOffset > 0 ? bytes.GetStringASCII(embContainerOffset + offset) : null;
-                assetContainer.MaterialEmmPath = emmOffset > 0 ? bytes.GetStringASCII(emmOffset + offset) : null;
-                assetContainer.TextureEmbPath = embTextureOffset > 0 ? bytes.GetStringASCII(embTextureOffset + offset) : null;
+                assetContainer.ContainerEmbPath = embContainerOffset > 0 ? bytes.ReadStringASCII(embContainerOffset + offset) : null;
+                assetContainer.MaterialEmmPath = emmOffset > 0 ? bytes.ReadStringASCII(emmOffset + offset) : null;
+                assetContainer.TextureEmbPath = embTextureOffset > 0 ? bytes.ReadStringASCII(embTextureOffset + offset) : null;
 
                 //Parse assets
                 for (int assetIdx = 0; assetIdx < assetCount; assetIdx++)
@@ -101,7 +101,7 @@ namespace Xv2CoreLib.EEPK
 
                             if(stringOffset > 0)
                             {
-                                asset.Files.Add(bytes.GetStringASCII(stringOffset + assetOffset));
+                                asset.Files.Add(bytes.ReadStringASCII(stringOffset + assetOffset));
                             }
                         }
                     }
@@ -183,7 +183,7 @@ namespace Xv2CoreLib.EEPK
 
                         if(eskOffset > 0)
                         {
-                            effectPart.ESK = bytes.GetStringASCII(effectPartOffset + eskOffset);
+                            effectPart.ESK = bytes.ReadStringASCII(effectPartOffset + eskOffset);
                         }
 
                         effectPartOffset += EEPK_EFFECT_PART_SIZE;

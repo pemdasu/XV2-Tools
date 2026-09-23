@@ -1045,7 +1045,7 @@ namespace LB_Mod_Installer.Installer
 #endif
             {
                 if(xmlFile == null)
-                    xmlFile = (isXml) ? zipManager.DeserializeXmlFromArchive_Ext<EMB_File>(GeneralInfo.GetPathInZipDataDir(xmlPath)) : EMB_File.LoadEmb(zipManager.GetFileFromArchive(GeneralInfo.GetPathInZipDataDir(xmlPath)));
+                    xmlFile = (isXml) ? zipManager.DeserializeXmlFromArchive_Ext<EMB_File>(GeneralInfo.GetPathInZipDataDir(xmlPath)) : EMB_File.Load(zipManager.GetFileFromArchive(GeneralInfo.GetPathInZipDataDir(xmlPath)));
                 
                 EMB_File binaryFile = (EMB_File)GetParsedFile<EMB_File>(installPath);
 
@@ -1055,18 +1055,18 @@ namespace LB_Mod_Installer.Installer
                 //Install entries
                 if (xmlFile.Entry != null)
                 {
-                    if (xmlFile.installMode == InstallMode.MatchName && !binaryFile.UseFileNames)
+                    if (xmlFile.InstallMode == InstallMode.MatchName && !binaryFile.UseFileNames)
                         throw new Exception("InstallMode.NameMatch not possible when UseFileNames is false.");
 
                     foreach (EmbEntry entry in xmlFile.Entry)
                     {
-                        int idx = binaryFile.AddEntry(entry, entry.Index, xmlFile.installMode);
+                        int idx = binaryFile.AddEntry(entry, entry.Index, xmlFile.InstallMode);
 
-                        if (xmlFile.installMode == InstallMode.MatchIndex)
+                        if (xmlFile.InstallMode == InstallMode.MatchIndex)
                         {
                             GeneralInfo.Tracker.AddID(installPath, Sections.EMB_Entry, idx.ToString());
                         }
-                        else if (xmlFile.installMode == InstallMode.MatchName)
+                        else if (xmlFile.InstallMode == InstallMode.MatchName)
                         {
                             GeneralInfo.Tracker.AddID(installPath, Sections.EMB_Entry, entry.Name);
 
@@ -2715,7 +2715,7 @@ namespace LB_Mod_Installer.Installer
                 case ".tnl":
                     return TNL_File.Load(fileIO.GetFileFromGame(path, raiseEx, onlyFromCpk));
                 case ".emb":
-                    return EMB_File.LoadEmb(fileIO.GetFileFromGame(path, raiseEx, onlyFromCpk));
+                    return EMB_File.Load(fileIO.GetFileFromGame(path, raiseEx, onlyFromCpk));
                 case ".qxd":
                     return QXD_File.Load(fileIO.GetFileFromGame(path, raiseEx, onlyFromCpk));
                 case ".eepk":
@@ -2844,7 +2844,7 @@ namespace LB_Mod_Installer.Installer
                 case ".tnl":
                     return ((TNL_File)data).SaveToBytes();
                 case ".emb":
-                    return ((EMB_File)data).SaveToBytes();
+                    return ((EMB_File)data).Write();
                 case ".qxd":
                     return ((QXD_File)data).SaveToBytes();
                 case ".obl":
@@ -2915,7 +2915,7 @@ namespace LB_Mod_Installer.Installer
                 case ".emz":
                     if(data is EMB_File emb)
                     {
-                        return emb.SaveToBytes();
+                        return emb.Write();
                     }
                     else if(data is SDS_File sds)
                     {

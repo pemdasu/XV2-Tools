@@ -9,6 +9,8 @@ using YAXLib;
 using Xv2CoreLib.Resource.UndoRedo;
 using System.Reflection;
 using System.Runtime.CompilerServices;
+using System.Buffers.Binary;
+using Xv2CoreLib.Resource;
 
 namespace Xv2CoreLib
 {
@@ -413,142 +415,21 @@ namespace Xv2CoreLib
             return (value) ? "True" : "False";
         }
 
-        public static string GetStringUtf(List<byte> bytes, int offset)
-        {
-            return StringEx.GetString(bytes, offset, true, StringEx.EncodingType.UTF8);
-        }
-
         public static string GetStringUtf(byte[] bytes, int offset)
         {
             return StringEx.GetString(bytes, offset, false, StringEx.EncodingType.UTF8);
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static string GetString(List<byte> bytes, int offset, int size)
         {
             return StringEx.GetString(bytes, offset, false, StringEx.EncodingType.ASCII, size);
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static string GetString(List<byte> bytes, int offset)
         {
             return StringEx.GetString(bytes, offset, true, StringEx.EncodingType.ASCII);
-        }
-
-        /// <summary>
-        /// Retreives a string from the given byte array and offset. Will have a set size instead of terminating at the first null ASCII value. Support unicode strings. [OLD]
-        /// </summary>
-        public static string GetString(List<byte> bytes, int offset, int size, bool unicode)
-        {
-            if (size == 1 && unicode == false)
-            {
-                return "";
-            }
-            if (size == 2 && unicode == true)
-            {
-                return "";
-            }
-
-            if (offset + size > bytes.Count())
-            {
-                throw new Exception("ERROR in GetString: given offset + size is greater than size of given list. Load failed.");
-            }
-
-            List<byte> stringList = bytes.GetRange(offset, size);
-
-            if (unicode == true)
-            {
-                stringList.RemoveRange(size - 2, 2);
-                return Encoding.Unicode.GetString(stringList.ToArray());
-            }
-            else
-            {
-                return Encoding.ASCII.GetString(stringList.ToArray());
-            }
-        }
-
-        /// <summary>
-        /// EEPK File Only: Return the number associated with a file type for an Asset Entry
-        /// </summary>
-        public static string GetEepkFileTypeNumber(string input)
-        {
-            //todo: rewrite eepk parser and remove them mess
-            string extension = Path.GetExtension(input);
-            switch (extension)
-            {
-                case ".emo":
-                    return 0.ToString();
-                case ".emm":
-                    return 1.ToString();
-                case ".emb":
-                    return 2.ToString();
-                case ".ema":
-                    return 3.ToString();
-                case ".emp":
-                    return 4.ToString();
-                case ".etr":
-                    return 5.ToString();
-                case ".ecf":
-                    return 7.ToString();
-                default:
-                    throw new Exception("Undefined file format reference encountered (" + extension + ")\nDeserialization failed.");
-            }
-        }
-
-
-        /// <summary>
-        /// Resizes an array by adding elements to the end or removing them.
-        /// </summary>
-        /// <returns></returns>
-        public static byte[] ResizeArray(byte[] array, int newSize)
-        {
-            if (newSize == array.Length) return array;
-
-            List<byte> bytes = array.ToList();
-
-            if (newSize > array.Length)
-            {
-                //Add elements
-                for (int i = 0; i < newSize - array.Length; i++)
-                {
-                    bytes.Add(0);
-                }
-            }
-            else
-            {
-                //Remove them
-                bytes.RemoveRange(newSize, array.Length - newSize);
-            }
-
-            if (bytes.Count != newSize) throw new InvalidDataException("ResizeArray: bytes.Count != newSize");
-
-            return bytes.ToArray();
-        }
-
-        /// <summary>
-        /// Resizes an array by adding elements to the end or removing them.
-        /// </summary>
-        /// <returns></returns>
-        public static List<byte> ResizeArray(List<byte> array, int newSize)
-        {
-            if (newSize == array.Count) return array;
-            int originalSize = array.Count;
-
-            if (newSize > originalSize)
-            {
-                //Add elements
-                for (int i = 0; i < newSize - originalSize; i++)
-                {
-                    array.Add(0);
-                }
-            }
-            else
-            {
-                //Remove them
-                array.RemoveRange(newSize, originalSize - newSize);
-            }
-
-            if (array.Count != newSize) throw new InvalidDataException("ResizeArray: bytes.Count != newSize");
-
-            return array;
         }
 
         public static double BytesToKilobytes(int bytes)
@@ -577,48 +458,14 @@ namespace Xv2CoreLib
             return BitConverter.ToInt32(bytes, 0);
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static int CalculatePadding(int fileSize, int byteAlignment)
         {
-            if (byteAlignment <= 0)
-                throw new ArgumentException("CalculatePadding: Alignment must be greater than zero.", nameof(byteAlignment));
+            //if (byteAlignment <= 0)
+            //    throw new ArgumentException("CalculatePadding: Alignment must be greater than zero.", nameof(byteAlignment));
 
             int remainder = (fileSize % byteAlignment);
             return remainder == 0 ? 0 : byteAlignment - remainder;
-        }
-
-        public static int CalculatePaddingOld(int fileSize, int byteAlignment)
-        {
-            //return (byteAlignment - (fileSize % byteAlignment)) % byteAlignment;
-
-            //Using floats results in overflows when dealing with large files
-            double f_offset = fileSize;
-            int padding = 0;
-
-            while (f_offset / byteAlignment != Math.Floor(f_offset / byteAlignment))
-            {
-                f_offset += 1d;
-                padding += 1;
-            }
-            return (int)padding;
-
-        }
-
-        public static byte[] PadBytes(byte[] bytes, int minSize)
-        {
-
-            if (bytes.Length >= minSize) return bytes;
-
-            List<byte> _bytes = bytes.ToList();
-
-            if (_bytes.Count() < minSize)
-            {
-                while (_bytes.Count() < minSize)
-                {
-                    _bytes.Add(0);
-                }
-            }
-
-            return _bytes.ToArray();
         }
 
         public static bool CompareArray(byte[] array1, byte[] array2)
@@ -634,162 +481,6 @@ namespace Xv2CoreLib
             }
 
             return true;
-        }
-
-        public static bool CompareList(List<byte> array1, List<byte> array2)
-        {
-            if (array1 == null && array2 == null) return true;
-            if (array1 == null && array2 != null) return false;
-            if (array2 == null && array1 != null) return false;
-            if (array1.Count != array2.Count) return false;
-
-            for (int i = 0; i < array1.Count; i++)
-            {
-                if (array1[i] != array2[i]) return false;
-            }
-
-            return true;
-        }
-
-
-        public static byte[] GetRangeFromByteArray(byte[] bytes, int index, int count)
-        {
-            byte[] ret = new byte[count];
-
-            for (int i = index; i < index + count; i++)
-            {
-                ret[i - index] = bytes[i];
-            }
-
-            return ret;
-        }
-
-        public static int RoundOff(int i)
-        {
-            return ((int)Math.Round(i / 10.0)) * 10;
-        }
-
-        public static int GetSetBitCount(long lValue)
-        {
-            int iCount = 0;
-
-            //Loop the value while there are still bits
-            while (lValue != 0)
-            {
-                //Remove the end bit
-                lValue = lValue & (lValue - 1);
-
-                //Increment the count
-                iCount++;
-            }
-
-            //Return the count
-            return iCount;
-        }
-
-        /// <summary>
-        /// Searches all common directories for a Xenoverse 2 installation.
-        /// </summary>
-        /// <returns></returns>
-        public static string FindGameDirectory()
-        {
-            List<string> alphabet = new List<string>() { "A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "O", "M", "N", "O", "P", "Q", "R", "S", "T", "U", "V", "W", "X", "Y", "Z" };
-
-            bool found = false;
-            try
-            {
-                string GameDirectoryPath = String.Empty;
-
-                if (File.Exists("DB Xenoverse 2/bin/DBXV2.exe"))
-                {
-                    //At same level as DB Xenoverse 2 folder
-                    GameDirectoryPath = System.IO.Path.GetFullPath("DB Xenoverse 2");
-                    found = true;
-                }
-                else if (File.Exists("../bin/DBXV2.exe") && found == false)
-                {
-                    //In data folder
-                    GameDirectoryPath = System.IO.Path.GetFullPath("..");
-                    found = true;
-                }
-                else if (File.Exists("bin/DBXV2.exe") && found == false)
-                {
-                    //In DB Xenoverse 2 root directory
-                    GameDirectoryPath = Directory.GetCurrentDirectory();
-                    found = true;
-                }
-                else if (found == false)
-                {
-                    foreach (string letter in alphabet)
-                    {
-                        string _path = String.Format(@"{0}:{1}Program Files (x86){1}Steam{1}steamapps{1}common{1}DB Xenoverse 2", letter, System.IO.Path.DirectorySeparatorChar);
-                        if (File.Exists(String.Format("{0}{1}bin{1}DBXV2.exe", _path, System.IO.Path.DirectorySeparatorChar)) && found == false)
-                        {
-                            GameDirectoryPath = _path;
-                            found = true;
-                        }
-                    }
-
-                    if (found == false)
-                    {
-                        foreach (string letter in alphabet)
-                        {
-                            string _path = String.Format(@"{0}:{1}Program Files{1}Steam{1}steamapps{1}common{1}DB Xenoverse 2", letter, System.IO.Path.DirectorySeparatorChar);
-                            if (File.Exists(String.Format("{0}{1}bin{1}DBXV2.exe", _path, System.IO.Path.DirectorySeparatorChar)) && found == false)
-                            {
-                                GameDirectoryPath = _path;
-                                found = true;
-                            }
-                        }
-                    }
-
-                    if (found == false)
-                    {
-                        foreach (string letter in alphabet)
-                        {
-                            string _path = String.Format(@"{0}:{1}Games{1}Steam{1}steamapps{1}common{1}DB Xenoverse 2", letter, System.IO.Path.DirectorySeparatorChar);
-                            if (File.Exists(String.Format("{0}{1}bin{1}DBXV2.exe", _path, System.IO.Path.DirectorySeparatorChar)) && found == false)
-                            {
-                                GameDirectoryPath = _path;
-                                found = true;
-                            }
-                        }
-                    }
-
-
-                    if (found == false)
-                    {
-                        foreach (string letter in alphabet)
-                        {
-                            string _path = String.Format(@"{0}:{1}DB Xenoverse 2", letter, System.IO.Path.DirectorySeparatorChar);
-                            if (File.Exists(String.Format("{0}{1}bin{1}DBXV2.exe", _path, System.IO.Path.DirectorySeparatorChar)) && found == false)
-                            {
-                                GameDirectoryPath = _path;
-                                found = true;
-                            }
-                        }
-                    }
-
-                    if (found == false)
-                    {
-                        foreach (string letter in alphabet)
-                        {
-                            string _path = String.Format(@"{0}:{1}Steam{1}steamapps{1}common{1}DB Xenoverse 2", letter, System.IO.Path.DirectorySeparatorChar);
-                            if (File.Exists(String.Format("{0}{1}bin{1}DBXV2.exe", _path, System.IO.Path.DirectorySeparatorChar)) && found == false)
-                            {
-                                GameDirectoryPath = _path;
-                                found = true;
-                            }
-                        }
-                    }
-                }
-                return GameDirectoryPath;
-            }
-            catch
-            {
-                return null;
-            }
-
         }
 
         public static List<byte> GetStringBytes(string str, int minSize = -1, int maxSize = -1)
@@ -823,21 +514,6 @@ namespace Xv2CoreLib
             }
 
             return strBytes;
-        }
-
-        public static string CloneString(string str)
-        {
-            return String.Format("{0}", str);
-        }
-
-        public static List<int> AddUnique(List<int> _list, int value)
-        {
-            if (_list.IndexOf(value) == -1)
-            {
-                _list.Add(value);
-            }
-
-            return _list;
         }
 
         public static string CleanPath(string path)
@@ -876,8 +552,6 @@ namespace Xv2CoreLib
             return bytes;
         }
 
-
-
         /// <summary>
         /// Replaces data starting at a certain index of a list with that of another list. The total amount of data replaced depends on the size of the inserted list.
         /// </summary>
@@ -910,27 +584,6 @@ namespace Xv2CoreLib
                 list[i + startIndex] = insertedData[i];
             }
             return list;
-        }
-
-
-        /// <summary>
-        /// EEPK File: For getting the number of FILES in an Asset Entry, by counting backwards how many NULLS are in the array, and subtracting them from the count. The count stops on the first file name it reaches (the last one). NULLS inbetween the file names are preserved in the count.
-        /// </summary>
-        public static int GetTotalNonNullValues(List<string> value)
-        {
-            int actualCountOfFiles = value.Count();
-            for (int i = value.Count(); i > 0; i--)
-            {
-                if (value[i - 1] == "NULL")
-                {
-                    actualCountOfFiles--;
-                }
-                else
-                {
-                    break;
-                }
-            }
-            return actualCountOfFiles;
         }
 
     }
@@ -1035,163 +688,184 @@ namespace Xv2CoreLib
         /// <summary>
         /// Converts a boolean value into a byte
         /// </summary>=
-        public static byte GetBytes(bool _bool)
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static byte GetBytes(bool value)
         {
-            if (_bool == true)
-            {
-                return 1;
-            }
-            else
-            {
-                return 0;
-            }
+            return value ? (byte)1 : (byte)0;
         }
 
-        public static byte[] GetBytes_Bool32(bool _bool)
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static byte[] GetBytes_Bool32(bool value)
         {
-            if (_bool == true)
-            {
-                return new byte[4] { 1, 0, 0, 0 };
-            }
-            else
-            {
-                return new byte[4] { 0, 0, 0, 0 };
-            }
+            return new byte[4] { value ? (byte)1 : (byte)0, 0, 0, 0 };
         }
 
-        public static byte[] GetBytes(int[] intArray, int fixedSize = -1)
+        public static byte[] GetBytes(ushort[] srcArray, int fixedSize = -1)
         {
-            if (intArray == null)
-                return new byte[4 * fixedSize];
+            if (fixedSize < -1)
+                throw new ArgumentOutOfRangeException(nameof(fixedSize));
 
-            if (fixedSize == -1)
-                fixedSize = intArray.Length;
+            if (srcArray == null && fixedSize == -1)
+                throw new ArgumentNullException(nameof(srcArray), $"{nameof(srcArray)} cannot be null with fixedSize = -1.");
 
-            List<byte> bytes = new List<byte>();
+            int arraySize = fixedSize == -1 ? srcArray.Length : fixedSize;
 
-            for (int i = 0; i < intArray.Length; i++)
+            byte[] buffer = new byte[arraySize * sizeof(ushort)];
+            Span<byte> span = buffer;
+
+            for (int i = 0; i < arraySize; i++)
             {
-                if (i == fixedSize) break;
-                bytes.AddRange(BitConverter.GetBytes(intArray[i]));
-            }
-
-            if (intArray.Length < fixedSize)
-            {
-                for (int i = 0; i < fixedSize - intArray.Length; i++)
+                if (srcArray != null && i < srcArray.Length)
                 {
-                    bytes.AddRange(BitConverter.GetBytes((int)0));
+                    BinaryPrimitives.WriteUInt16LittleEndian(span.Slice(i * sizeof(ushort), sizeof(ushort)), srcArray[i]);
                 }
             }
 
-            return bytes.ToArray();
+            return buffer;
         }
 
-        public static byte[] GetBytes(float[] floatArray, int fixedSize = -1)
+        public static byte[] GetBytes(short[] srcArray, int fixedSize = -1)
         {
-            if (floatArray == null)
-                return new byte[4 * fixedSize];
+            if (fixedSize < -1)
+                throw new ArgumentOutOfRangeException(nameof(fixedSize));
 
-            if (fixedSize == -1)
-                fixedSize = floatArray.Length;
+            if (srcArray == null && fixedSize == -1)
+                throw new ArgumentNullException(nameof(srcArray), $"{nameof(srcArray)} cannot be null with fixedSize = -1.");
 
-            List<byte> bytes = new List<byte>();
+            int arraySize = fixedSize == -1 ? srcArray.Length : fixedSize;
 
-            for (int i = 0; i < floatArray.Length; i++)
+            byte[] buffer = new byte[arraySize * sizeof(short)];
+            Span<byte> span = buffer;
+
+            for (int i = 0; i < arraySize; i++)
             {
-                if (i == fixedSize) break;
-                bytes.AddRange(BitConverter.GetBytes(floatArray[i]));
-            }
-
-            if (floatArray.Length < fixedSize)
-            {
-                for (int i = 0; i < fixedSize - floatArray.Length; i++)
+                if (srcArray != null && i < srcArray.Length)
                 {
-                    bytes.AddRange(BitConverter.GetBytes((int)0));
+                    BinaryPrimitives.WriteInt16LittleEndian(span.Slice(i * sizeof(short), sizeof(short)), srcArray[i]);
                 }
             }
 
-            return bytes.ToArray();
+            return buffer;
         }
 
-        public static byte[] GetBytes(short[] intArray, int fixedSize = -1)
+        public static byte[] GetBytes(int[] srcArray, int fixedSize = -1)
         {
-            if (intArray == null)
-                return new byte[2 * fixedSize];
+            if (fixedSize < -1)
+                throw new ArgumentOutOfRangeException(nameof(fixedSize));
 
-            if (fixedSize == -1)
-                fixedSize = intArray.Length;
+            if (srcArray == null && fixedSize == -1)
+                throw new ArgumentNullException(nameof(srcArray), $"{nameof(srcArray)} cannot be null with fixedSize = -1.");
 
-            List<byte> bytes = new List<byte>();
+            int arraySize = fixedSize == -1 ? srcArray.Length : fixedSize;
 
-            for (int i = 0; i < intArray.Length; i++)
+            byte[] buffer = new byte[arraySize * sizeof(int)];
+            Span<byte> span = buffer;
+
+            for (int i = 0; i < arraySize; i++)
             {
-                if (i == fixedSize) break;
-                bytes.AddRange(BitConverter.GetBytes(intArray[i]));
-            }
-
-            if (intArray.Length < fixedSize)
-            {
-                for (int i = 0; i < fixedSize - intArray.Length; i++)
+                if(srcArray != null && i < srcArray.Length)
                 {
-                    bytes.AddRange(BitConverter.GetBytes((ushort)0));
+                    BinaryPrimitives.WriteInt32LittleEndian(span.Slice(i * sizeof(int), sizeof(int)), srcArray[i]);
                 }
             }
 
-            return bytes.ToArray();
+            return buffer;
         }
 
-        public static byte[] GetBytes(ushort[] intArray, int fixedSize = -1)
+        public static byte[] GetBytes(uint[] srcArray, int fixedSize = -1)
         {
-            if (intArray == null)
-                return new byte[2 * fixedSize];
+            if (fixedSize < -1)
+                throw new ArgumentOutOfRangeException(nameof(fixedSize));
 
-            if (fixedSize == -1)
-                fixedSize = intArray.Length;
+            if (srcArray == null && fixedSize == -1)
+                throw new ArgumentNullException(nameof(srcArray), $"{nameof(srcArray)} cannot be null with fixedSize = -1.");
 
-            List<byte> bytes = new List<byte>();
+            int arraySize = fixedSize == -1 ? srcArray.Length : fixedSize;
 
-            for (int i = 0; i < intArray.Length; i++)
+            byte[] buffer = new byte[arraySize * sizeof(uint)];
+            Span<byte> span = buffer;
+
+            for (int i = 0; i < arraySize; i++)
             {
-                if (i == fixedSize) break;
-                bytes.AddRange(BitConverter.GetBytes(intArray[i]));
-            }
-
-            if (intArray.Length < fixedSize)
-            {
-                for (int i = 0; i < fixedSize - intArray.Length; i++)
+                if (srcArray != null && i < srcArray.Length)
                 {
-                    bytes.AddRange(BitConverter.GetBytes((ushort)0));
+                    BinaryPrimitives.WriteUInt32LittleEndian(span.Slice(i * sizeof(uint), sizeof(uint)), srcArray[i]);
                 }
             }
 
-            return bytes.ToArray();
+            return buffer;
         }
-        
-        public static byte[] GetBytes(ulong[] intArray, int fixedSize = -1)
+
+        public static byte[] GetBytes(ulong[] srcArray, int fixedSize = -1)
         {
-            if (intArray == null)
-                return new byte[8 * fixedSize];
+            if (fixedSize < -1)
+                throw new ArgumentOutOfRangeException(nameof(fixedSize));
 
-            if (fixedSize == -1)
-                fixedSize = intArray.Length;
+            if (srcArray == null && fixedSize == -1)
+                throw new ArgumentNullException(nameof(srcArray), $"{nameof(srcArray)} cannot be null with fixedSize = -1.");
 
-            List<byte> bytes = new List<byte>();
+            int arraySize = fixedSize == -1 ? srcArray.Length : fixedSize;
 
-            for (int i = 0; i < intArray.Length; i++)
+            byte[] buffer = new byte[arraySize * sizeof(ulong)];
+            Span<byte> span = buffer;
+
+            for (int i = 0; i < arraySize; i++)
             {
-                if (i == fixedSize) break;
-                bytes.AddRange(BitConverter.GetBytes(intArray[i]));
-            }
-
-            if (intArray.Length < fixedSize)
-            {
-                for (int i = 0; i < fixedSize - intArray.Length; i++)
+                if (srcArray != null && i < srcArray.Length)
                 {
-                    bytes.AddRange(BitConverter.GetBytes((ulong)0));
+                    BinaryPrimitives.WriteUInt64LittleEndian(span.Slice(i * sizeof(ulong), sizeof(ulong)), srcArray[i]);
                 }
             }
 
-            return bytes.ToArray();
+            return buffer;
+        }
+
+        public static byte[] GetBytes(long[] srcArray, int fixedSize = -1)
+        {
+            if (fixedSize < -1)
+                throw new ArgumentOutOfRangeException(nameof(fixedSize));
+
+            if (srcArray == null && fixedSize == -1)
+                throw new ArgumentNullException(nameof(srcArray), $"{nameof(srcArray)} cannot be null with fixedSize = -1.");
+
+            int arraySize = fixedSize == -1 ? srcArray.Length : fixedSize;
+
+            byte[] buffer = new byte[arraySize * sizeof(long)];
+            Span<byte> span = buffer;
+
+            for (int i = 0; i < arraySize; i++)
+            {
+                if (srcArray != null && i < srcArray.Length)
+                {
+                    BinaryPrimitives.WriteInt64LittleEndian(span.Slice(i * sizeof(long), sizeof(long)), srcArray[i]);
+                }
+            }
+
+            return buffer;
+        }
+
+        public static byte[] GetBytes(float[] srcArray, int fixedSize = -1)
+        {
+            if (fixedSize < -1)
+                throw new ArgumentOutOfRangeException(nameof(fixedSize));
+
+            if (srcArray == null && fixedSize == -1)
+                throw new ArgumentNullException(nameof(srcArray), $"{nameof(srcArray)} cannot be null with fixedSize = -1.");
+
+            int arraySize = fixedSize == -1 ? srcArray.Length : fixedSize;
+
+            byte[] buffer = new byte[arraySize * sizeof(float)];
+            Span<byte> span = buffer;
+
+            for (int i = 0; i < arraySize; i++)
+            {
+                if (srcArray != null && i < srcArray.Length)
+                {
+                    BinaryPrimitivesHelper.WriteSingleLittleEndian(span.Slice(i * sizeof(float), sizeof(float)), srcArray[i]);
+                }
+            }
+
+            return buffer;
         }
 
     }

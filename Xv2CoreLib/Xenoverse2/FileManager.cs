@@ -338,7 +338,7 @@ namespace Xv2CoreLib
                         file = NSK_File.Load(GetBytesFromGame(path, onlyFromCpk, raiseEx));
                         break;
                     case ".emb":
-                        file = EMB_File.LoadEmb(GetBytesFromGame(path, onlyFromCpk, raiseEx));
+                        file = EMB_File.Load(GetBytesFromGame(path, onlyFromCpk, raiseEx));
                         break;
                     case ".emm":
                         file = EMM_File.LoadEmm(GetBytesFromGame(path, onlyFromCpk, raiseEx));
@@ -450,7 +450,7 @@ namespace Xv2CoreLib
                 case ".psc":
                     return ((PSC_File)data).SaveToBytes();
                 case ".emb":
-                    return ((EMB_File)data).SaveToBytes();
+                    return ((EMB_File)data).Write();
                 case ".emd":
                     return ((EMD_File)data).SaveToBytes();
                 case ".nsk":
