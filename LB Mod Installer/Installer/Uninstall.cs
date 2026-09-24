@@ -1060,7 +1060,7 @@ namespace LB_Mod_Installer.Installer
 
                     }
 
-                    binaryFile.TrimNullEntries();
+                    //binaryFile.TrimNullEntries();
                 }
             }
             catch (Exception ex)

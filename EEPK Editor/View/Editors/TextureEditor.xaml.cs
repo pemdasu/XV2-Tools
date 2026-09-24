@@ -8,14 +8,15 @@ using MahApps.Metro.Controls;
 using Microsoft.Win32;
 using System;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.IO;
 using System.Linq;
 using System.Text;
 using System.Windows;
+using System.Windows.Controls;
 using System.Windows.Data;
 using Xv2CoreLib.EffectContainer;
 using Xv2CoreLib.EMB_CLASS;
-using Xv2CoreLib.EMM;
 using Xv2CoreLib.EMP_NEW;
 using Xv2CoreLib.Resource.UndoRedo;
 
@@ -155,14 +156,13 @@ namespace EEPK_Organiser.View
         }
         public int SelectedTextureID
         {
-            get => _selectedTexture != null ? _selectedTexture.ID : -1;
+            get => _selectedTexture?.ID ?? 0;
             set
             {
-                if (value != _selectedTexture.ID)
-                {
-                    SetID(value);
-                    NotifyPropertyChanged(nameof(SelectedTextureID));
-                }
+                if (_selectedTexture == null || _selectedTexture.ID == value) return;
+
+                SetID(value);
+                NotifyPropertyChanged(nameof(SelectedTextureID));
             }
         }
 
@@ -212,9 +212,14 @@ namespace EEPK_Organiser.View
         private void RefreshViewTextures()
         {
             if (_viewTextures == null)
+            {
                 _viewTextures = new ListCollectionView(EmbFile.Entry.Binding);
+                _viewTextures.Filter = new Predicate<object>(SearchFilterCheck);
+            }
 
-            _viewTextures.Filter = new Predicate<object>(SearchFilterCheck);
+            _viewTextures.CommitEdit();
+            _viewTextures.SortDescriptions.Clear();
+            _viewTextures.SortDescriptions.Add(new SortDescription(nameof(EmbEntry.ID), ListSortDirection.Ascending));
             NotifyPropertyChanged(nameof(ViewTextures));
         }
 
@@ -250,6 +255,11 @@ namespace EEPK_Organiser.View
             Loaded += TextureEditor_Loaded;
         }
 
+        private void EmbFile_TexturesChanged(object sender, EventArgs e)
+        {
+            RefreshViewTextures();
+        }
+
         private void TextureEditor_Loaded(object sender, RoutedEventArgs e)
         {
             NotifyPropertyChanged(nameof(ContainerVisiblility));
@@ -261,6 +271,7 @@ namespace EEPK_Organiser.View
             nameColumn.Visibility = EmbFile.UseFileNames ? Visibility.Visible : Visibility.Collapsed;
             nameNullColumn.Visibility = EmbFile.UseFileNames ? Visibility.Collapsed : Visibility.Visible;
             idColumn.Visibility = InverseContainerVisiblility;
+            EmbFile.TexturesChanged += EmbFile_TexturesChanged;
         }
 
         private void Instance_UndoOrRedoCalled(object sender, UndoEventRaisedEventArgs e)
@@ -276,6 +287,7 @@ namespace EEPK_Organiser.View
         public void Dispose()
         {
             UndoManager.Instance.UndoOrRedoCalled -= Instance_UndoOrRedoCalled;
+            EmbFile.TexturesChanged -= EmbFile_TexturesChanged;
         }
 
         public void SetName(string newName)
@@ -283,27 +295,30 @@ namespace EEPK_Organiser.View
             if(_selectedTexture != null)
             {
                 string oldName = Path.GetFileNameWithoutExtension(_selectedTexture.Name);
+                string newNameWithExtension = newName.Contains(".") ? newName : $"{newName}{Path.GetExtension(_selectedTexture.Name)}";
 
-                if(newName != oldName)
+                if (newNameWithExtension != oldName)
                 {
-                    string fullNewName = $"{newName}{Path.GetExtension(_selectedTexture.Name)}";
+                    //string fullNewName = $"{newName}{Path.GetExtension(_selectedTexture.Name)}";
                     string fullOldName = _selectedTexture.Name;
 
-                    if(EmbFile.Entry.Any(x => x.Name == fullNewName && x != SelectedTexture))
+                    if(EmbFile.Entry.Any(x => x.Name == newNameWithExtension && x != SelectedTexture))
                     {
-                        MessagePrompt.Show($"Another texture is already named \"{fullNewName}\".", "Name Already Used", MessagePromptButtons.OK, MessagePromptIcon.Error);
+                        MessagePrompt.Show($"Another texture is already named \"{newNameWithExtension}\".", "Name Already Used", MessagePromptButtons.OK, MessagePromptIcon.Error);
                         return;
                     }
 
-                    _selectedTexture.Name = fullNewName;
+                    _selectedTexture.Name = newNameWithExtension;
 
-                    UndoManager.Instance.AddUndo(new UndoablePropertyGeneric(nameof(_selectedTexture.Name), _selectedTexture, fullOldName, fullNewName, "Texture Name"));
+                    UndoManager.Instance.AddUndo(new UndoablePropertyGeneric(nameof(_selectedTexture.Name), _selectedTexture, fullOldName, newNameWithExtension, "Texture Name"));
                 }
             }
         }
 
         public void SetID(int newId)
         {
+            if (IsForContainer) return; 
+
             if(SelectedTexture != null)
             {
                 if(EmbFile.Entry.Any(x => x.ID == newId && x != SelectedTexture))
@@ -322,7 +337,7 @@ namespace EEPK_Organiser.View
                 EmbFile.TriggerTexturesChanged();
             }
         }
-        
+
 
         #region TextureCommands
         [RelayCommand]
@@ -389,9 +404,7 @@ namespace EEPK_Organiser.View
             if (added > 0)
             {
                 undos.Add(new UndoActionDelegate(EmbFile, nameof(EmbFile.TriggerTexturesChanged), true));
-                undos.Add(new UndoActionDelegate(EmbFile, nameof(EmbFile.UpdateEntryIndex), true));
                 EmbFile.TriggerTexturesChanged();
-                EmbFile.UpdateEntryIndex();
 
                 UndoManager.Instance.AddUndo(new CompositeUndo(undos, added > 1 ? "Add Textures" : "Add Texture"));
             }
@@ -483,9 +496,7 @@ namespace EEPK_Organiser.View
                 }
 
                 undos.Add(new UndoActionDelegate(EmbFile, nameof(EmbFile.TriggerTexturesChanged), true));
-                undos.Add(new UndoActionDelegate(EmbFile, nameof(EmbFile.UpdateEntryIndex), true));
                 EmbFile.TriggerTexturesChanged();
-                EmbFile.UpdateEntryIndex();
                 UndoManager.Instance.AddUndo(new CompositeUndo(undos, "Texture Delete"));
             }
 
@@ -516,9 +527,7 @@ namespace EEPK_Organiser.View
             if (selectedTextures.Count > 0)
             {
                 undos.Add(new UndoActionDelegate(EmbFile, nameof(EmbFile.TriggerTexturesChanged), true));
-                undos.Add(new UndoActionDelegate(EmbFile, nameof(EmbFile.UpdateEntryIndex), true));
                 EmbFile.TriggerTexturesChanged();
-                EmbFile.UpdateEntryIndex();
                 UndoManager.Instance.AddUndo(new CompositeUndo(undos, "Texture Duplicate"));
 
                 textureDataGrid.SelectedItem = EmbFile.Entry[EmbFile.Entry.Count - 1];
@@ -571,9 +580,7 @@ namespace EEPK_Organiser.View
                     textureDataGrid.ScrollIntoView(EmbFile.Entry[EmbFile.Entry.Count - 1]);
 
                     undos.Add(new UndoActionDelegate(EmbFile, nameof(EmbFile.TriggerTexturesChanged), true));
-                    undos.Add(new UndoActionDelegate(EmbFile, nameof(EmbFile.UpdateEntryIndex), true));
                     EmbFile.TriggerTexturesChanged();
-                    EmbFile.UpdateEntryIndex();
 
                     UndoManager.Instance.AddUndo(new CompositeUndo(undos, "Texture Paste"));
                 }

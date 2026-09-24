@@ -1060,7 +1060,7 @@ namespace LB_Mod_Installer.Installer
 
                     foreach (EmbEntry entry in xmlFile.Entry)
                     {
-                        int idx = binaryFile.AddEntry(entry, entry.Index, xmlFile.InstallMode);
+                        int idx = binaryFile.AddEntry(entry, xmlFile.InstallMode);
 
                         if (xmlFile.InstallMode == InstallMode.MatchIndex)
                         {
