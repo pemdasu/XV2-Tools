@@ -2880,8 +2880,8 @@ namespace Xv2CoreLib.EMP_NEW
 
         public string TextureName => _textureRef != null ? TextureRef.Name : "No Texture Assigned";
 
-        private EmbEntry _textureRef = null;
-        public EmbEntry TextureRef
+        private EMB_TextureEntry _textureRef = null;
+        public EMB_TextureEntry TextureRef
         {
             get => _textureRef;
             set

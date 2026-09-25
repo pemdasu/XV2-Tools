@@ -24,7 +24,7 @@ namespace EEPK_Organiser.ViewModel
             }
         }
 
-        public EmbEntry SelectedEmbEntry
+        public EMB_TextureEntry SelectedEmbEntry
         {
             get => texture.TextureRef;
             set

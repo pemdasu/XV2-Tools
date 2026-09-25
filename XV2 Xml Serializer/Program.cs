@@ -233,7 +233,7 @@ namespace XV2_Xml_Serializer
                                     new Xv2CoreLib.EAN.Parser(fileLocation, true, false);
                                     break;
                                 case ".emb":
-                                    Xv2CoreLib.EMB_CLASS.EMB_File.CreateXml(fileLocation);
+                                    EMB_SerializedFile.CreateXml(fileLocation);
                                     break;
                                 case ".cso":
                                     new Xv2CoreLib.CSO.Parser(fileLocation, true);
@@ -311,7 +311,8 @@ namespace XV2_Xml_Serializer
 
                                     if(emzData is EMB_File emb)
                                     {
-                                        emb.SaveAsXml(fileLocation + ".xml");
+                                        EMB_SerializedFile serializedEmb = new EMB_SerializedFile(emb);
+                                        serializedEmb.SaveAsXml(fileLocation + ".xml");
                                     }
                                     else if (emzData is SDS_File sds)
                                     {
@@ -561,7 +562,7 @@ namespace XV2_Xml_Serializer
                         new Xv2CoreLib.EAN.Deserializer(fileLocation);
                         break;
                     case ".emb":
-                        Xv2CoreLib.EMB_CLASS.EMB_File.SaveXml(fileLocation);
+                        EMB_SerializedFile.SaveXml(fileLocation);
                         break;
                     case ".cso":
                         new Xv2CoreLib.CSO.Deserializer(fileLocation);

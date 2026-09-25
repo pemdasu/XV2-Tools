@@ -13,12 +13,12 @@ namespace EEPK_Organiser.Forms
     public partial class EmbEditForm : MetroWindow
     {
 
-        public EMB_File EmbFile { get;  set; }
+        public EMB_TextureFile EmbFile { get;  set; }
         public AssetContainerTool AssetContainer { get;  set; }
         public AssetType AssetType { get;  set; }
         public TextureEditorType EditorType { get;  set; }
 
-        public EmbEditForm(EMB_File _embFile, AssetContainerTool _container, AssetType assetType, string windowTitle)
+        public EmbEditForm(EMB_TextureFile _embFile, AssetContainerTool _container, AssetType assetType, string windowTitle)
         {
             DataContext = this;
             EmbFile = _embFile;
@@ -41,7 +41,7 @@ namespace EEPK_Organiser.Forms
             }
         }
 
-        public EmbEditForm(EMB_File _embFile, TextureEditorType editorType, string windowTitle)
+        public EmbEditForm(EMB_TextureFile _embFile, TextureEditorType editorType, string windowTitle)
         {
             DataContext = this;
             EmbFile = _embFile;
@@ -62,7 +62,7 @@ namespace EEPK_Organiser.Forms
             textureEditor.Dispose();
         }
     
-        public void SelectTexture(EmbEntry embEntry)
+        public void SelectTexture(EMB_TextureEntry embEntry)
         {
             textureEditor.SelectedTexture = embEntry;
             textureEditor.textureDataGrid.ScrollIntoView(embEntry);

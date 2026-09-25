@@ -1019,14 +1019,14 @@ namespace Xv2CoreLib
         {
             List<Item> items = new List<Item>();
 
-            EMB_File portraitEmb = null;
+            EMB_TextureFile portraitEmb = null;
             try
             {
-                portraitEmb = FileManager.Instance.LoadFile<EMB_File>(CHARA_PORTRAIT_EMB_PATH);
+                portraitEmb = FileManager.Instance.LoadFile<EMB_TextureFile>(CHARA_PORTRAIT_EMB_PATH);
             }
             catch { }
 
-            EmbEntry fallbackPortrait = portraitEmb?.Entry.FirstOrDefault(x => x.Name.Equals("FOF_000.dds", StringComparison.OrdinalIgnoreCase));
+            EMB_TextureEntry fallbackPortrait = portraitEmb?.Entry.FirstOrDefault(x => x.Name.Equals("FOF_000.dds", StringComparison.OrdinalIgnoreCase));
 
             for (int i = 0; i < savFile.Characters.Count; i++)
             {
@@ -1042,14 +1042,14 @@ namespace Xv2CoreLib
             if (!loadCharacters) throw new InvalidOperationException("Xenoverse2.GetCharacterList: characters are not loaded.");
             List<Item> items = new List<Item>();
 
-            EMB_File portraitEmb = null;
+            EMB_TextureFile portraitEmb = null;
             try
             {
-                portraitEmb = FileManager.Instance.LoadFile<EMB_File>(CHARA_PORTRAIT_EMB_PATH);
+                portraitEmb = FileManager.Instance.LoadFile<EMB_TextureFile>(CHARA_PORTRAIT_EMB_PATH);
             }
             catch { }
 
-            EmbEntry fallbackPortrait = portraitEmb?.Entry.FirstOrDefault(x => x.Name.Equals("FOF_000.dds", StringComparison.OrdinalIgnoreCase));
+            EMB_TextureEntry fallbackPortrait = portraitEmb?.Entry.FirstOrDefault(x => x.Name.Equals("FOF_000.dds", StringComparison.OrdinalIgnoreCase));
 
             foreach (var character in CmsFile.CMS_Entries)
             {
@@ -1062,12 +1062,12 @@ namespace Xv2CoreLib
         }
 
         // Picks a character's select portrait: the shared CHARA01 sheet first, then the character's own ui/texture/<code>.emb, then the FOF placeholder.
-        private static EmbEntry GetCharacterPortrait(string shortName, EMB_File sharedEmb, EmbEntry fallback)
+        private static EMB_TextureEntry GetCharacterPortrait(string shortName, EMB_TextureFile sharedEmb, EMB_TextureEntry fallback)
         {
             if (string.IsNullOrEmpty(shortName))
                 return fallback;
 
-            EmbEntry portrait = FindPortraitByCode(sharedEmb, shortName, false)
+            EMB_TextureEntry portrait = FindPortraitByCode(sharedEmb, shortName, false)
                 ?? FindPortraitByCode(TryGetGameEmb($"ui/texture/{shortName}.emb"), shortName, true);
 
             return portrait ?? fallback;
@@ -1075,13 +1075,13 @@ namespace Xv2CoreLib
 
         // Finds a portrait entry for a code: exact "<code>.dds", otherwise the lowest "<code>_..." variant.
         // allowFirstEntry: when nothing matches by name, take the first entry, since a per-character emb can hold one portrait under an unrelated name.
-        private static EmbEntry FindPortraitByCode(EMB_File emb, string shortName, bool allowFirstEntry)
+        private static EMB_TextureEntry FindPortraitByCode(EMB_TextureFile emb, string shortName, bool allowFirstEntry)
         {
             if (emb == null) return null;
 
             string exact = $"{shortName}.dds";
             string prefix = $"{shortName}_";
-            EmbEntry match = emb.Entry
+            EMB_TextureEntry match = emb.Entry
                 .Where(x => x.Name != null && (x.Name.Equals(exact, StringComparison.OrdinalIgnoreCase) || x.Name.StartsWith(prefix, StringComparison.OrdinalIgnoreCase)))
                 .OrderBy(x => x.Name, StringComparer.OrdinalIgnoreCase)
                 .FirstOrDefault();
@@ -1089,9 +1089,9 @@ namespace Xv2CoreLib
             return match ?? (allowFirstEntry ? emb.Entry.FirstOrDefault() : null);
         }
 
-        private static EMB_File TryGetGameEmb(string path)
+        private static EMB_TextureFile TryGetGameEmb(string path)
         {
-            try { return FileManager.Instance.LoadFile<EMB_File>(path); }
+            try { return FileManager.Instance.LoadFile<EMB_TextureFile>(path); }
             catch { return null; }
         }
 
@@ -1387,15 +1387,15 @@ namespace Xv2CoreLib
         {
             List<Item> items = new List<Item>();
 
-            EMB_File stageEmb = FileManager.Instance.LoadFile<EMB_File>(STAGE_PREVIEW_EMB_PATH);
-            EmbEntry fallback = stageEmb.GetEntry("Random.dds");
+            EMB_TextureFile stageEmb = FileManager.Instance.LoadFile<EMB_TextureFile>(STAGE_PREVIEW_EMB_PATH);
+            EMB_TextureEntry fallback = stageEmb.GetEntry("Random.dds");
 
             foreach(StageDef stage in StageDefFile.Stages)
             {
                 if (BlacklistedStageCodes.Contains(stage.CODE)) continue;
                 if (!fileIO.FileExists($"stage/{stage.CODE}.map")) continue;
 
-                EmbEntry stageEmbEntry = stageEmb.GetEntry(stage.CODE + ".dds") ?? fallback;
+                EMB_TextureEntry stageEmbEntry = stageEmb.GetEntry(stage.CODE + ".dds") ?? fallback;
 
                 string name = GetStageName(stage.CODE, stage.NAME_EN, PreferedLanguage);
                 items.Add(new ItemExtendedImage((int)stage.Index, name != null ? name : stage.NAME_EN, stage.CODE, null, stageEmbEntry.GetBitmap));

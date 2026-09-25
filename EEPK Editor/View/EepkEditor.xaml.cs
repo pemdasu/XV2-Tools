@@ -532,7 +532,7 @@ namespace EEPK_Organiser.View
         }
         
         //Helpers
-        public static EmbEditForm GetActiveEmbForm(EMB_File _embFile)
+        public static EmbEditForm GetActiveEmbForm(EMB_TextureFile _embFile)
         {
             foreach (object window in Application.Current.Windows)
             {

@@ -258,7 +258,7 @@ namespace Xv2CoreLib.EMO
         /// <param name="eskFile">The skeleton that the EMD files are based on. This will be converted into an EMO skeleton.</param>
         /// <param name="mergedEmb">The final merged EMB file that contains all the EMO textures.</param>
         /// <param name="mergedEmm">The final merged EMM file that contains all the EMO materials.</param>
-        public static EMO_File ConvertToEmo(EMD_File[] emdFiles, EMB_File[] embFiles, EMB_File[] dytFiles, EMM_File[] emmFiles, ESK.ESK_File eskFile, out EMB_File mergedEmb, out EMM_File mergedEmm)
+        public static EMO_File ConvertToEmo(EMD_File[] emdFiles, EMB_TextureFile[] embFiles, EMB_TextureFile[] dytFiles, EMM_File[] emmFiles, ESK.ESK_File eskFile, out EMB_TextureFile mergedEmb, out EMM_File mergedEmm)
         {
             if (embFiles.Length != emdFiles.Length)
                 throw new ArgumentException($"EMO_File.ConvertToEmo: There must be an EMB file for each EMD file.");
@@ -274,7 +274,7 @@ namespace Xv2CoreLib.EMO
 
 
             EMO_File emoFile = new EMO_File();
-            EMB_File embFile = EMB_File.DefaultEmbFile(false);
+            EMB_TextureFile embFile = EMB_TextureFile.GetDefault();
             EMM_File emmFile = EMM_File.DefaultEmmFile();
             emoFile.Skeleton = Skeleton.Convert(eskFile.Skeleton);
 

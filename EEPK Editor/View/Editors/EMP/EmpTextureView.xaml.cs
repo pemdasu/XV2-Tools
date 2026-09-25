@@ -163,7 +163,7 @@ namespace EEPK_Organiser.View.Editors.EMP
                 foreach (EMP_TextureSamplerDef textureEntry in copiedTextures)
                 {
                     EMP_TextureSamplerDef newTexture = textureEntry.Clone();
-                    Xv2CoreLib.EMB_CLASS.EmbEntry newEmbEntry = AssetContainer.File3_Ref.Add(newTexture.TextureRef, undos);
+                    Xv2CoreLib.EMB_CLASS.EMB_TextureEntry newEmbEntry = AssetContainer.File3_Ref.AddTexture(newTexture.TextureRef, undos);
                     newTexture.TextureRef = newEmbEntry;
 
                     TextureFile.Textures.Add(newTexture);
@@ -188,7 +188,7 @@ namespace EEPK_Organiser.View.Editors.EMP
                 if (textures.Count > 0)
                 {
                     EMP_TextureSamplerDef newTexture = textures[0].Clone();
-                    newTexture.TextureRef = AssetContainer.File3_Ref.Add(newTexture.TextureRef, undos);
+                    newTexture.TextureRef = AssetContainer.File3_Ref.AddTexture(newTexture.TextureRef, undos);
 
                     SelectedTexture.ReplaceValues(newTexture, undos);
                     UndoManager.Instance.AddCompositeUndo(undos, $"Paste Values ({FileType})");

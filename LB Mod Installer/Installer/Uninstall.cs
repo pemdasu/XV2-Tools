@@ -1029,8 +1029,8 @@ namespace LB_Mod_Installer.Installer
         {
             try
             {
-                EMB_File binaryFile = (EMB_File)GetParsedFile<EMB_File>(path, false);
-                EMB_File cpkBinFile = (EMB_File)GetParsedFile<EMB_File>(path, true, false);
+                EMB_SerializedFile binaryFile = (EMB_SerializedFile)GetParsedFile<EMB_SerializedFile>(path, false);
+                EMB_SerializedFile cpkBinFile = (EMB_SerializedFile)GetParsedFile<EMB_SerializedFile>(path, true, false);
 
                 Section section = file.GetSection(Sections.EMB_Entry);
 
@@ -1043,8 +1043,8 @@ namespace LB_Mod_Installer.Installer
                         if (int.TryParse(section.IDs[i], out idNum))
                         {
                             //ID is number (index)
-                            EmbEntry original = (cpkBinFile != null) ? cpkBinFile.GetEntry(idNum) : null;
-                            binaryFile.RemoveEntry(section.IDs[i], original);
+                            EMB_SerializedEntry original = (cpkBinFile != null) ? cpkBinFile.GetEntry(idNum) : null;
+                            binaryFile.UninstallEntry(section.IDs[i], original);
                         }
                         else
                         {
@@ -1054,13 +1054,10 @@ namespace LB_Mod_Installer.Installer
 
                             if (existingEntry != null)
                             {
-                                binaryFile.RemoveEntry(binaryFile.Entry.IndexOf(existingEntry).ToString(), original);
+                                binaryFile.UninstallEntry(binaryFile.Entry.IndexOf(existingEntry).ToString(), original);
                             }
                         }
-
                     }
-
-                    //binaryFile.TrimNullEntries();
                 }
             }
             catch (Exception ex)

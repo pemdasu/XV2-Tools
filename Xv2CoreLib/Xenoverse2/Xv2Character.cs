@@ -660,7 +660,7 @@ namespace Xv2CoreLib
                     break;
                 case Type.EMB:
                 case Type.DYT_EMB:
-                    File = FileManager.Instance.LoadFile<EMB_File>(RelativePath, onlyLoadFromCPK);
+                    File = FileManager.Instance.LoadFile<EMB_TextureFile>(RelativePath, onlyLoadFromCPK);
                     break;
                 case Type.EMM:
                     File = FileManager.Instance.LoadFile<EMM_File>(RelativePath, onlyLoadFromCPK);
@@ -691,7 +691,7 @@ namespace Xv2CoreLib
                     break;
                 case Type.EMB:
                 case Type.DYT_EMB:
-                    File = EMB_File.Load(path);
+                    File = EMB_TextureFile.Load(path);
                     break;
                 case Type.EMM:
                     File = EMM_File.LoadEmm(path);

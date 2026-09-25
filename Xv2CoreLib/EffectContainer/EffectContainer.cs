@@ -636,12 +636,12 @@ namespace Xv2CoreLib.EffectContainer
                         if (!string.IsNullOrWhiteSpace(emb))
                         {
                             container.File3_Name = Path.GetFileName(emb);
-                            container.File3_Ref = EMB_File.Load(LoadExternalFile(emb));
+                            container.File3_Ref = EMB_TextureFile.Load(LoadExternalFile(emb));
                         }
                         else
                         {
                             container.File3_Name = string.Format("{0}_PIC.emb", Name);
-                            container.File3_Ref = EMB_File.DefaultEmbFile(true);
+                            container.File3_Ref = EMB_TextureFile.GetDefault();
                         }
 
                     }
@@ -649,7 +649,7 @@ namespace Xv2CoreLib.EffectContainer
                     {
                         //Regular XV2 EEPK
                         container.File2_Ref = EMM_File.LoadEmm(LoadExternalFile(string.Format("{0}/{1}", Directory, container.File2_Name)));
-                        container.File3_Ref = EMB_File.Load(LoadExternalFile(string.Format("{0}/{1}", Directory, container.File3_Name)));
+                        container.File3_Ref = EMB_TextureFile.Load(LoadExternalFile(string.Format("{0}/{1}", Directory, container.File3_Name)));
                     }
                     break;
                 case AssetType.CBIND:
@@ -704,7 +704,7 @@ namespace Xv2CoreLib.EffectContainer
                             file.fileType = EffectFile.FileType.ECF;
                             break;
                         case ".emb":
-                            file.EmbFile = EMB_File.Load(fileBytes);
+                            file.EmbFile = EMB_TextureFile.Load(fileBytes);
                             file.fileType = EffectFile.FileType.EMB;
                             break;
                         case ".emm":
@@ -845,6 +845,7 @@ namespace Xv2CoreLib.EffectContainer
 
         public bool Save()
         {
+
             //Convert all loaded dds textures back into a byte array
             Pbind.File3_Ref.SaveDdsImages();
             Tbind.File3_Ref.SaveDdsImages();
@@ -863,6 +864,14 @@ namespace Xv2CoreLib.EffectContainer
             //Save eepk
             EEPK_File eepkFile = CreateEepk();
             SaveFile(eepkFile.SaveToBytes(), string.Format("{0}/{1}.eepk", Directory, Name));
+
+            //Auto-generate IDs for containers
+            Pbind.File1_Ref?.SetIndexAsID();
+            Pbind.File3_Ref?.SetIndexAsID();
+            Tbind.File1_Ref?.SetIndexAsID();
+            Tbind.File3_Ref?.SetIndexAsID();
+            Cbind.File1_Ref?.SetIndexAsID();
+            LightEma.File1_Ref?.SetIndexAsID();
 
             //Save containers
             //If a container has no assets, it will be ignored. The binary eepk also omits it.
@@ -1014,7 +1023,7 @@ namespace Xv2CoreLib.EffectContainer
         {
             if (!Pbind.LooseFiles)
             {
-                Pbind.File1_Ref = EMB_File.DefaultEmbFile(false);
+                Pbind.File1_Ref = EMB_File.GetDefault();
                 Pbind.File1_Ref.UseFileNames = true;
 
                 foreach (var asset in Pbind.Assets)
@@ -1030,7 +1039,7 @@ namespace Xv2CoreLib.EffectContainer
 
             if (!Tbind.LooseFiles)
             {
-                Tbind.File1_Ref = EMB_File.DefaultEmbFile(false);
+                Tbind.File1_Ref = EMB_File.GetDefault();
                 Tbind.File1_Ref.UseFileNames = true;
 
                 foreach (var asset in Tbind.Assets)
@@ -1046,7 +1055,7 @@ namespace Xv2CoreLib.EffectContainer
 
             if (!Cbind.LooseFiles)
             {
-                Cbind.File1_Ref = EMB_File.DefaultEmbFile(false);
+                Cbind.File1_Ref = EMB_File.GetDefault();
                 Cbind.File1_Ref.UseFileNames = true;
 
                 foreach (Asset asset in Cbind.Assets)
@@ -1062,7 +1071,7 @@ namespace Xv2CoreLib.EffectContainer
 
             if (!LightEma.LooseFiles)
             {
-                LightEma.File1_Ref = EMB_File.DefaultEmbFile(false);
+                LightEma.File1_Ref = EMB_File.GetDefault();
                 LightEma.File1_Ref.UseFileNames = true;
 
                 foreach (var asset in LightEma.Assets)
@@ -1791,9 +1800,9 @@ namespace Xv2CoreLib.EffectContainer
                     return new AssetContainerTool()
                     {
                         LooseFiles = false,
-                        File1_Ref = EMB_File.DefaultEmbFile(false),
+                        File1_Ref = EMB_File.GetDefault(),
                         File2_Ref = EMM_File.DefaultEmmFile(),
-                        File3_Ref = EMB_File.DefaultEmbFile(true),
+                        File3_Ref = EMB_TextureFile.GetDefault(),
                         File1_Name = string.Format("{0}.pbind.emb", GetDefaultEepkName()),
                         File2_Name = string.Format("{0}.ptcl.emm", GetDefaultEepkName()),
                         File3_Name = string.Format("{0}.ptcl.emb", GetDefaultEepkName()),
@@ -1803,9 +1812,9 @@ namespace Xv2CoreLib.EffectContainer
                     return new AssetContainerTool()
                     {
                         LooseFiles = false,
-                        File1_Ref = EMB_File.DefaultEmbFile(false),
+                        File1_Ref = EMB_File.GetDefault(),
                         File2_Ref = EMM_File.DefaultEmmFile(),
-                        File3_Ref = EMB_File.DefaultEmbFile(true),
+                        File3_Ref = EMB_TextureFile.GetDefault(),
                         File1_Name = string.Format("{0}.tbind.emb", GetDefaultEepkName()),
                         File2_Name = string.Format("{0}.trc.emm", GetDefaultEepkName()),
                         File3_Name = string.Format("{0}.trc.emb", GetDefaultEepkName()),
@@ -1815,7 +1824,7 @@ namespace Xv2CoreLib.EffectContainer
                     return new AssetContainerTool()
                     {
                         LooseFiles = false,
-                        File1_Ref = EMB_File.DefaultEmbFile(false),
+                        File1_Ref = EMB_File.GetDefault(),
                         File1_Name = string.Format("{0}.cbind.emb", GetDefaultEepkName()),
                         ContainerAssetType = AssetType.CBIND
                     };
@@ -2147,7 +2156,7 @@ namespace Xv2CoreLib.EffectContainer
                     */
 
                     EMM_File emmFile = Pbind.File2_Ref;
-                    EMB_File embFile = Pbind.File3_Ref;
+                    EMB_TextureFile embFile = Pbind.File3_Ref;
 
                     //Materials
                     SDBH_PbindLinkTextureAndMaterial_Recursive(empFile.ParticleNodes, emmFile);
@@ -2308,13 +2317,13 @@ namespace Xv2CoreLib.EffectContainer
         {
             List<IUndoRedo> undos = new List<IUndoRedo>();
 
-            var embEntries = new List<EmbEntry>(Pbind.File3_Ref.Entry);
+            var embEntries = new List<EMB_TextureEntry>(Pbind.File3_Ref.Entry);
 
             //Remove all repeating textures
             embEntries.RemoveAll(x => EMP_TextureSamplerDef.IsRepeatingTexture(x, Pbind));
 
             //All textures, ordered by their highest dimension (lowest first)
-            List<WriteableBitmap> textures = EmbEntry.GetBitmaps(embEntries);
+            List<WriteableBitmap> textures = EMB_TextureEntry.GetBitmaps(embEntries);
             textures = textures.OrderBy(x => Math.Max(x.Width, x.Height)).ToList();
 
             //Remove any texture that is used by a EMP with SpeedScroll values or is Mirrored (cant merge these)
@@ -2354,7 +2363,7 @@ namespace Xv2CoreLib.EffectContainer
             {
                 toMerge.Add(bitmaps[i]);
 
-                if (EmbEntry.SelectTextureSize(EmbEntry.HighestDimension(toMerge), toMerge.Count) == -1)
+                if (EMB_TextureEntry.SelectTextureSize(EMB_TextureEntry.HighestDimension(toMerge), toMerge.Count) == -1)
                 {
                     toMerge.RemoveAt(toMerge.Count - 1);
                     break;
@@ -2537,7 +2546,7 @@ namespace Xv2CoreLib.EffectContainer
             asset.InstanceID = Guid.NewGuid();
             asset.Files[0].SetName(Pbind.GetUnusedName(asset.Files[0].FullFileName));
 
-            EmbEntry embEntry = new EmbEntry();
+            EMB_TextureEntry embEntry = new();
             embEntry.Name = "StageSelector.png";
             embEntry.Data = texture;
 
@@ -2635,7 +2644,7 @@ namespace Xv2CoreLib.EffectContainer
         //References to the emb/emm files (for pbind, tbind and cbind only)
         public EMB_File File1_Ref { get; set; }
         public EMM_File File2_Ref { get; set; }
-        public EMB_File File3_Ref { get; set; }
+        public EMB_TextureFile File3_Ref { get; set; }
 
         private AsyncObservableCollection<Asset> _assetsValue = null;
         public AsyncObservableCollection<Asset> Assets
@@ -2849,7 +2858,7 @@ namespace Xv2CoreLib.EffectContainer
             return null;
         }
 
-        public List<string> TextureUsedBy(EmbEntry embEntry)
+        public List<string> TextureUsedBy(EMB_TextureEntry embEntry)
         {
             if (ContainerAssetType != AssetType.PBIND && ContainerAssetType != AssetType.TBIND)
                 throw new InvalidOperationException("TextureUsedBy: AssetType is not PBIND or TBIND, cannot continue.");
@@ -2942,7 +2951,7 @@ namespace Xv2CoreLib.EffectContainer
             }
         }
 
-        public bool IsTextureUsed(EmbEntry embEntry)
+        public bool IsTextureUsed(EMB_TextureEntry embEntry)
         {
             if (ContainerAssetType != AssetType.PBIND && ContainerAssetType != AssetType.TBIND)
                 throw new InvalidOperationException("IsTextureUsed: AssetType is not PBIND or TBIND, cannot continue.");
@@ -3049,7 +3058,7 @@ namespace Xv2CoreLib.EffectContainer
             return null;
         }
 
-        public List<EMP_TextureSamplerDef> GetAllTextureDefinitions(EmbEntry embEntry)
+        public List<EMP_TextureSamplerDef> GetAllTextureDefinitions(EMB_TextureEntry embEntry)
         {
             List<EMP_TextureSamplerDef> textures = new List<EMP_TextureSamplerDef>();
 
@@ -3214,7 +3223,7 @@ namespace Xv2CoreLib.EffectContainer
             {
                 if (texture.TextureRef != null)
                 {
-                    EmbEntry entryWithSameName = File3_Ref.GetEntry(texture.TextureRef.Name);
+                    var entryWithSameName = File3_Ref.GetEntry(texture.TextureRef.Name);
                     var ret = File3_Ref.Compare(texture.TextureRef);
 
                     if (ret != null)
@@ -3236,7 +3245,7 @@ namespace Xv2CoreLib.EffectContainer
                         }
                         texture.TextureRef.Name = File3_Ref.GetUnusedName(texture.TextureRef.Name); //Regenerate the name
                         File3_Ref.Entry.Add(texture.TextureRef);
-                        undos?.Add(new UndoableListAdd<EmbEntry>(File3_Ref.Entry, texture.TextureRef));
+                        undos?.Add(new UndoableListAdd<EMB_TextureEntry>(File3_Ref.Entry, texture.TextureRef));
                     }
                 }
             }
@@ -3314,7 +3323,7 @@ namespace Xv2CoreLib.EffectContainer
                         }
                         texture.TextureRef.Name = File3_Ref.GetUnusedName(texture.TextureRef.Name); //Regenerate the name
                         File3_Ref.Entry.Add(texture.TextureRef);
-                        undos?.Add(new UndoableListAdd<EmbEntry>(File3_Ref.Entry, texture.TextureRef));
+                        undos?.Add(new UndoableListAdd<EMB_TextureEntry>(File3_Ref.Entry, texture.TextureRef));
                     }
                 }
             }
@@ -3423,8 +3432,8 @@ namespace Xv2CoreLib.EffectContainer
                     undos.Add(new UndoablePropertyGeneric(nameof(texture.TextureRef), texture, texture.TextureRef, newTex));
                     texture.TextureRef = newTex;
 
-                    undos.Add(new UndoableListAdd<EmbEntry>(File3_Ref.Entry, texture.TextureRef.TextureRef));
-                    texture.TextureRef.TextureRef = File3_Ref.Add(texture.TextureRef.TextureRef);
+                    undos.Add(new UndoableListAdd<EMB_TextureEntry>(File3_Ref.Entry, texture.TextureRef.TextureRef));
+                    texture.TextureRef.TextureRef = File3_Ref.AddTexture(texture.TextureRef.TextureRef);
 
                     //Add the texture
                     undos.Add(new UndoableListAdd<EMP_TextureSamplerDef>(destination, texture.TextureRef));
@@ -3440,13 +3449,13 @@ namespace Xv2CoreLib.EffectContainer
         #endregion
 
         #region Editor
-        public void DeleteTexture(EmbEntry embEntry, List<IUndoRedo> undos = null)
+        public void DeleteTexture(EMB_TextureEntry embEntry, List<IUndoRedo> undos = null)
         {
             if (ContainerAssetType != AssetType.PBIND && ContainerAssetType != AssetType.TBIND)
                 throw new InvalidOperationException("DeleteTexture: AssetType is not PBIND or TBIND, cannot continue.");
 
             if (undos != null && File3_Ref.Entry.Contains(embEntry))
-                undos.Add(new UndoableListRemove<EmbEntry>(File3_Ref.Entry, embEntry, File3_Ref.Entry.IndexOf(embEntry)));
+                undos.Add(new UndoableListRemove<EMB_TextureEntry>(File3_Ref.Entry, embEntry, File3_Ref.Entry.IndexOf(embEntry)));
 
             File3_Ref.Entry.Remove(embEntry);
         }
@@ -3536,7 +3545,7 @@ namespace Xv2CoreLib.EffectContainer
         restart:
             foreach (var texture1 in File3_Ref.Entry)
             {
-                List<EmbEntry> Duplicates = new List<EmbEntry>();
+                List<EMB_TextureEntry> Duplicates = new List<EMB_TextureEntry>();
 
                 foreach (var texture2 in File3_Ref.Entry)
                 {
@@ -3556,7 +3565,7 @@ namespace Xv2CoreLib.EffectContainer
                         RefactorTextureRef(duplicate, texture1, undos);
 
                         //Delete the duplicate
-                        undos?.Add(new UndoableListRemove<EmbEntry>(File3_Ref.Entry, duplicate));
+                        undos?.Add(new UndoableListRemove<EMB_TextureEntry>(File3_Ref.Entry, duplicate));
                         File3_Ref.Entry.Remove(duplicate);
                     }
                     goto restart;
@@ -3574,7 +3583,7 @@ namespace Xv2CoreLib.EffectContainer
             {
                 if (!IsTextureUsed(File3_Ref.Entry[i]))
                 {
-                    undos?.Add(new UndoableListRemove<EmbEntry>(File3_Ref.Entry, File3_Ref.Entry[i]));
+                    undos?.Add(new UndoableListRemove<EMB_TextureEntry>(File3_Ref.Entry, File3_Ref.Entry[i]));
                     File3_Ref.Entry.RemoveAt(i);
                     removed++;
                 }
@@ -3583,17 +3592,17 @@ namespace Xv2CoreLib.EffectContainer
             return removed;
         }
 
-        public void MergeIntoSuperTexture_PBIND(List<EmbEntry> embEntries, List<IUndoRedo> undos = null)
+        public void MergeIntoSuperTexture_PBIND(List<EMB_TextureEntry> embEntries, List<IUndoRedo> undos = null)
         {
             if (ContainerAssetType != AssetType.PBIND) throw new InvalidOperationException("MergeIntoSuperTexture_PBIND: SuperTexture feature is only available for PBIND container type.");
             if (undos == null) undos = new List<IUndoRedo>();
 
-            List<WriteableBitmap> bitmaps = EmbEntry.GetBitmaps(embEntries);
-            double maxDimension = EmbEntry.HighestDimension(bitmaps);
-            int textureSize = (int)EmbEntry.SelectTextureSize(maxDimension, bitmaps.Count);
+            List<WriteableBitmap> bitmaps = EMB_TextureEntry.GetBitmaps(embEntries);
+            double maxDimension = EMB_TextureEntry.HighestDimension(bitmaps);
+            int textureSize = (int)EMB_TextureEntry.SelectTextureSize(maxDimension, bitmaps.Count);
 
             WriteableBitmap superTexture = new WriteableBitmap(textureSize, textureSize, 96, 96, PixelFormats.Bgra32, null);
-            EmbEntry newEmbEntry = new EmbEntry();
+            EMB_TextureEntry newEmbEntry = new();
             newEmbEntry.ImageFormat = CSharpImageLibrary.ImageEngineFormat.DDS_DXT5;
             newEmbEntry.Texture = superTexture;
 
@@ -3680,12 +3689,12 @@ namespace Xv2CoreLib.EffectContainer
             //Delete all previous textures
             foreach (var entry in embEntries)
             {
-                undos.Add(new UndoableListRemove<EmbEntry>(File3_Ref.Entry, entry));
+                undos.Add(new UndoableListRemove<EMB_TextureEntry>(File3_Ref.Entry, entry));
                 File3_Ref.Entry.Remove(entry);
             }
 
             //Add new texture
-            undos.Add(new UndoableListAdd<EmbEntry>(File3_Ref.Entry, newEmbEntry));
+            undos.Add(new UndoableListAdd<EMB_TextureEntry>(File3_Ref.Entry, newEmbEntry));
             File3_Ref.Entry.Add(newEmbEntry);
 
         }
@@ -3738,7 +3747,7 @@ namespace Xv2CoreLib.EffectContainer
         }
 
         //Refactoring
-        public void RefactorTextureRef(EmbEntry oldRef, EmbEntry newRef, List<IUndoRedo> undos = null)
+        public void RefactorTextureRef(EMB_TextureEntry oldRef, EMB_TextureEntry newRef, List<IUndoRedo> undos = null)
         {
             if (ContainerAssetType != AssetType.PBIND && ContainerAssetType != AssetType.TBIND)
                 throw new InvalidOperationException("RefactorTextureRef: AssetType is not PBIND or TBIND, cannot continue.");
@@ -3969,7 +3978,7 @@ namespace Xv2CoreLib.EffectContainer
                 case EffectFile.FileType.EMB:
                     newEffectFile = new EffectFile()
                     {
-                        EmbFile = data as EMB_File,
+                        EmbFile = data as EMB_TextureFile,
                         FileName = name,
                         fileType = type,
                         OriginalFileName = name
@@ -4302,7 +4311,7 @@ namespace Xv2CoreLib.EffectContainer
         public EMP_File EmpFile { get; set; } = null;
         public ETR_File EtrFile { get; set; } = null;
         public ECF_File EcfFile { get; set; } = null;
-        public EMB_File EmbFile { get; set; } = null;
+        public EMB_TextureFile EmbFile { get; set; } = null;
         public EMM_File EmmFile { get; set; } = null;
         public EMA_File EmaFile { get; set; } = null;
         public EMO_File EmoFile { get; set; } = null;

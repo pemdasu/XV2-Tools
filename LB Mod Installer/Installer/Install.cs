@@ -446,7 +446,7 @@ namespace LB_Mod_Installer.Installer
                     }
                     else if (emzXml.Root.Name == "EMB_File")
                     {
-                        EMB_File embFile = zipManager.DeserializeXmlFromArchive<EMB_File>(emzXml);
+                        EMB_SerializedFile embFile = zipManager.DeserializeXmlFromArchive<EMB_SerializedFile>(emzXml);
                         Install_EMB(xmlPath, installPath, true, embFile);
                     }
                     break;
@@ -1038,16 +1038,16 @@ namespace LB_Mod_Installer.Installer
 #endif
         }
 
-        private void Install_EMB(string xmlPath, string installPath, bool isXml, EMB_File xmlFile = null)
+        private void Install_EMB(string xmlPath, string installPath, bool isXml, EMB_SerializedFile xmlFile = null)
         {
 #if !DEBUG
             try
 #endif
             {
                 if(xmlFile == null)
-                    xmlFile = (isXml) ? zipManager.DeserializeXmlFromArchive_Ext<EMB_File>(GeneralInfo.GetPathInZipDataDir(xmlPath)) : EMB_File.Load(zipManager.GetFileFromArchive(GeneralInfo.GetPathInZipDataDir(xmlPath)));
-                
-                EMB_File binaryFile = (EMB_File)GetParsedFile<EMB_File>(installPath);
+                    xmlFile = (isXml) ? zipManager.DeserializeXmlFromArchive_Ext<EMB_SerializedFile>(GeneralInfo.GetPathInZipDataDir(xmlPath)) : EMB_SerializedFile.Load(zipManager.GetFileFromArchive(GeneralInfo.GetPathInZipDataDir(xmlPath)));
+
+                EMB_SerializedFile binaryFile = (EMB_SerializedFile)GetParsedFile<EMB_SerializedFile>(installPath);
 
                 //Parse bindings
                 bindingManager.ParseProperties(xmlFile.Entry, binaryFile.Entry, installPath);
@@ -1058,9 +1058,9 @@ namespace LB_Mod_Installer.Installer
                     if (xmlFile.InstallMode == InstallMode.MatchName && !binaryFile.UseFileNames)
                         throw new Exception("InstallMode.NameMatch not possible when UseFileNames is false.");
 
-                    foreach (EmbEntry entry in xmlFile.Entry)
+                    foreach (EMB_SerializedEntry entry in xmlFile.Entry)
                     {
-                        int idx = binaryFile.AddEntry(entry, xmlFile.InstallMode);
+                        int idx = binaryFile.InstallEntry(entry, xmlFile.InstallMode);
 
                         if (xmlFile.InstallMode == InstallMode.MatchIndex)
                         {
@@ -2715,7 +2715,7 @@ namespace LB_Mod_Installer.Installer
                 case ".tnl":
                     return TNL_File.Load(fileIO.GetFileFromGame(path, raiseEx, onlyFromCpk));
                 case ".emb":
-                    return EMB_File.Load(fileIO.GetFileFromGame(path, raiseEx, onlyFromCpk));
+                    return EMB_SerializedFile.Load(fileIO.GetFileFromGame(path, raiseEx, onlyFromCpk));
                 case ".qxd":
                     return QXD_File.Load(fileIO.GetFileFromGame(path, raiseEx, onlyFromCpk));
                 case ".eepk":
@@ -2844,7 +2844,7 @@ namespace LB_Mod_Installer.Installer
                 case ".tnl":
                     return ((TNL_File)data).SaveToBytes();
                 case ".emb":
-                    return ((EMB_File)data).Write();
+                    return ((EMB_SerializedFile)data).Write();
                 case ".qxd":
                     return ((QXD_File)data).SaveToBytes();
                 case ".obl":

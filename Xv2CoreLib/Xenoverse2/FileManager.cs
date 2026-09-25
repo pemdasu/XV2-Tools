@@ -1,6 +1,7 @@
 ﻿using System;
+using System.IO;
+using System.Timers;
 using System.Collections.Generic;
-using System.Linq;
 using Xv2CoreLib.CMS;
 using Xv2CoreLib.CUS;
 using Xv2CoreLib.MSG;
@@ -25,7 +26,6 @@ using Xv2CoreLib.EMM;
 using Xv2CoreLib.EMB_CLASS;
 using Xv2CoreLib.EffectContainer;
 using Xv2CoreLib.Resource;
-using System.IO;
 using Xv2CoreLib.Resource.App;
 using Xv2CoreLib.AFS2;
 using Xv2CoreLib.SPM;
@@ -34,7 +34,6 @@ using Xv2CoreLib.NSK;
 using Xv2CoreLib.Eternity;
 using Xv2CoreLib.CBS;
 using Xv2CoreLib.Resource.UndoRedo;
-using System.Timers;
 
 namespace Xv2CoreLib
 {
@@ -208,7 +207,7 @@ namespace Xv2CoreLib
 
             lock (_lock)
             {
-                T file = (T)GetParsedFileFromGameInternal(path, onlyFromCpk, raiseEx, ignoreCache);
+                T file = GetParsedFileFromGameInternal<T>(path, onlyFromCpk, raiseEx, ignoreCache);
 
                 if (SettingsManager.Instance.CurrentApp == Application.XenoKit && file != null)
                 {
@@ -219,14 +218,170 @@ namespace Xv2CoreLib
             }
         }
 
-        [Obsolete("Use generic LoadFile<T> method")]
+        private T GetParsedFileFromGameInternal<T>(string path, bool onlyFromCpk = false, bool raiseEx = true, bool ignoreCache = false) where T : class
+        {
+            CheckInitState();
+
+            bool useCache = !ignoreCache && (!onlyFromCpk || (onlyFromCpk && UseCpkCache));
+
+            //Check cache and return an existing file, if allowed
+            if (!ForceReloadFiles && useCache)
+            {
+                object cached = GetCachedFile(path, onlyFromCpk);
+                if (cached != null) return (T)cached;
+            }
+
+            //Handle missing files for CPK (when only loading from CPK)
+            if (onlyFromCpk)
+            {
+                if (!fileIO.FileExistsInCpk(path))
+                {
+                    if (raiseEx)
+                        throw new FileNotFoundException(string.Format("The file \"{0}\" does not exist in the cpks.", path));
+                    else
+                        return null;
+                }
+            }
+
+            //File loading
+            object file;
+
+            if (path.Equals(StageDefFile.PATH, StringComparison.OrdinalIgnoreCase))
+            {
+                byte[] stageDefBytes = GetBytesFromGame(path, false, false);
+                file = stageDefBytes != null ? StageDefFile.Load(stageDefBytes) : StageDefFile.DefaultFile;
+            }
+            else
+            {
+                //Handle missing files
+                if (!fileIO.FileExists(path))
+                {
+                    if (raiseEx)
+                        throw new FileNotFoundException(string.Format("The file \"{0}\" does not exist in the game directory or cpks.", path));
+                    else
+                        return null;
+                }
+
+                switch (Path.GetExtension(path))
+                {
+                    case ".bac":
+                        file = BAC_File.Load(GetBytesFromGame(path, onlyFromCpk, raiseEx));
+                        break;
+                    case ".bcm":
+                        file = BCM_File.Load(GetBytesFromGame(path, onlyFromCpk, raiseEx));
+                        break;
+                    case ".bcs":
+                        file = BCS_File.Load(GetBytesFromGame(path, onlyFromCpk, raiseEx));
+                        break;
+                    case ".bdm":
+                        file = BDM_File.Load(GetBytesFromGame(path, onlyFromCpk, raiseEx), true);
+                        break;
+                    case ".bsa":
+                        file = BSA_File.Load(GetBytesFromGame(path, onlyFromCpk, raiseEx));
+                        break;
+                    case ".cms":
+                        file = CMS_File.Load(GetBytesFromGame(path, onlyFromCpk, raiseEx));
+                        break;
+                    case ".cso":
+                        file = CSO_File.Load(GetBytesFromGame(path, onlyFromCpk, raiseEx));
+                        break;
+                    case ".cus":
+                        file = CUS_File.Load(GetBytesFromGame(path, onlyFromCpk, raiseEx));
+                        break;
+                    case ".ean":
+                        file = EAN_File.Load(GetBytesFromGame(path, onlyFromCpk, raiseEx), true);
+                        break;
+                    case ".ers":
+                        file = ERS_File.Load(GetBytesFromGame(path, onlyFromCpk, raiseEx));
+                        break;
+                    case ".idb":
+                        file = IDB_File.Load(GetBytesFromGame(path, onlyFromCpk, raiseEx));
+                        break;
+                    case ".pup":
+                        file = PUP_File.Load(GetBytesFromGame(path, onlyFromCpk, raiseEx));
+                        break;
+                    case ".bas":
+                        file = BAS_File.Load(GetBytesFromGame(path, onlyFromCpk, raiseEx));
+                        break;
+                    case ".bai":
+                        file = BAI_File.Load(GetBytesFromGame(path, onlyFromCpk, raiseEx));
+                        break;
+                    case ".amk":
+                        file = AMK_File.Load(GetBytesFromGame(path, onlyFromCpk, raiseEx));
+                        break;
+                    case ".esk":
+                        file = ESK_File.Load(GetBytesFromGame(path, onlyFromCpk, raiseEx));
+                        break;
+                    case ".emd":
+                        file = EMD_File.Load(GetBytesFromGame(path, onlyFromCpk, raiseEx));
+                        break;
+                    case ".nsk":
+                        file = NSK_File.Load(GetBytesFromGame(path, onlyFromCpk, raiseEx));
+                        break;
+                    case ".emb":
+                        if(typeof(T) == typeof(EMB_TextureFile))
+                        {
+                            file = EMB_TextureFile.Load(GetBytesFromGame(path, onlyFromCpk, raiseEx));
+                        }
+                        else if(typeof(T) == typeof(EMB_SerializedFile))
+                        {
+                            file = EMB_SerializedFile.Load(GetBytesFromGame(path, onlyFromCpk, raiseEx));
+                        }
+                        else
+                        {
+                            file = EMB_File.Load(GetBytesFromGame(path, onlyFromCpk, raiseEx));
+                        }
+                        break;
+                    case ".emm":
+                        file = EMM_File.LoadEmm(GetBytesFromGame(path, onlyFromCpk, raiseEx));
+                        break;
+                    case ".msg":
+                        file = MSG_File.Load(GetBytesFromGame(path, onlyFromCpk, raiseEx));
+                        break;
+                    case ".psc":
+                        file = PSC_File.Load(GetBytesFromGame(path, onlyFromCpk, raiseEx));
+                        break;
+                    case ".eepk":
+                        file = EffectContainerFile.Load(path, fileIO, onlyFromCpk);
+                        break;
+                    case ".emz":
+                        file = EMZ.EMZ_File.LoadData(GetBytesFromGame(path, onlyFromCpk, raiseEx));
+                        break;
+                    case ".acb":
+                        {
+                            byte[] awbBytes = fileIO.GetFileFromGame(string.Format("{0}/{1}.awb", Path.GetFileNameWithoutExtension(path), Path.GetDirectoryName(path)), false, onlyFromCpk);
+                            AFS2_File awbFile = awbBytes != null ? AFS2_File.LoadFromArray(awbBytes) : null;
+                            file = new ACB_Wrapper(ACB_File.Load(GetBytesFromGame(path, onlyFromCpk, raiseEx), awbFile));
+                        }
+                        break;
+                    case ".spm":
+                        file = SPM_File.Load(GetBytesFromGame(path, onlyFromCpk, raiseEx));
+                        break;
+                    case ".map":
+                        file = FMP_File.Load(GetBytesFromGame(path, onlyFromCpk, raiseEx));
+                        break;
+                    case ".cbs":
+                        file = CBS_File.Parse(GetBytesFromGame(path, onlyFromCpk, raiseEx));
+                        break;
+                    default:
+                        throw new InvalidDataException(string.Format("FileManager.GetParsedFileFromGame: The filetype of \"{0}\" is not supported.", path));
+                }
+            }
+
+            if (useCache)
+                AddCachedFile(path, file, onlyFromCpk);
+
+            return (T)file;
+        }
+
+        [Obsolete("Use generic LoadFile<T> method. Will be removed.")]
         public object GetParsedFileFromGame(string path, bool onlyFromCpk = false, bool raiseEx = true, bool ignoreCache = false)
         {
             if (string.IsNullOrWhiteSpace(path)) return null;
 
             lock (_lock)
             {
-                object file = GetParsedFileFromGameInternal(path, onlyFromCpk, raiseEx, ignoreCache);
+                object file = GetParsedFileFromGameInternalObsolete(path, onlyFromCpk, raiseEx, ignoreCache);
 
                 if (SettingsManager.Instance.CurrentApp == Application.XenoKit && file != null)
                 {
@@ -237,7 +392,8 @@ namespace Xv2CoreLib
             }
         }
 
-        private object GetParsedFileFromGameInternal(string path, bool onlyFromCpk = false, bool raiseEx = true, bool ignoreCache = false)
+        [Obsolete("Replaced by the generic version - to be removed soon. Do not use.")]
+        private object GetParsedFileFromGameInternalObsolete(string path, bool onlyFromCpk = false, bool raiseEx = true, bool ignoreCache = false)
         {
             CheckInitState();
 
@@ -375,8 +531,8 @@ namespace Xv2CoreLib
                         throw new InvalidDataException(string.Format("FileManager.GetParsedFileFromGame: The filetype of \"{0}\" is not supported.", path));
                 }
             }
-            
-            if(useCache)
+
+            if (useCache)
                 AddCachedFile(path, file, onlyFromCpk);
 
             return file;
@@ -591,14 +747,13 @@ namespace Xv2CoreLib
 
     public class Xv2FileNotFoundEventArgs : EventArgs
     {
-        private string EventInfo;
+        private readonly string EventInfo;
+
         public Xv2FileNotFoundEventArgs(string file)
         {
             EventInfo = file;
         }
-        public string GetInfo()
-        {
-            return EventInfo;
-        }
+
+        public string GetInfo() => EventInfo;
     }
 }

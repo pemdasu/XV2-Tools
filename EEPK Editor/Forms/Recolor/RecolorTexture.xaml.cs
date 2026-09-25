@@ -20,7 +20,7 @@ namespace EEPK_Organiser.Forms
             PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
         }
 
-        public EmbEntry CurrentTexture { get; set; }
+        public EMB_TextureEntry CurrentTexture { get; set; }
         private readonly WriteableBitmapEditOperation EditOperation;
         private bool IsCancelled = true;
 
@@ -86,7 +86,7 @@ namespace EEPK_Organiser.Forms
         public string HueRevertTooltip => string.Format("Revert to original value of {0}", initialHue);
 
 
-        public RecolorTexture(EmbEntry texture, bool isHueSet, Window parent)
+        public RecolorTexture(EMB_TextureEntry texture, bool isHueSet, Window parent)
         {
             IsHueSet = isHueSet;
             CurrentTexture = texture;
@@ -137,7 +137,7 @@ namespace EEPK_Organiser.Forms
 
             List<IUndoRedo> undos = new List<IUndoRedo>()
             {
-                new UndoableProperty<EmbEntry>(nameof(EmbEntry.Texture), CurrentTexture, EditOperation.SourceBitmap, CurrentTexture.Texture)
+                new UndoableProperty<EMB_TextureEntry>(nameof(EMB_TextureEntry.Texture), CurrentTexture, EditOperation.SourceBitmap, CurrentTexture.Texture)
             };
             CurrentTexture.SaveDds(true, undos);
 

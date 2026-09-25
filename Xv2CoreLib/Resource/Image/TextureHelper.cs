@@ -55,7 +55,7 @@ namespace Xv2CoreLib.Resource.Image
             try
 #endif
             {
-                if (BitConverter.ToInt32(bytes, 0) == EMB_CLASS.EmbEntry.DDS_SIGNATURE)
+                if (BitConverter.ToInt32(bytes, 0) == EMB_CLASS.EMB_TextureEntry.DDS_SIGNATURE)
                 {
                     Dds image;
                     using (MemoryStream ms = new MemoryStream(bytes))

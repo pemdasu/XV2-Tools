@@ -722,8 +722,8 @@ namespace EEPK_Organiser.View
             {
                 ESK_File eskFile = null;
                 List<EMD_File> emdFiles = new List<EMD_File>();
-                List<EMB_File> embFiles = new List<EMB_File>();
-                List<EMB_File> dytFiles = new List<EMB_File>();
+                List<EMB_TextureFile> embFiles = new List<EMB_TextureFile>();
+                List<EMB_TextureFile> dytFiles = new List<EMB_TextureFile>();
                 List<EMM_File> emmFiles = new List<EMM_File>();
 
                 bool hasDyt = false;
@@ -756,9 +756,9 @@ namespace EEPK_Organiser.View
                         }
 
                         EMD_File emd = EMD_File.Load(file);
-                        EMB_File emb = EMB_File.Load(embPath);
+                        EMB_TextureFile emb = EMB_TextureFile.Load(embPath);
                         EMM_File emm = EMM_File.LoadEmm(emmPath);
-                        EMB_File dyt = null;
+                        EMB_TextureFile dyt = null;
 
                         emdFiles.Add(emd);
                         embFiles.Add(emb);
@@ -767,7 +767,7 @@ namespace EEPK_Organiser.View
                         if (File.Exists(dytPath))
                         {
                             hasDyt = true;
-                            dyt = EMB_File.Load(dytPath);
+                            dyt = EMB_TextureFile.Load(dytPath);
                             dytFiles.Add(dyt);
                         }
 
@@ -792,7 +792,7 @@ namespace EEPK_Organiser.View
                     return;
                 }
 
-                EMB_File mergedEmb;
+                EMB_TextureFile mergedEmb;
                 EMM_File mergedEmm;
                 EMO_File emoFile = EMO_File.ConvertToEmo(emdFiles.ToArray(), embFiles.ToArray(), dytFiles.ToArray(), emmFiles.ToArray(), eskFile, out mergedEmb, out mergedEmm);
 
@@ -894,7 +894,7 @@ namespace EEPK_Organiser.View
                             break;
                         case EffectFile.FileType.EMB:
                             oldFile = SelectedEmoFile.EmbFile;
-                            SelectedEmoFile.EmbFile = EMB_File.Load(bytes);
+                            SelectedEmoFile.EmbFile = EMB_TextureFile.Load(bytes);
                             UndoManager.Instance.AddUndo(new UndoableProperty<EffectFile>(nameof(EffectFile.EmbFile), SelectedEmoFile, oldFile, SelectedEmoFile.EmbFile, "Replace File (EMO)"));
                             break;
                         default:
