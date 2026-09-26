@@ -64,11 +64,13 @@ namespace Xv2CoreLib.EMD
         public AsyncObservableCollection<EMD_Model> Models { get; set; } = new AsyncObservableCollection<EMD_Model>();
 
 
+        [FileSave]
         public byte[] SaveToBytes()
         {
             return new Deserializer(this).bytes.ToArray();
         }
 
+        [FileLoad]
         public static EMD_File Load(byte[] bytes)
         {
             return new Parser(bytes).emdFile;

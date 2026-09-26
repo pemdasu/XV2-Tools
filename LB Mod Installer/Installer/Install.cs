@@ -2844,7 +2844,7 @@ namespace LB_Mod_Installer.Installer
                 case ".tnl":
                     return ((TNL_File)data).SaveToBytes();
                 case ".emb":
-                    return ((EMB_SerializedFile)data).Write();
+                    return ((EMB_SerializedFile)data).SaveToBytes();
                 case ".qxd":
                     return ((QXD_File)data).SaveToBytes();
                 case ".obl":
@@ -2915,7 +2915,7 @@ namespace LB_Mod_Installer.Installer
                 case ".emz":
                     if(data is EMB_File emb)
                     {
-                        return emb.Write();
+                        return emb.SaveToBytes();
                     }
                     else if(data is SDS_File sds)
                     {

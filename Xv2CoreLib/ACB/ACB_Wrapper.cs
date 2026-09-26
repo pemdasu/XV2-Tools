@@ -7,6 +7,7 @@ using System.Windows;
 using Xv2CoreLib.AFS2;
 using Xv2CoreLib.Resource.UndoRedo;
 using Xv2CoreLib.Resource;
+using System.IO;
 
 namespace Xv2CoreLib.ACB
 {
@@ -118,6 +119,19 @@ namespace Xv2CoreLib.ACB
         public ACB_Wrapper(AWB_Wrapper awbWraper)
         {
             AwbWrapper = awbWraper;
+        }
+
+        [FileLoad]
+        public static ACB_Wrapper Load(string path, Xv2FileIO fileIO, bool onlyFromCpk)
+        {
+            byte[] acbBytes = FileManager.Instance.GetBytesFromGame(path, onlyFromCpk, false);
+            byte[] awbBytes = FileManager.Instance.GetBytesFromGame(string.Format("{0}/{1}.awb", Path.GetFileNameWithoutExtension(path), Path.GetDirectoryName(path)), onlyFromCpk, false);
+
+            if (acbBytes == null) 
+                return null;
+
+            AFS2_File awbFile = awbBytes != null ? AFS2_File.LoadFromArray(awbBytes) : null;
+            return new ACB_Wrapper(ACB_File.Load(acbBytes, awbFile));
         }
 
         /// <summary>

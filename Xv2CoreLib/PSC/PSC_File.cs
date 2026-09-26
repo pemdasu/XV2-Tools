@@ -2,8 +2,6 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using YAXLib;
 
 namespace Xv2CoreLib.PSC
@@ -49,6 +47,7 @@ namespace Xv2CoreLib.PSC
             return file;
         }
 
+        [FileLoad]
         public static PSC_File Load(byte[] bytes)
         {
             //First, validate that the psc file is from version 1.13 or greater
@@ -109,6 +108,7 @@ namespace Xv2CoreLib.PSC
         }
 
 
+        [FileSave]
         public byte[] SaveToBytes()
         {
             List<byte> bytes = new List<byte>();

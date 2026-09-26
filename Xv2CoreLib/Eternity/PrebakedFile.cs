@@ -143,6 +143,7 @@ namespace Xv2CoreLib.Eternity
             xml.Save(path);
         }
 
+        [FileSave]
         public byte[] SaveToBytes()
         {
             byte[] bytes;

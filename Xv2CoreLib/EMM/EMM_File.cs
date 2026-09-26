@@ -32,6 +32,7 @@ namespace Xv2CoreLib.EMM
         public UnknownData Unknown_Data { get; set; }
 
         #region LoadSave
+        [FileLoad]
         public static EMM_File LoadEmm(byte[] bytes)
         {
             return new Parser(bytes).emmFile;
@@ -59,8 +60,7 @@ namespace Xv2CoreLib.EMM
                 {
                     return new EMM_File()
                     {
-                        Version = 0,
-                        Materials = AsyncObservableCollection<EmmMaterial>.Create()
+                        Version = 0
                     };
                 }
                 else
@@ -90,6 +90,7 @@ namespace Xv2CoreLib.EMM
             new Deserializer(saveLocation, this);
         }
 
+        [FileSave]
         public byte[] SaveToBytes()
         {
             return new Deserializer(this).bytes.ToArray();

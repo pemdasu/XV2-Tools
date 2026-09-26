@@ -38,6 +38,7 @@ namespace Xv2CoreLib.CBS
             return file;
         }
 
+        [FileLoad]
         public static CBS_File Parse(byte[] bytes)
         {
             CBS_File cbsFile = new CBS_File();
@@ -84,7 +85,7 @@ namespace Xv2CoreLib.CBS
             YAXSerializer serializer = new YAXSerializer(typeof(CBS_File), YAXSerializationOptions.DontSerializeNullObjects);
             var cbsFile = (CBS_File)serializer.DeserializeFromFile(xmlPath);
 
-            File.WriteAllBytes(saveLocation, cbsFile.Write());
+            File.WriteAllBytes(saveLocation, cbsFile.SaveToBytes());
         }
 
         /// <summary>
@@ -93,10 +94,11 @@ namespace Xv2CoreLib.CBS
         /// <param name="path"></param>
         public void Save(string path)
         {
-            File.WriteAllBytes(path, Write());
+            File.WriteAllBytes(path, SaveToBytes());
         }
 
-        public byte[] Write()
+        [FileSave]
+        public byte[] SaveToBytes()
         {
             if (Entries == null) Entries = new List<CBS_Entry>();
 
@@ -134,11 +136,6 @@ namespace Xv2CoreLib.CBS
                 throw new InvalidDataException($"Error on building cbs: Invalid file size!");
 
             return bytes.ToArray();
-        }
-
-        public byte[] SaveToBytes()
-        {
-            return Write();
         }
 
         public static int VersionToEntrySize(ushort version)

@@ -26,6 +26,7 @@ namespace Xv2CoreLib.CUS
         public List<Skill> BlastSkills { get; set; }
         public List<Skill> AwokenSkills { get; set; }
 
+        [FileSave]
         public byte[] SaveToBytes()
         {
             return new Deserializer(this).bytes.ToArray();
@@ -41,6 +42,7 @@ namespace Xv2CoreLib.CUS
             AwokenSkills?.Sort((x, y) => x.SortID - y.SortID);
         }
 
+        [FileLoad]
         public static CUS_File Load(byte[] bytes)
         {
             return new Parser(bytes).GetCusFile();

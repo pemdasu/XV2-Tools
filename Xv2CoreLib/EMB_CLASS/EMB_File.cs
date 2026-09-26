@@ -28,6 +28,7 @@ namespace Xv2CoreLib.EMB_CLASS
             return new EMB_File(LoadInternal(File.ReadAllBytes(path)));
         }
 
+        [FileLoad]
         public static EMB_File Load(byte[] bytes)
         {
             return new EMB_File(LoadInternal(bytes));

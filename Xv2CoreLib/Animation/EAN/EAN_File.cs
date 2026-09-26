@@ -46,6 +46,12 @@ namespace Xv2CoreLib.EAN
         public AsyncObservableCollection<EAN_Animation> Animations { get; set; } = new AsyncObservableCollection<EAN_Animation>();
 
         #region Load/Save
+        [FileLoad]
+        public static EAN_File Load(byte[] bytes)
+        {
+            return Load(bytes, true);
+        }
+
         public static EAN_File Load(byte[] rawBytes, bool linkEskToAnims = false)
         {
             return new Parser(rawBytes, linkEskToAnims).eanFile;
@@ -67,6 +73,7 @@ namespace Xv2CoreLib.EAN
             new Deserializer(Clone(), path);
         }
 
+        [FileSave]
         public byte[] SaveToBytes()
         {
             return new Deserializer(this).bytes.ToArray();

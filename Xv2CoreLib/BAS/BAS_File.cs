@@ -1,9 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using YAXLib;
 
 namespace Xv2CoreLib.BAS
@@ -25,12 +22,13 @@ namespace Xv2CoreLib.BAS
         [YAXCollection(YAXCollectionSerializationTypes.RecursiveWithNoContainingElement, EachElementName = "BAS_Entry")]
         public List<BAS_Entry> Entries { get; set; } = new List<BAS_Entry>();
 
-
+        [FileSave]
         public byte[] SaveToBytes()
         {
             return new Deserializer(this).bytes.ToArray();
         }
 
+        [FileLoad]
         public static BAS_File Load(byte[] bytes)
         {
             return new Parser(bytes).basFile;

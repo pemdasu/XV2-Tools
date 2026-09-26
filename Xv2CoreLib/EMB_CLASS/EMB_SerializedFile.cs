@@ -61,6 +61,7 @@ namespace Xv2CoreLib.EMB_CLASS
             return new EMB_SerializedFile(LoadInternal(File.ReadAllBytes(path)));
         }
 
+        [FileLoad]
         public static EMB_SerializedFile Load(byte[] bytes)
         {
             return new EMB_SerializedFile(LoadInternal(bytes));

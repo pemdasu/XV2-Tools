@@ -45,8 +45,10 @@ namespace Xv2CoreLib.Eternity
             return Parse(text);
         }
 
+        [FileLoad(AllowMissingFile = true)]
         public static StageDefFile Load(byte[] bytes)
         {
+            if (bytes == null || bytes.Length == 0) return DefaultFile;
             return Parse(StringEx.GetXmlStringUTF8(bytes));
         }
 
@@ -76,16 +78,17 @@ namespace Xv2CoreLib.Eternity
         }
 
         //Save:
-        public void SaveToDisk(string path)
+        public void Save(string path)
         {
-            var xml = Write();
+            var xml = WriteXml();
             xml.Save(path);
         }
 
+        [FileSave]
         public byte[] SaveToBytes()
         {
             byte[] bytes;
-            var xml = Write();
+            var xml = WriteXml();
 
             using (MemoryStream ms = new MemoryStream())
             {
@@ -96,7 +99,7 @@ namespace Xv2CoreLib.Eternity
             return bytes;
         }
 
-        private XDocument Write()
+        private XDocument WriteXml()
         {
             Stages?.Sort((x, y) => (int)x.Index - (int)y.Index);
 

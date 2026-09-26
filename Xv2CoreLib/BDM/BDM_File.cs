@@ -43,6 +43,7 @@ namespace Xv2CoreLib.BDM
         public List<BDM_Entry> BDM_Entries { get; set; } = new List<BDM_Entry>();
 
         #region LoadSave
+        [FileSave]
         public byte[] SaveToBytes()
         {
             return new Deserializer(this).bytes.ToArray();
@@ -51,6 +52,12 @@ namespace Xv2CoreLib.BDM
         public void SortEntries()
         {
             BDM_Entries.Sort((x, y) => x.SortID - y.SortID);
+        }
+
+        [FileLoad]
+        public static BDM_File Load(byte[] bytes)
+        {
+            return Load(bytes, true);
         }
 
         public static BDM_File Load(byte[] rawBytes, bool convertToType0 = false)

@@ -59,6 +59,7 @@ namespace Xv2CoreLib.AMK
             return amkFile;
         }
 
+        [FileLoad]
         public static AMK_File Read(byte[] bytes)
         {
             AMK_File amkFile = new AMK_File();
@@ -102,11 +103,12 @@ namespace Xv2CoreLib.AMK
 
         public void Save(string path)
         {
-            byte[] bytes = Write();
+            byte[] bytes = SaveToBytes();
             File.WriteAllBytes(path, bytes);
         }
 
-        public byte[] Write()
+        [FileSave]
+        public byte[] SaveToBytes()
         {
             List<byte> bytes = new List<byte>();
 

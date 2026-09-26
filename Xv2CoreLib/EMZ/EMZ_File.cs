@@ -53,6 +53,7 @@ namespace Xv2CoreLib.EMZ
             return Load(File.ReadAllBytes(path));
         }
 
+        [FileLoad]
         public static EMZ_File Load(byte[] bytes)
         {
             if (BitConverter.ToInt32(bytes, 0) != SIGNATURE)
@@ -112,7 +113,8 @@ namespace Xv2CoreLib.EMZ
             }
         }
 
-        public byte[] Write()
+        [FileSave]
+        public byte[] SaveToBytes()
         {
             List<byte> bytes = new List<byte>();
             bytes.AddRange(BitConverter.GetBytes(SIGNATURE));

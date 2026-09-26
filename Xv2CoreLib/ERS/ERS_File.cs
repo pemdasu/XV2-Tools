@@ -1,9 +1,6 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using YAXLib;
 
 namespace Xv2CoreLib.ERS
@@ -16,11 +13,13 @@ namespace Xv2CoreLib.ERS
         [YAXCollection(YAXCollectionSerializationTypes.RecursiveWithNoContainingElement, EachElementName = "Entry")]
         public List <ERS_MainTable> Entries { get; set; }
 
+        [FileSave]
         public byte[] SaveToBytes()
         {
             return new Deserializer(this).bytes.ToArray();
         }
 
+        [FileLoad]
         public static ERS_File Load(byte[] bytes)
         {
             return new Parser(bytes).ersFile;

@@ -4,6 +4,7 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using Xv2CoreLib.Resource;
 using YAXLib;
 
 namespace Xv2CoreLib.IDB
@@ -41,6 +42,9 @@ namespace Xv2CoreLib.IDB
     [YAXSerializeAs("IDB")]
     public class IDB_File : ISorting
     {
+        [YAXDontSerialize]
+        public bool IsSkillIdb = false;
+
         [YAXAttributeForClass]
         [YAXErrorIfMissed(YAXExceptionTypes.Ignore, DefaultValue = 3)]
         public int Version { get; set; } = 3;
@@ -52,9 +56,15 @@ namespace Xv2CoreLib.IDB
         [YAXCollection(YAXCollectionSerializationTypes.RecursiveWithNoContainingElement, EachElementName = "IDB_Entry")]
         public List<IDB_Entry> Entries { get; set; }
 
-        public byte[] SaveToBytes(bool isSkillIdb = false)
+        #region LoadSave
+        [FileLoad]
+        public static IDB_File Load(string path, Xv2FileIO fileIO, bool onlyFromCpk)
         {
-            return new Deserializer(this, isSkillIdb).bytes.ToArray();
+            //My wacky solution to get FileManager to properly account for skill IDB files
+            IDB_File idbFile = Load(FileManager.Instance.GetBytesFromGame(path, onlyFromCpk, true));
+            idbFile.IsSkillIdb = Path.GetFileNameWithoutExtension(path).Equals("skill_item", StringComparison.OrdinalIgnoreCase);
+
+            return idbFile;
         }
 
         public static IDB_File Load(byte[] bytes)
@@ -62,10 +72,33 @@ namespace Xv2CoreLib.IDB
             return new Parser(bytes).GetIdbFile();
         }
 
+        [FileSave]
+        public byte[] SaveToBytes()
+        {
+            return SaveToBytes(IsSkillIdb);
+        }
+
+        public byte[] SaveToBytes(bool isSkillIdb = false)
+        {
+            IsSkillIdb = isSkillIdb;
+            return new Deserializer(this, isSkillIdb).bytes.ToArray();
+        }
+
         public void Save(string path)
         {
             new Deserializer(this, path);
         }
+
+        public void SaveBinary(string path)
+        {
+            if (!Directory.Exists(Path.GetDirectoryName(path)))
+            {
+                Directory.CreateDirectory(Path.GetDirectoryName(path));
+            }
+            new Deserializer(this, path);
+        }
+
+        #endregion
 
         public void SortEntries()
         {
@@ -111,15 +144,6 @@ namespace Xv2CoreLib.IDB
             }
 
             return false;
-        }
-
-        public void SaveBinary(string path)
-        {
-            if (!Directory.Exists(Path.GetDirectoryName(path)))
-            {
-                Directory.CreateDirectory(Path.GetDirectoryName(path));
-            }
-            new Deserializer(this, path);
         }
 
         public static bool IsIdbMsgFile(string path)

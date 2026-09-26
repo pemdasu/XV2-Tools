@@ -54,6 +54,7 @@ namespace Xv2CoreLib.SDS
             return Load(File.ReadAllBytes(path));
         }
 
+        [FileLoad]
         public static SDS_File Load(byte[] bytes)
         {
             SDS_File sdsFile = new SDS_File();
@@ -146,6 +147,7 @@ namespace Xv2CoreLib.SDS
             File.WriteAllBytes(saveLocation, sdsFile.Write());
         }
 
+        [FileSave]
         public byte[] Write()
         {
             List<byte> bytes = new List<byte>();
@@ -242,7 +244,7 @@ namespace Xv2CoreLib.SDS
             if (IsEMZ)
             {
                 EMZ_File emz = new EMZ_File(bytes.ToArray());
-                fileBytes = emz.Write();
+                fileBytes = emz.SaveToBytes();
             }
             else
             {

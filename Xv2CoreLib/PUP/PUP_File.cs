@@ -51,6 +51,7 @@ namespace Xv2CoreLib.PUP
             File.WriteAllBytes(path, bytes.ToArray());
         }
 
+        [FileLoad]
         public static PUP_File Load(byte[] bytes)
         {
             PUP_File pupFile = new PUP_File();
@@ -67,6 +68,7 @@ namespace Xv2CoreLib.PUP
             return pupFile;
         }
 
+        [FileSave]
         public byte[] SaveToBytes()
         {
             List<byte> bytes = new List<byte>();

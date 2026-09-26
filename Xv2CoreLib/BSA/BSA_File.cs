@@ -63,11 +63,13 @@ namespace Xv2CoreLib.BSA
         [YAXCollection(YAXCollectionSerializationTypes.RecursiveWithNoContainingElement, EachElementName = "BSA_Entry")]
         public List<BSA_Entry> BSA_Entries { get; set; } = new List<BSA_Entry>();
 
+        [FileSave]
         public byte[] SaveToBytes()
         {
             return new Deserializer(this).bytes.ToArray();
         }
 
+        [FileLoad]
         public static BSA_File Load(byte[] bytes)
         {
             return new Parser(bytes).GetBsaFile();

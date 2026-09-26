@@ -40,7 +40,7 @@ namespace Xv2CoreLib.SPM
             YAXSerializer serializer = new YAXSerializer(typeof(SPM_File), YAXSerializationOptions.DontSerializeNullObjects);
             SPM_File spmFile = (SPM_File)serializer.DeserializeFromFile(path);
 
-            File.WriteAllBytes(saveLocation, spmFile.Write());
+            File.WriteAllBytes(saveLocation, spmFile.SaveToBytes());
         }
 
         public static SPM_File Load(string path)
@@ -48,6 +48,7 @@ namespace Xv2CoreLib.SPM
             return Load(File.ReadAllBytes(path));
         }
 
+        [FileLoad]
         public static SPM_File Load(byte[] bytes)
         {
             SPM_File spm = new SPM_File();
@@ -96,7 +97,8 @@ namespace Xv2CoreLib.SPM
             return spm;
         }
 
-        public byte[] Write()
+        [FileSave]
+        public byte[] SaveToBytes()
         {
             List<byte> bytes = new List<byte>();
             bool useDsc = false, useExtendedEntry = false;

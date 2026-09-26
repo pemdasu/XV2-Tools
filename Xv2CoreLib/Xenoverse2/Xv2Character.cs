@@ -388,9 +388,9 @@ namespace Xv2CoreLib
                 return false;
 
             if (OnlyLoadFromCPK)
-                return FileManager.Instance.fileIO.FileExistsInCpk(path);
+                return FileManager.Instance.FileIO.FileExistsInCpk(path);
 
-            return FileManager.Instance.fileIO.FileExists(path);
+            return FileManager.Instance.FileIO.FileExists(path);
         }
 
         //PartSet Editing
@@ -728,7 +728,7 @@ namespace Xv2CoreLib
                         FileManager.Instance.SaveFileToGame(RelativePath, File);
                         break;
                     case Type.SCD:
-                        System.IO.File.WriteAllBytes(FileManager.Instance.fileIO.PathInGameDir(RelativePath), Bytes);
+                        System.IO.File.WriteAllBytes(FileManager.Instance.FileIO.PathInGameDir(RelativePath), Bytes);
                         break;
                 }
 

@@ -97,7 +97,7 @@ namespace Xv2CoreLib.BCS
         public SkeletonData SkeletonData2 { get; set; } = new SkeletonData();
 
 
-
+        [FileSave]
         public byte[] SaveToBytes()
         {
             return new Deserializer(this).bytes.ToArray();
@@ -132,6 +132,7 @@ namespace Xv2CoreLib.BCS
             new Deserializer(this, path);
         }
 
+        [FileLoad]
         public static BCS_File Load(byte[] bytes)
         {
             return new Parser(bytes).GetBcsFile();

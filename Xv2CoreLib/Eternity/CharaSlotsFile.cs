@@ -43,7 +43,8 @@ namespace Xv2CoreLib.Eternity
         {
             return Load(File.ReadAllBytes(path));
         }
-
+        
+        [FileLoad]
         public static CharaSlotsFile Load(byte[] bytes)
         {
             string rawText = Encoding.ASCII.GetString(bytes);
@@ -94,6 +95,7 @@ namespace Xv2CoreLib.Eternity
             return charaFile;
         }
 
+        [FileSave]
         public byte[] SaveToBytes()
         {
             StringBuilder strBuilder = new StringBuilder();

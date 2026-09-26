@@ -35,11 +35,13 @@ namespace Xv2CoreLib.ESK
 
         public ESK_Skeleton Skeleton { get; set; }
 
+        [FileSave]
         public byte[] SaveToBytes()
         {
             return new Deserializer(this).bytes.ToArray();
         }
 
+        [FileLoad]
         public static ESK_File Load(byte[] bytes)
         {
             return new Parser(bytes).eskFile;

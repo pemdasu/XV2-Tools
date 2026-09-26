@@ -14,6 +14,7 @@ namespace Xv2CoreLib.CSO
         [YAXCollection(YAXCollectionSerializationTypes.RecursiveWithNoContainingElement, EachElementName = "CsoEntry")]
         public List<CSO_Entry> CsoEntries { get; set; }
 
+        [FileSave]
         public byte[] SaveToBytes()
         {
             return new Deserializer(this).bytes.ToArray();
@@ -26,6 +27,7 @@ namespace Xv2CoreLib.CSO
             CsoEntries = CsoEntries.OrderBy(x => x.SortID).ThenBy(x => x.Costume).ToList();
         }
 
+        [FileLoad]
         public static CSO_File Load(byte[] rawBytes)
         {
             return new Parser(rawBytes).csoFile;

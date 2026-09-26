@@ -455,6 +455,7 @@ namespace Xv2CoreLib.EffectContainer
         /// <param name="path">A relative path from the game data folder.</param>
         /// <param name="_fileIO">The Xv2FileIO object to load from.</param>
         /// <returns></returns>
+        [FileLoad]
         public static EffectContainerFile Load(string path, Xv2FileIO _fileIO, bool onlyFromCpk)
         {
             return Load(Path.GetDirectoryName(path), Path.GetFileNameWithoutExtension(path), _fileIO, onlyFromCpk, null, SaveFormat.EEPK);
@@ -843,9 +844,20 @@ namespace Xv2CoreLib.EffectContainer
             return result;
         }
 
+        [FileSave]
+        public void Save(string path = null)
+        {
+            if (!string.IsNullOrWhiteSpace(path))
+            {
+                Directory = Path.GetDirectoryName(path);
+                Name = Path.GetFileName(path);
+            }
+
+            Save();
+        }
+
         public bool Save()
         {
-
             //Convert all loaded dds textures back into a byte array
             Pbind.File3_Ref.SaveDdsImages();
             Tbind.File3_Ref.SaveDdsImages();
@@ -880,12 +892,12 @@ namespace Xv2CoreLib.EffectContainer
                 if (!Pbind.LooseFiles)
                 {
                     ExternalFileSaved(string.Format("{0}/{1}", Directory, Pbind.File1_Name));
-                    SaveFile(Pbind.File1_Ref.Write(), string.Format("{0}/{1}", Directory, Pbind.File1_Name));
+                    SaveFile(Pbind.File1_Ref.SaveToBytes(), string.Format("{0}/{1}", Directory, Pbind.File1_Name));
                 }
                 ExternalFileSaved(string.Format("{0}/{1}", Directory, Pbind.File2_Name));
                 ExternalFileSaved(string.Format("{0}/{1}", Directory, Pbind.File3_Name));
                 SaveFile(Pbind.File2_Ref.SaveToBytes(), string.Format("{0}/{1}", Directory, Pbind.File2_Name));
-                SaveFile(Pbind.File3_Ref.Write(), string.Format("{0}/{1}", Directory, Pbind.File3_Name));
+                SaveFile(Pbind.File3_Ref.SaveToBytes(), string.Format("{0}/{1}", Directory, Pbind.File3_Name));
 
                 //Lose files
                 if (Pbind.LooseFiles)
@@ -904,12 +916,12 @@ namespace Xv2CoreLib.EffectContainer
                 if (!Tbind.LooseFiles)
                 {
                     ExternalFileSaved(string.Format("{0}/{1}", Directory, Tbind.File1_Name));
-                    SaveFile(Tbind.File1_Ref.Write(), string.Format("{0}/{1}", Directory, Tbind.File1_Name));
+                    SaveFile(Tbind.File1_Ref.SaveToBytes(), string.Format("{0}/{1}", Directory, Tbind.File1_Name));
                 }
                 ExternalFileSaved(string.Format("{0}/{1}", Directory, Tbind.File2_Name));
                 ExternalFileSaved(string.Format("{0}/{1}", Directory, Tbind.File3_Name));
                 SaveFile(Tbind.File2_Ref.SaveToBytes(), string.Format("{0}/{1}", Directory, Tbind.File2_Name));
-                SaveFile(Tbind.File3_Ref.Write(), string.Format("{0}/{1}", Directory, Tbind.File3_Name));
+                SaveFile(Tbind.File3_Ref.SaveToBytes(), string.Format("{0}/{1}", Directory, Tbind.File3_Name));
 
                 //Lose files
                 if (Tbind.LooseFiles)
@@ -927,7 +939,7 @@ namespace Xv2CoreLib.EffectContainer
                 if (!Cbind.LooseFiles)
                 {
                     ExternalFileSaved(string.Format("{0}/{1}", Directory, Cbind.File1_Name));
-                    SaveFile(Cbind.File1_Ref.Write(), string.Format("{0}/{1}", Directory, Cbind.File1_Name));
+                    SaveFile(Cbind.File1_Ref.SaveToBytes(), string.Format("{0}/{1}", Directory, Cbind.File1_Name));
                 }
 
                 //Lose files
@@ -959,7 +971,7 @@ namespace Xv2CoreLib.EffectContainer
                                         SaveFile(file.EmmFile.SaveToBytes(), string.Format("{0}/{1}", Directory, file.FullFileName));
                                         break;
                                     case EffectFile.FileType.EMB:
-                                        SaveFile(file.EmbFile.Write(), string.Format("{0}/{1}", Directory, file.FullFileName));
+                                        SaveFile(file.EmbFile.SaveToBytes(), string.Format("{0}/{1}", Directory, file.FullFileName));
                                         break;
                                     case EffectFile.FileType.EMA:
                                         if (!EepkToolInterlop.FullDecompile) goto default;
@@ -1012,7 +1024,7 @@ namespace Xv2CoreLib.EffectContainer
                 else if (!LightEma.LooseFiles)
                 {
                     ExternalFileSaved(string.Format("{0}/{1}", Directory, LightEma.File1_Name));
-                    SaveFile(LightEma.File1_Ref.Write(), string.Format("{0}/{1}", Directory, LightEma.File1_Name));
+                    SaveFile(LightEma.File1_Ref.SaveToBytes(), string.Format("{0}/{1}", Directory, LightEma.File1_Name));
                 }
             }
 
@@ -4501,7 +4513,7 @@ namespace Xv2CoreLib.EffectContainer
                 case FileType.EMA:
                     return EepkToolInterlop.FullDecompile ? EmaFile.Write() : Bytes;
                 case FileType.EMB:
-                    return EmbFile.Write();
+                    return EmbFile.SaveToBytes();
                 case FileType.EMM:
                     return EmmFile.SaveToBytes();
                 case FileType.EMP:

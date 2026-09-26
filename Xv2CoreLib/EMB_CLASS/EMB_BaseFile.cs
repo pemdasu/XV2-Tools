@@ -99,7 +99,8 @@ namespace Xv2CoreLib.EMB_CLASS
             return embFile;
         }
 
-        public byte[] Write()
+        [FileSave]
+        public byte[] SaveToBytes()
         {
             //Validate indexing; all EMB entries must have a unique ID. Throw if duplicates exist
             HashSet<int> entryHashList = new HashSet<int>(Entry.Count);
@@ -186,7 +187,7 @@ namespace Xv2CoreLib.EMB_CLASS
             if (IsEMZ)
             {
                 EMZ_File emz = new EMZ_File(buffer);
-                return emz.Write();
+                return emz.SaveToBytes();
             }
             else
             {
@@ -243,7 +244,7 @@ namespace Xv2CoreLib.EMB_CLASS
 
         public void Save(string path)
         {
-            File.WriteAllBytes(path, Write());
+            File.WriteAllBytes(path, SaveToBytes());
         }
 
         #endregion

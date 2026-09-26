@@ -203,8 +203,8 @@ namespace Xv2CoreLib
         private MSG_File[] stageNameMsgFile = new MSG_File[(int)Language.NumLanguages];
 
         //Misc variables
-        private FileWatcher fileWatcher => FileManager.Instance.fileWatcher;
-        public Xv2FileIO fileIO => FileManager.Instance.fileIO;
+        private FileWatcher fileWatcher => FileManager.Instance.FileWatcher;
+        public Xv2FileIO fileIO => FileManager.Instance.FileIO;
         public Language PreferedLanguage = Language.English;
         public bool IsInitialized = false;
 
@@ -560,14 +560,14 @@ namespace Xv2CoreLib
                 {
                     moveFiles.SeAcbPath = string.Format(@"sound/SE/Battle/Skill/CAR_BTL_{2}{1}_{0}_SE.acb", cusEntry.ShortName, cusEntry.ID2.ToString("D3"), GetAcbSkillTypeLetter(skillType));
 
-                    if (loadSkillFiles && FileManager.Instance.fileIO.FileExists(moveFiles.SeAcbPath))
+                    if (loadSkillFiles && FileManager.Instance.FileIO.FileExists(moveFiles.SeAcbPath))
                         moveFiles.AddSeAcbFile(FileManager.Instance.LoadFile<ACB_Wrapper>(moveFiles.SeAcbPath, loadFromCpk), -1, fileIO.PathInGameDir(moveFiles.SeAcbPath), false, true, MoveType.Skill);
                 }
                 else
                 {
                     moveFiles.SeAcbPath = string.Format(@"sound/SE/Battle/Skill/{0}.acb", cusEntry.SePath);
 
-                    if (loadSkillFiles && FileManager.Instance.fileIO.FileExists(moveFiles.SeAcbPath))
+                    if (loadSkillFiles && FileManager.Instance.FileIO.FileExists(moveFiles.SeAcbPath))
                         moveFiles.AddSeAcbFile(FileManager.Instance.LoadFile<ACB_Wrapper>(moveFiles.SeAcbPath, loadFromCpk), -1, fileIO.PathInGameDir(moveFiles.SeAcbPath), true, true, MoveType.Skill);
                 }
             }
@@ -959,16 +959,12 @@ namespace Xv2CoreLib
                     //AMK
                     string amkPath = Utils.ResolveRelativePath(string.Format("chara/{0}.amk", csoEntry.AmkPath));
 
-                    if (!string.IsNullOrWhiteSpace(csoEntry.AmkPath) && !loadedFiles.Contains(amkPath))
+                    if (!string.IsNullOrWhiteSpace(csoEntry.AmkPath) && !loadedFiles.Contains(amkPath) && FileManager.Instance.Exists(amkPath))
                     {
-                        AMK_File amkFile = FileManager.Instance.LoadFile<AMK_File>(amkPath, onlyLoadFromCPK, false);
+                        AMK_File amkFile = FileManager.Instance.LoadFile<AMK_File>(amkPath, onlyLoadFromCPK);
 
-                        //AMK can be declared in CSO but not actually exist, so we must check. If it is missing then just skip it.
-                        if (amkFile != null)
-                        {
-                            amkFiles.Add(new Xv2File<AMK_File>(amkFile, FileManager.Instance.GetAbsolutePath(amkPath), !Utils.CompareSplitString(csoEntry.AmkPath, '/', 0, cmsEntry.ShortName), null, false, MoveFileTypes.AMK, (int)csoEntry.Costume, true, MoveType.Character));
-                            loadedFiles.Add(amkPath);
-                        }
+                        amkFiles.Add(new Xv2File<AMK_File>(amkFile, FileManager.Instance.GetAbsolutePath(amkPath), !Utils.CompareSplitString(csoEntry.AmkPath, '/', 0, cmsEntry.ShortName), null, false, MoveFileTypes.AMK, (int)csoEntry.Costume, true, MoveType.Character));
+                        loadedFiles.Add(amkPath);
                     }
                     else
                     {
@@ -1228,22 +1224,32 @@ namespace Xv2CoreLib
                     bool isDefaultCostume = csoEntry.Costume == 0;
 
                     //SE
-                    if (csoEntry.HasSePath && !loadedFiles.Contains(moveFiles.SeAcbPath))
+                    if (FileManager.Instance.Exists(moveFiles.SeAcbPath))
                     {
-                        //This costume has a SE defined, and its hasnt been loaded yet
+                        if (csoEntry.HasSePath && !loadedFiles.Contains(moveFiles.SeAcbPath))
+                        {
+                            //This costume has a SE defined, and its hasnt been loaded yet
 
-                        //Checks if the defined VOX belongs to this character
-                        bool borrowed = !Utils.CompareSplitString(csoEntry.SePath, '_', 2, cmsEntry.ShortName);
+                            //Checks if the defined VOX belongs to this character
+                            bool borrowed = !Utils.CompareSplitString(csoEntry.SePath, '_', 2, cmsEntry.ShortName);
+
+                            if (loadFiles)
+                                moveFiles.SeAcbFile.Add(new Xv2File<ACB_Wrapper>(FileManager.Instance.LoadFile<ACB_Wrapper>(moveFiles.SeAcbPath, loadFromCpk), fileIO.PathInGameDir(moveFiles.SeAcbPath), borrowed, null, false, MoveFileTypes.SE_ACB, (int)csoEntry.Costume, isDefaultCostume, MoveType.Character));
+
+                            loadedFiles.Add(moveFiles.SeAcbPath);
+                        }
+                        else if (csoEntry.HasSePath)
+                        {
+                            //SE has been defined for this costume but it has already previously been loaded by another costume
+                            Xv2File<ACB_Wrapper>.AddCostume(moveFiles.SeAcbFile, FileManager.Instance.GetAbsolutePath(moveFiles.SeAcbPath), (int)csoEntry.Costume, false);
+                        }
+                    }
+                    else
+                    {
+                        //SE was declared in CSO, but no file exists. A new instance will be created instead.
 
                         if (loadFiles)
-                            moveFiles.SeAcbFile.Add(new Xv2File<ACB_Wrapper>(FileManager.Instance.LoadFile<ACB_Wrapper>(moveFiles.SeAcbPath, loadFromCpk), fileIO.PathInGameDir(moveFiles.SeAcbPath), borrowed, null, false, MoveFileTypes.SE_ACB, (int)csoEntry.Costume, isDefaultCostume, MoveType.Character));
-
-                        loadedFiles.Add(moveFiles.SeAcbPath);
-                    }
-                    else if(csoEntry.HasSePath)
-                    {
-                        //SE has been defined for this costume but it has already previously been loaded by another costume
-                        Xv2File<ACB_Wrapper>.AddCostume(moveFiles.SeAcbFile, FileManager.Instance.GetAbsolutePath(moveFiles.SeAcbPath), (int)csoEntry.Costume, false);
+                            moveFiles.SeAcbFile.Add(new Xv2File<ACB_Wrapper>(ACB_Wrapper.NewXv2Acb(), fileIO.PathInGameDir(moveFiles.SeAcbPath), false, null, false, MoveFileTypes.SE_ACB, (int)csoEntry.Costume, isDefaultCostume, MoveType.Character));
                     }
 
                     //Character is a CaC. VOX is handled differently for these.
@@ -1312,20 +1318,28 @@ namespace Xv2CoreLib
         {
             string acbPath = (english) ? $"sound/VOX/Battle/Chara/en/{csoEntry.VoxPath}.acb" : $"sound/VOX/Battle/Chara/{csoEntry.VoxPath}.acb";
 
-            if (csoEntry.HasVoxPath && !loadedFiles.Contains(acbPath))
+            if (FileManager.Instance.Exists(acbPath))
             {
-                bool borrowed = !Utils.CompareSplitString(csoEntry.VoxPath, '_', 2, shortName);
+                if (csoEntry.HasVoxPath && !loadedFiles.Contains(acbPath))
+                {
+                    bool borrowed = !Utils.CompareSplitString(csoEntry.VoxPath, '_', 2, shortName);
 
-                moveFiles.VoxAcbPath.Add(acbPath);
+                    moveFiles.VoxAcbPath.Add(acbPath);
 
-                if (loadFiles)
-                    moveFiles.VoxAcbFile.Add(new Xv2File<ACB_Wrapper>(FileManager.Instance.LoadFile<ACB_Wrapper>(acbPath, loadFromCpk), fileIO.PathInGameDir(acbPath), borrowed, null, english, MoveFileTypes.VOX_ACB, (int)csoEntry.Costume, csoEntry.Costume == 0, MoveType.Character));
+                    if (loadFiles)
+                        moveFiles.VoxAcbFile.Add(new Xv2File<ACB_Wrapper>(FileManager.Instance.LoadFile<ACB_Wrapper>(acbPath, loadFromCpk), fileIO.PathInGameDir(acbPath), borrowed, null, english, MoveFileTypes.VOX_ACB, (int)csoEntry.Costume, csoEntry.Costume == 0, MoveType.Character));
 
-                loadedFiles.Add(acbPath);
+                    loadedFiles.Add(acbPath);
+                }
+                else
+                {
+                    Xv2File<ACB_Wrapper>.AddCostume(moveFiles.VoxAcbFile, FileManager.Instance.GetAbsolutePath(acbPath), (int)csoEntry.Costume, false);
+                }
             }
             else
             {
-                Xv2File<ACB_Wrapper>.AddCostume(moveFiles.VoxAcbFile, FileManager.Instance.GetAbsolutePath(acbPath), (int)csoEntry.Costume, false);
+                if (loadFiles)
+                    moveFiles.VoxAcbFile.Add(new Xv2File<ACB_Wrapper>(ACB_Wrapper.NewXv2Acb(), fileIO.PathInGameDir(acbPath), false, null, english, MoveFileTypes.VOX_ACB, (int)csoEntry.Costume, csoEntry.Costume == 0, MoveType.Character));
             }
         }
 
@@ -1529,13 +1543,16 @@ namespace Xv2CoreLib
                 Xv2File<AMK_File> amk = Xv2File<AMK_File>.GetCostumeFileOrDefault(chara.AmkFile, costume);
                 Xv2CharaCostumeData costumeData = chara.Costumes.FirstOrDefault(x => x.CostumeId == costume);
 
+                bool hasSe = se?.File != null && !se.File.IsNull();
+                bool hasVox = vox?.File != null && !vox.File.IsNull();
+
                 //CSO Entry
                 CSO_Entry csoEntry = new CSO_Entry
                 {
                     CharaID = chara.CmsEntry.ID,
                     Costume = (uint)costume,
-                    SePath = (se != null) ? Path.GetFileNameWithoutExtension(se.Path) : null,
-                    VoxPath = (vox != null) ? Path.GetFileNameWithoutExtension(vox.Path) : null,
+                    SePath = hasSe ? Path.GetFileNameWithoutExtension(se.Path) : null,
+                    VoxPath = hasVox ? Path.GetFileNameWithoutExtension(vox.Path) : null,
                     AmkPath = (amk != null) ? string.Format("{0}/{1}", Path.GetFileName(Path.GetDirectoryName(amk.Path)), Path.GetFileNameWithoutExtension(amk.Path)) : null,
                     SkillCharaCode = costumeData != null ? costumeData.CsoSkills : chara.CmsEntry.ShortName
                 };

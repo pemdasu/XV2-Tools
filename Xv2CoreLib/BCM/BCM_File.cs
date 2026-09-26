@@ -214,6 +214,7 @@ namespace Xv2CoreLib.BCM
             }
         }
 
+        [FileLoad]
         public static BCM_File Load(byte[] rawBytes)
         {
             return new Parser(rawBytes).bcmFile;
@@ -228,6 +229,7 @@ namespace Xv2CoreLib.BCM
             new Deserializer(this, path);
         }
 
+        [FileSave]
         public byte[] SaveToBytes()
         {
             return new Deserializer(this).bytes.ToArray();

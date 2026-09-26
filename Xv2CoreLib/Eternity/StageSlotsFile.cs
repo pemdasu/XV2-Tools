@@ -75,6 +75,7 @@ namespace Xv2CoreLib.Eternity
             return Load(File.ReadAllBytes(path));
         }
 
+        [FileLoad]
         public static StageSlotsFile Load(byte[] bytes)
         {
             string rawText = Encoding.ASCII.GetString(bytes);
@@ -103,6 +104,7 @@ namespace Xv2CoreLib.Eternity
             return stageFile;
         }
 
+        [FileSave]
         public byte[] SaveToBytes()
         {
             StringBuilder strBuilder = new StringBuilder();

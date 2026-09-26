@@ -80,7 +80,7 @@ namespace Xv2CoreLib.FMP
             FMP_File fmpFile = (FMP_File)serializer.DeserializeFromFile(path);
             fmpFile.ResolveObjectReferences(); //Also add this in the installer INSTALL method when loading the xml for map
 
-            File.WriteAllBytes(saveLocation, fmpFile.Write());
+            File.WriteAllBytes(saveLocation, fmpFile.SaveToBytes());
         }
 
         public static FMP_File Load(string path)
@@ -88,6 +88,7 @@ namespace Xv2CoreLib.FMP
             return Load(File.ReadAllBytes(path));
         }
 
+        [FileLoad]
         public static FMP_File Load(byte[] bytes)
         {
             if (BitConverter.ToInt32(bytes, 0) != SIGNATURE)
@@ -141,8 +142,9 @@ namespace Xv2CoreLib.FMP
 
             return fmpFile;
         }
-    
-        public byte[] Write()
+
+        [FileSave]
+        public byte[] SaveToBytes()
         {
             ResolveIndexReferences();
 
@@ -265,7 +267,7 @@ namespace Xv2CoreLib.FMP
         public void Save(string path)
         {
             Directory.CreateDirectory(Path.GetDirectoryName(path));
-            File.WriteAllBytes(path, Write());
+            File.WriteAllBytes(path, SaveToBytes());
         }
         
         private static string[] GetDepotStrings(byte[] bytes, int offset, int count)

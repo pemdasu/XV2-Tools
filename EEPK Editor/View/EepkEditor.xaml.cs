@@ -262,7 +262,7 @@ namespace EEPK_Organiser.View
                     else
                     {
                         //Load from game
-                        loadedFile = EffectContainerFile.Load(path, FileManager.Instance.fileIO, onlyFromCpk);
+                        loadedFile = EffectContainerFile.Load(path, FileManager.Instance.FileIO, onlyFromCpk);
                     }
                 });
             }

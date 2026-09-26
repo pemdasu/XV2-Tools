@@ -41,6 +41,7 @@ namespace Xv2CoreLib.EMB_CLASS
             return new EMB_TextureFile(LoadInternal(File.ReadAllBytes(path)));
         }
 
+        [FileLoad]
         public static EMB_TextureFile Load(byte[] bytes)
         {
             return new EMB_TextureFile(LoadInternal(bytes));

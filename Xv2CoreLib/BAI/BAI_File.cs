@@ -1,9 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using YAXLib;
 
 namespace Xv2CoreLib.BAI
@@ -25,11 +22,13 @@ namespace Xv2CoreLib.BAI
         [YAXCollection(YAXCollectionSerializationTypes.RecursiveWithNoContainingElement, EachElementName = "AI")]
         public List<BAI_Entry> Entries { get; set; }
 
+        [FileSave]
         public byte[] SaveToBytes()
         {
             return new Deserializer(this).bytes.ToArray();
         }
 
+        [FileLoad]
         public static BAI_File Load(byte[] bytes)
         {
             return new Parser(bytes).baiFile;

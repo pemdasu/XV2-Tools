@@ -16,6 +16,7 @@ namespace Xv2CoreLib.CMS
         [YAXCollection(YAXCollectionSerializationTypes.RecursiveWithNoContainingElement, EachElementName = "Entry")]
         public List<CMS_Entry> CMS_Entries { get; set; }
 
+        [FileSave]
         public byte[] SaveToBytes()
         {
             return new Deserializer(this).bytes.ToArray();
@@ -46,6 +47,7 @@ namespace Xv2CoreLib.CMS
             return CMS_Entries.FirstOrDefault(x => x.ShortName == charaCode);
         }
 
+        [FileLoad]
         public static CMS_File Load(byte[] rawBytes)
         {
             return new Parser(rawBytes).GetCmsFile();

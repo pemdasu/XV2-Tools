@@ -18,6 +18,7 @@ namespace Xv2CoreLib.NSK
             return Load(File.ReadAllBytes(path));
         }
 
+        [FileLoad]
         public static NSK_File Load(byte[] bytes)
         {
             int eskAddress = LB_Common.Utils.ArraySearch.IndexOf(bytes, "#ESK");
@@ -37,10 +38,11 @@ namespace Xv2CoreLib.NSK
 
         public void SaveFile(string path)
         {
-            File.WriteAllBytes(path, Write());
+            File.WriteAllBytes(path, SaveToBytes());
         }
 
-        public byte[] Write()
+        [FileSave]
+        public byte[] SaveToBytes()
         {
             List<byte> bytes = new List<byte>();
 

@@ -20,6 +20,7 @@ namespace Xv2CoreLib.MSG
 
         public MSG_File() { }
 
+        [FileSave]
         public byte[] SaveToBytes()
         {
             return new Deserializer(this).bytes.ToArray();
@@ -30,6 +31,7 @@ namespace Xv2CoreLib.MSG
             return new Parser(path, false).GetMsgFile();
         }
 
+        [FileLoad]
         public static MSG_File Load(byte[] rawBytes)
         {
             return new Parser(rawBytes).GetMsgFile();

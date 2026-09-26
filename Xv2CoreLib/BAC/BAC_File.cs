@@ -65,7 +65,6 @@ namespace Xv2CoreLib.BAC
         [YAXCollection(YAXCollectionSerializationTypes.RecursiveWithNoContainingElement, EachElementName = "BacEntry")]
         public AsyncObservableCollection<BAC_Entry> BacEntries { get; set; } = new AsyncObservableCollection<BAC_Entry>();
 
-
         #region LoadSave
         public static BAC_File DefaultBacFile()
         {
@@ -82,6 +81,7 @@ namespace Xv2CoreLib.BAC
             new Deserializer(this, path);
         }
 
+        [FileLoad]
         public static BAC_File Load(byte[] bytes)
         {
             return new Parser(bytes).bacFile;
@@ -101,6 +101,11 @@ namespace Xv2CoreLib.BAC
             new Deserializer(this, path);
         }
 
+        [FileSave]
+        public byte[] Write()
+        {
+            return new Deserializer(this).bytes.ToArray();
+        }
         #endregion
 
         #region AddRemoveGet
