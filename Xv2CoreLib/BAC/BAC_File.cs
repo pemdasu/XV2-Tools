@@ -3109,7 +3109,7 @@ namespace Xv2CoreLib.BAC
 
         public bool IsSkillBsa()
         {
-            if (BsaType == BsaTypeEnum.SuperSkill || BsaType == BsaTypeEnum.UltimateSkill || BsaType == BsaTypeEnum.EvasiveSkill || BsaType == BsaTypeEnum.AwokenSkill || BsaType == BsaTypeEnum.KiBlastSkill)
+            if (BsaType == BsaTypeEnum.SuperSkill || BsaType == BsaTypeEnum.UltimateSkill || BsaType == BsaTypeEnum.EvasiveSkill || BsaType == BsaTypeEnum.AwokenSkill || BsaType == BsaTypeEnum.KiBlastSkill || BsaType == BsaTypeEnum.NEW_AwokenSkill)
             {
                 return true;
             }
@@ -3220,6 +3220,7 @@ namespace Xv2CoreLib.BAC
                     case BsaTypeEnum.UltimateSkill:
                     case BsaTypeEnum.EvasiveSkill:
                     case BsaTypeEnum.KiBlastSkill:
+                    case BsaTypeEnum.NEW_AwokenSkill:
                         types[i].SkillID = (ushort)skillID;
                         break;
                 }
