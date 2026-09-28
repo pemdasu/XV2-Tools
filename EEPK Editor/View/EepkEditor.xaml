@@ -589,7 +589,7 @@
                                         <MenuItem Header="Awoken Skill" Command="{Binding ImportEffectsFromGameCommand}" CommandParameter="{x:Static forms:EntitySelector+EntityType.AwokenSkill}"/>
                                         <MenuItem Header="Demo" Command="{Binding ImportEffectsFromGameCommand}" CommandParameter="{x:Static forms:EntitySelector+EntityType.Demo}"/>
                                         <Separator/>
-                                        <MenuItem Header="From Cached Files" ItemsSource="{Binding ElementName=UserControl, Path=cacheManager.CachedFiles}" MouseMove="MenuItem_MouseMove" Click="EffectOptions_ImportEffectsFromCache_Click">
+                                        <MenuItem Header="From Cached Files" ItemsSource="{Binding cacheManager.CachedFiles}" MouseMove="MenuItem_MouseMove" Click="EffectOptions_ImportEffectsFromCache_Click">
                                             <MenuItem.ItemContainerStyle>
                                                 <Style>
                                                     <Setter Property="MenuItem.Header" Value="{Binding DisplayName}" />

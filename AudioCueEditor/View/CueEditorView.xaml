@@ -57,9 +57,9 @@
             </DataGrid.Columns>
             <DataGrid.ContextMenu>
                 <ContextMenu>
-                    <MenuItem Header="Extract" Command="{Binding ElementName=root, Path=ExtractSelectedAwbTrackCommand}"/>
-                    <MenuItem Header="Replace" Command="{Binding ElementName=root, Path=ReplaceSelectedAwbTrackCommand}"/>
-                    <MenuItem Header="Edit Loop" Command="{Binding ElementName=root, Path=EditLoopOnSelectedAwbTrackCommand}"/>
+                    <MenuItem Header="Extract" Command="{Binding ExtractSelectedAwbTrackCommand}"/>
+                    <MenuItem Header="Replace" Command="{Binding ReplaceSelectedAwbTrackCommand}"/>
+                    <MenuItem Header="Edit Loop" Command="{Binding EditLoopOnSelectedAwbTrackCommand}"/>
                 </ContextMenu>
             </DataGrid.ContextMenu>
             <DataGrid.InputBindings>
