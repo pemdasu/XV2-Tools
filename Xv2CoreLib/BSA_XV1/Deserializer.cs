@@ -437,16 +437,16 @@ namespace Xv2CoreLib.BSA_XV1
                 {
                     bytes.AddRange(BitConverter.GetBytes(type[i].I_00));
                     bytes.AddRange(BitConverter.GetBytes(type[i].I_04));
-                    bytes.AddRange(BitConverter.GetBytes(type[i].I_08));
+                    bytes.AddRange(BitConverter.GetBytes(type[i].F_08));
                     bytes.AddRange(BitConverter.GetBytes(type[i].F_12));
                     bytes.AddRange(BitConverter.GetBytes(type[i].F_16));
                     bytes.AddRange(BitConverter.GetBytes(type[i].F_20));
-                    bytes.AddRange(BitConverter.GetBytes(type[i].I_24));
-                    bytes.AddRange(BitConverter.GetBytes(type[i].I_28));
-                    bytes.AddRange(BitConverter.GetBytes(type[i].I_32));
-                    bytes.AddRange(BitConverter.GetBytes(type[i].I_36));
-                    bytes.AddRange(BitConverter.GetBytes(type[i].I_40));
-                    bytes.AddRange(BitConverter.GetBytes(type[i].I_44));
+                    bytes.AddRange(BitConverter.GetBytes(type[i].F_24));
+                    bytes.AddRange(BitConverter.GetBytes(type[i].F_28));
+                    bytes.AddRange(BitConverter.GetBytes(type[i].F_32));
+                    bytes.AddRange(BitConverter.GetBytes(type[i].F_36));
+                    bytes.AddRange(BitConverter.GetBytes(type[i].F_40));
+                    bytes.AddRange(BitConverter.GetBytes(type[i].F_44));
                     bytes.AddRange(BitConverter.GetBytes(type[i].I_48));
                     bytes.AddRange(BitConverter.GetBytes(type[i].I_50));
                     bytes.AddRange(BitConverter.GetBytes(type[i].I_52));
@@ -543,9 +543,9 @@ namespace Xv2CoreLib.BSA_XV1
                     bytes.AddRange(BitConverter.GetBytes(type[i].I_02));
                     bytes.AddRange(BitConverter.GetBytes(type[i].I_04));
                     bytes.AddRange(BitConverter.GetBytes(type[i].I_08));
-                    bytes.AddRange(BitConverter.GetBytes(type[i].I_12));
-                    bytes.AddRange(BitConverter.GetBytes(type[i].I_16));
-                    bytes.AddRange(BitConverter.GetBytes(type[i].I_20));
+                    bytes.AddRange(BitConverter.GetBytes(type[i].F_12));
+                    bytes.AddRange(BitConverter.GetBytes(type[i].F_16));
+                    bytes.AddRange(BitConverter.GetBytes(type[i].F_20));
                 }
 
             }

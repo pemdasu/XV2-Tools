@@ -31,6 +31,43 @@ namespace Xv2CoreLib.BSA
         //Chara_VOX = 2 and Skill_VOX = 4?
     }
 
+    public static class BsaSoundResources
+    {
+        public static bool TryGetBacAcbType(AcbType bsaType, out BAC.AcbType bacType)
+        {
+            switch (bsaType)
+            {
+                case AcbType.Common_SE:
+                    bacType = BAC.AcbType.Common_SE;
+                    return true;
+                case AcbType.Chara_SE:
+                    bacType = BAC.AcbType.Character_SE;
+                    return true;
+                case AcbType.Skill_SE:
+                    bacType = BAC.AcbType.Skill_SE;
+                    return true;
+                default:
+                    bacType = default;
+                    return false;
+            }
+        }
+
+        public static AcbType GetBsaAcbType(BAC.AcbType bacType)
+        {
+            switch (bacType)
+            {
+                case BAC.AcbType.Common_SE:
+                    return AcbType.Common_SE;
+                case BAC.AcbType.Character_SE:
+                    return AcbType.Chara_SE;
+                case BAC.AcbType.Skill_SE:
+                    return AcbType.Skill_SE;
+                default:
+                    throw new ArgumentOutOfRangeException(nameof(bacType), bacType, "No matching BSA sound category.");
+            }
+        }
+    }
+
     public enum Switch
     {
         On = 0,
@@ -326,9 +363,17 @@ namespace Xv2CoreLib.BSA
         [BindingSubList]
         public List<BSA_Type8> Type8 { get; set; }
         [YAXDontSerializeIfNull]
+        [YAXCollection(YAXCollectionSerializationTypes.RecursiveWithNoContainingElement, EachElementName = "ProjectileHealthAdjustment")]
+        [BindingSubList]
+        public List<BSA_Type9> Type9 { get; set; }
+        [YAXDontSerializeIfNull]
         [YAXCollection(YAXCollectionSerializationTypes.RecursiveWithNoContainingElement, EachElementName = "BSA_Type10")]
         [BindingSubList]
         public List<BSA_Type10> Type10 { get; set; }
+        [YAXDontSerializeIfNull]
+        [YAXCollection(YAXCollectionSerializationTypes.RecursiveWithNoContainingElement, EachElementName = "EffectPropertyControl")]
+        [BindingSubList]
+        public List<BSA_Type11> Type11 { get; set; }
         [YAXDontSerializeIfNull]
         [YAXCollection(YAXCollectionSerializationTypes.RecursiveWithNoContainingElement, EachElementName = "SendProjectileSignal")]
         [BindingSubList]
@@ -369,7 +414,11 @@ namespace Xv2CoreLib.BSA
                 IBsaTypes.Add(bsaEntry);
             foreach (var bsaEntry in Type8)
                 IBsaTypes.Add(bsaEntry);
+            foreach (var bsaEntry in Type9)
+                IBsaTypes.Add(bsaEntry);
             foreach (var bsaEntry in Type10)
+                IBsaTypes.Add(bsaEntry);
+            foreach (var bsaEntry in Type11)
                 IBsaTypes.Add(bsaEntry);
             foreach (var bsaEntry in Type12)
                 IBsaTypes.Add(bsaEntry);
@@ -418,9 +467,17 @@ namespace Xv2CoreLib.BSA
                 {
                     Type8.Add(type8);
                 }
+                else if (bsaEntry is BSA_Type9 type9)
+                {
+                    Type9.Add(type9);
+                }
                 else if (bsaEntry is BSA_Type10 type10)
                 {
                     Type10.Add(type10);
+                }
+                else if (bsaEntry is BSA_Type11 type11)
+                {
+                    Type11.Add(type11);
                 }
                 else if (bsaEntry is BSA_Type12 type12)
                 {
@@ -471,8 +528,12 @@ namespace Xv2CoreLib.BSA
                 Type7 = new List<BSA_Type7>();
             if (Type8 == null)
                 Type8 = new List<BSA_Type8>();
+            if (Type9 == null)
+                Type9 = new List<BSA_Type9>();
             if (Type10 == null)
                 Type10 = new List<BSA_Type10>();
+            if (Type11 == null)
+                Type11 = new List<BSA_Type11>();
             if (Type12 == null)
                 Type12 = new List<BSA_Type12>();
             if (Type13 == null)
@@ -493,7 +554,9 @@ namespace Xv2CoreLib.BSA
             Type6.Clear();
             Type7.Clear();
             Type8.Clear();
+            Type9.Clear();
             Type10.Clear();
+            Type11.Clear();
             Type12.Clear();
             Type13.Clear();
             Type14.Clear();
@@ -737,48 +800,59 @@ namespace Xv2CoreLib.BSA
         [YAXSerializeAs("value")]
         [YAXHexValue]
         public int I_00 { get; set; }
-        [YAXAttributeFor("Speed")]
+        [YAXAltAliases("Speed/X")]
+        [YAXAttributeFor("Direction")]
         [YAXSerializeAs("X")]
         [YAXFormat("0.0#######")]
         public float F_08 { get; set; }
-        [YAXAttributeFor("Speed")]
+        [YAXAltAliases("Speed/Y")]
+        [YAXAttributeFor("Direction")]
         [YAXSerializeAs("Y")]
         [YAXFormat("0.0#######")]
         public float F_12 { get; set; }
+        [YAXAltAliases("Speed/Z")]
         [YAXAttributeFor("Speed")]
-        [YAXSerializeAs("Z")]
+        [YAXSerializeAs("value")]
         [YAXFormat("0.0#######")]
         public float F_04 { get; set; }
-        [YAXAttributeFor("F_16")]
-        [YAXSerializeAs("value")]
+        [YAXAltAliases("F_16/value")]
+        [YAXAttributeFor("Direction")]
+        [YAXSerializeAs("Z")]
         [YAXFormat("0.0#######")]
         public float F_16 { get; set; }
-        [YAXAttributeFor("Acceleration")]
-        [YAXSerializeAs("X")]
+        [YAXAltAliases("Acceleration/X")]
+        [YAXAttributeFor("Homing_Weight")]
+        [YAXSerializeAs("Y")]
         [YAXFormat("0.0#######")]
         public float F_24 { get; set; }
-        [YAXAttributeFor("Acceleration")]
-        [YAXSerializeAs("Y")]
+        [YAXAltAliases("Acceleration/Y")]
+        [YAXAttributeFor("Homing_Weight")]
+        [YAXSerializeAs("Z")]
         [YAXFormat("0.0#######")]
         public float F_28 { get; set; }
-        [YAXAttributeFor("Acceleration")]
-        [YAXSerializeAs("Z")]
-        [YAXFormat("0.0#######")]
-        public float F_20 { get; set; }
-        [YAXAttributeFor("Falloff Strength")]
-        [YAXSerializeAs("value")]
-        [YAXFormat("0.0#######")]
-        public float F_32 { get; set; }
-        [YAXAttributeFor("Spread Direction")]
+        [YAXAltAliases("Acceleration/Z")]
+        [YAXAttributeFor("Homing_Weight")]
         [YAXSerializeAs("X")]
         [YAXFormat("0.0#######")]
+        public float F_20 { get; set; }
+        [YAXAltAliases("Falloff_x0020_Strength/value")]
+        [YAXAttributeFor("Spread_Distance")]
+        [YAXSerializeAs("max")]
+        [YAXFormat("0.0#######")]
+        public float F_32 { get; set; }
+        [YAXAltAliases("Spread_x0020_Direction/X")]
+        [YAXAttributeFor("Spread_Distance")]
+        [YAXSerializeAs("min")]
+        [YAXFormat("0.0#######")]
         public float F_36 { get; set; }
-        [YAXAttributeFor("Spread Direction")]
-        [YAXSerializeAs("Y")]
+        [YAXAltAliases("Spread_x0020_Direction/Y")]
+        [YAXAttributeFor("Spread_Angle")]
+        [YAXSerializeAs("max")]
         [YAXFormat("0.0#######")]
         public float F_40 { get; set; }
-        [YAXAttributeFor("Spread Direction")]
-        [YAXSerializeAs("Z")]
+        [YAXAltAliases("Spread_x0020_Direction/Z")]
+        [YAXAttributeFor("Spread_Angle")]
+        [YAXSerializeAs("min")]
         [YAXFormat("0.0#######")]
         public float F_44 { get; set; }
     }
@@ -891,7 +965,8 @@ namespace Xv2CoreLib.BSA
         [YAXAttributeFor("Hit_Amount")]
         [YAXSerializeAs("value")]
         public UInt16 I_48 { get; set; }
-        [YAXAttributeFor("Hitbox_Lifetime")]
+        [YAXAltAliases("Hitbox_Lifetime/value")]
+        [YAXAttributeFor("Hitbox_Priority")]
         [YAXSerializeAs("value")]
         public UInt16 I_50 { get; set; }
         [YAXAttributeFor("I_52")]
@@ -934,48 +1009,60 @@ namespace Xv2CoreLib.BSA
         [YAXAttributeFor("I_04")]
         [YAXSerializeAs("value")]
         public int I_04 { get; set; }
-        [YAXAttributeFor("I_08")]
-        [YAXSerializeAs("value")]
-        public int I_08 { get; set; }
-        [YAXAttributeFor("F_12")]
-        [YAXSerializeAs("value")]
+        [YAXAltAliases("I_08/value:int")]
+        [YAXAttributeFor("Position")]
+        [YAXSerializeAs("X")]
+        public float F_08 { get; set; }
+        [YAXAltAliases("F_12/value")]
+        [YAXAttributeFor("Position")]
+        [YAXSerializeAs("Y")]
         [YAXFormat("0.0##########")]
         public float F_12 { get; set; }
-        [YAXAttributeFor("F_16")]
-        [YAXSerializeAs("value")]
+        [YAXAltAliases("F_16/value")]
+        [YAXAttributeFor("Position")]
+        [YAXSerializeAs("Z")]
         [YAXFormat("0.0##########")]
         public float F_16 { get; set; }
-        [YAXAttributeFor("F_20")]
+        [YAXAltAliases("F_20/value")]
+        [YAXAttributeFor("Bounds_Size")]
         [YAXSerializeAs("value")]
         [YAXFormat("0.0#########")]
         public float F_20 { get; set; }
 
-        [YAXAttributeFor("I_24")]
-        [YAXSerializeAs("value")]
-        public int I_24 { get; set; }
-        [YAXAttributeFor("I_28")]
-        [YAXSerializeAs("value")]
-        public int I_28 { get; set; }
-        [YAXAttributeFor("I_32")]
-        [YAXSerializeAs("value")]
-        public int I_32 { get; set; }
-        [YAXAttributeFor("I_36")]
-        [YAXSerializeAs("value")]
-        public int I_36 { get; set; }
-        [YAXAttributeFor("I_40")]
-        [YAXSerializeAs("value")]
-        public int I_40 { get; set; }
-        [YAXAttributeFor("I_44")]
-        [YAXSerializeAs("value")]
-        public int I_44 { get; set; }
+        [YAXAltAliases("I_24/value:int")]
+        [YAXAttributeFor("Bounds_Vector_A")]
+        [YAXSerializeAs("X")]
+        public float F_24 { get; set; }
+        [YAXAltAliases("I_28/value:int")]
+        [YAXAttributeFor("Bounds_Vector_A")]
+        [YAXSerializeAs("Y")]
+        public float F_28 { get; set; }
+        [YAXAltAliases("I_32/value:int")]
+        [YAXAttributeFor("Bounds_Vector_A")]
+        [YAXSerializeAs("Z")]
+        public float F_32 { get; set; }
+        [YAXAltAliases("I_36/value:int")]
+        [YAXAttributeFor("Bounds_Vector_B")]
+        [YAXSerializeAs("X")]
+        public float F_36 { get; set; }
+        [YAXAltAliases("I_40/value:int")]
+        [YAXAttributeFor("Bounds_Vector_B")]
+        [YAXSerializeAs("Y")]
+        public float F_40 { get; set; }
+        [YAXAltAliases("I_44/value:int")]
+        [YAXAttributeFor("Bounds_Vector_B")]
+        [YAXSerializeAs("Z")]
+        public float F_44 { get; set; }
 
         [YAXAttributeFor("I_48")]
         [YAXSerializeAs("value")]
         public ushort I_48 { get; set; }
-        [YAXAttributeFor("I_50")]
+        [YAXAltAliases("I_50/value")]
+        [YAXAttributeFor("Deflection_Priority")]
         [YAXSerializeAs("value")]
         public ushort I_50 { get; set; }
-        [YAXAttributeFor("I_52")]
+        [YAXAltAliases("I_52/value")]
+        [YAXAttributeFor("Deflection_BDM_ID")]
         [YAXSerializeAs("value")]
         public ushort I_52 { get; set; }
         [YAXAttributeFor("I_54")]
@@ -1006,7 +1093,8 @@ namespace Xv2CoreLib.BSA
         [YAXAttributeFor("Effect")]
         [YAXSerializeAs("ID")]
         public ushort EffectID { get; set; }
-        [YAXAttributeFor("I_06")]
+        [YAXAltAliases("I_06/value")]
+        [YAXAttributeFor("Attachment_Selector")]
         [YAXSerializeAs("value")]
         public ushort I_06 { get; set; }
         [YAXAttributeFor("Effect")]
@@ -1106,10 +1194,12 @@ namespace Xv2CoreLib.BSA
         [YAXAttributeFor("Duration")]
         [YAXSerializeAs("frames")]
         public override ushort Duration { get; set; }
-        [YAXAttributeFor("I_00")]
+        [YAXAltAliases("I_00/value")]
+        [YAXAttributeFor("BPE_Index")]
         [YAXSerializeAs("value")]
         public ushort I_00 { get; set; }
-        [YAXAttributeFor("I_02")]
+        [YAXAltAliases("I_02/value")]
+        [YAXAttributeFor("Attachment_Selector")]
         [YAXSerializeAs("value")]
         public ushort I_02 { get; set; }
         [YAXAttributeFor("I_04")]
@@ -1118,15 +1208,40 @@ namespace Xv2CoreLib.BSA
         [YAXAttributeFor("I_08")]
         [YAXSerializeAs("value")]
         public int I_08 { get; set; }
-        [YAXAttributeFor("I_12")]
+        [YAXAltAliases("I_12/value:int")]
+        [YAXAttributeFor("Position")]
+        [YAXSerializeAs("X")]
+        public float F_12 { get; set; }
+        [YAXAltAliases("I_16/value:int")]
+        [YAXAttributeFor("Position")]
+        [YAXSerializeAs("Y")]
+        public float F_16 { get; set; }
+        [YAXAltAliases("I_20/value:int")]
+        [YAXAttributeFor("Position")]
+        [YAXSerializeAs("Z")]
+        public float F_20 { get; set; }
+    }
+
+    [YAXSerializeAs("ProjectileHealthAdjustment")]
+    [Serializable]
+    public class BSA_Type9 : BSA_TypeBase
+    {
+        [YAXDontSerialize]
+        public override int TypeID => 9;
+
+        [YAXAttributeFor("Start_Time")]
+        [YAXSerializeAs("frames")]
+        public override ushort StartTime { get; set; }
+        [YAXAttributeFor("Duration")]
+        [YAXSerializeAs("frames")]
+        public override ushort Duration { get; set; }
+        [YAXAttributeFor("Health_Value")]
         [YAXSerializeAs("value")]
-        public int I_12 { get; set; }
-        [YAXAttributeFor("I_16")]
+        public float HealthValue { get; set; }
+        [YAXAttributeFor("Flags")]
         [YAXSerializeAs("value")]
-        public int I_16 { get; set; }
-        [YAXAttributeFor("I_20")]
-        [YAXSerializeAs("value")]
-        public int I_20 { get; set; }
+        [YAXHexValue]
+        public uint Flags { get; set; }
     }
 
     [YAXSerializeAs("BSA_Type10")]
@@ -1145,13 +1260,80 @@ namespace Xv2CoreLib.BSA
         [YAXAttributeFor("Skill_ID")]
         [YAXSerializeAs("value")]
         public int I_00 { get; set; }
+        [YAXDontSerialize]
+        public short SkillID
+        {
+            get => unchecked((short)I_00);
+            set => I_00 = (I_00 & unchecked((int)0xFFFF0000)) | (ushort)value;
+        }
+        [YAXDontSerialize]
+        public short SkillType
+        {
+            get => unchecked((short)(I_00 >> 16));
+            set => I_00 = (I_00 & 0xFFFF) | (value << 16);
+        }
         [YAXAttributeFor("I_04")]
         [YAXSerializeAs("value")]
         public ushort I_04 { get; set; }
+        [YAXDontSerialize]
+        public short UpgradeLevelDelta
+        {
+            get => unchecked((short)I_04);
+            set => I_04 = unchecked((ushort)value);
+        }
         [YAXAttributeFor("I_06")]
         [YAXSerializeAs("value")]
         public ushort I_06 { get; set; }
+        [YAXDontSerialize]
+        public byte UpgradeOperation
+        {
+            get => (byte)I_06;
+            set => I_06 = (ushort)((I_06 & 0xFF00) | value);
+        }
 
+    }
+
+    [YAXSerializeAs("EffectPropertyControl")]
+    [Serializable]
+    public class BSA_Type11 : BSA_TypeBase
+    {
+        [YAXDontSerialize]
+        public override int TypeID => 11;
+
+        [YAXAttributeFor("Start_Time")]
+        [YAXSerializeAs("frames")]
+        public override ushort StartTime { get; set; }
+        [YAXAttributeFor("Duration")]
+        [YAXSerializeAs("frames")]
+        public override ushort Duration { get; set; }
+        [YAXAttributeFor("Skill_ID")]
+        [YAXSerializeAs("value")]
+        public ushort SkillID { get; set; }
+        [YAXAttributeFor("Skill_Type")]
+        [YAXSerializeAs("value")]
+        public ushort SkillType { get; set; }
+        [YAXAttributeFor("Effect_ID")]
+        [YAXSerializeAs("value")]
+        public ushort EffectID { get; set; }
+        [YAXAttributeFor("Function_Duration")]
+        [YAXSerializeAs("frames")]
+        public ushort FunctionDuration { get; set; }
+        [YAXAttributeFor("Function_Flags")]
+        [YAXSerializeAs("value")]
+        [YAXHexValue]
+        public ushort Function { get; set; }
+        [YAXAttributeFor("I_10")]
+        [YAXSerializeAs("value")]
+        [YAXHexValue]
+        public ushort I_10 { get; set; }
+        [YAXAttributeFor("I_12")]
+        [YAXSerializeAs("value")]
+        [YAXHexValue]
+        public ushort I_12 { get; set; }
+        [YAXAttributeFor("I_14")]
+        [YAXSerializeAs("value")]
+        [YAXHexValue]
+        public ushort I_14 { get; set; }
     }
 
 
@@ -1213,7 +1395,8 @@ namespace Xv2CoreLib.BSA
         [YAXAttributeFor("I_02")]
         [YAXSerializeAs("value")]
         public ushort I_02 { get; set; }
-        [YAXAttributeFor("Max_Hitbox_Power")]
+        [YAXAltAliases("Max_Hitbox_Power/value")]
+        [YAXAttributeFor("Max_Hitbox_Priority")]
         [YAXSerializeAs("value")]
         public float F_04 { get; set; }
         [YAXAltAliases("F_08/value")]
@@ -1367,6 +1550,34 @@ namespace Xv2CoreLib.BSA
         [YAXAttributeFor("I_80")]
         [YAXSerializeAs("value")]
         public uint I_80 { get; set; }
+
+        [YAXDontSerialize]
+        public float PlacementPositionY
+        {
+            get => BitConverter.ToSingle(BitConverter.GetBytes(I_64), 0);
+            set => I_64 = BitConverter.ToUInt32(BitConverter.GetBytes(value), 0);
+        }
+
+        [YAXDontSerialize]
+        public float PlacementRotationX
+        {
+            get => BitConverter.ToSingle(BitConverter.GetBytes(I_72), 0);
+            set => I_72 = BitConverter.ToUInt32(BitConverter.GetBytes(value), 0);
+        }
+
+        [YAXDontSerialize]
+        public float PlacementRotationY
+        {
+            get => BitConverter.ToSingle(BitConverter.GetBytes(I_76), 0);
+            set => I_76 = BitConverter.ToUInt32(BitConverter.GetBytes(value), 0);
+        }
+
+        [YAXDontSerialize]
+        public float PlacementRotationZ
+        {
+            get => BitConverter.ToSingle(BitConverter.GetBytes(I_80), 0);
+            set => I_80 = BitConverter.ToUInt32(BitConverter.GetBytes(value), 0);
+        }
         [YAXAltAliases("I_84/value")]
         [YAXAttributeFor("Effect_Placement_Flags")]
         [YAXSerializeAs("value")]
@@ -1384,7 +1595,7 @@ namespace Xv2CoreLib.BSA
                 case BSA_Type1 _:
                     return "Movement";
                 case BSA_Type2 _:
-                    return "Projectile Timeline Remap";
+                    return "Projectile Frame Mapping";
                 case BSA_Type3 _:
                     return "Hitbox";
                 case BSA_Type4 _:
@@ -1394,9 +1605,13 @@ namespace Xv2CoreLib.BSA
                 case BSA_Type7 _:
                     return "Sound";
                 case BSA_Type8 _:
-                    return "Screen Effect";
+                    return "Post Effect";
+                case BSA_Type9 _:
+                    return "Projectile Health Adjustment";
                 case BSA_Type10 _:
-                    return "Unknown 10";
+                    return "Modify Skill Upgrade Level";
+                case BSA_Type11 _:
+                    return "Effect Property Control";
                 case BSA_Type12 _:
                     return "Send Projectile Signal";
                 case BSA_Type13 _:
@@ -1413,11 +1628,13 @@ namespace Xv2CoreLib.BSA
             switch (type)
             {
                 case BSA_Type0 type0:
-                    return $"Entry Passing ({type0.BSA_EntryID}, 0x{type0.I_02:X}, {type0.F_08:0.###})";
+                    string condition = ValuesDictionary.BSA.EntryPassingCondition.TryGetValue(type0.I_00, out string name)
+                        ? name : $"Unknown ({type0.I_00})";
+                    return $"Entry Passing ({condition}, {type0.BSA_EntryID}, {type0.F_08:0.###})";
                 case BSA_Type1 _:
                     return "Movement";
                 case BSA_Type2 type2:
-                    return $"Projectile Timeline Remap ({type2.I_00}, {type2.I_02}, {type2.I_04})";
+                    return $"Projectile Frame Mapping ({type2.I_02} to {type2.I_04})";
                 case BSA_Type3 _:
                     return "Hitbox";
                 case BSA_Type4 type4:
@@ -1427,9 +1644,13 @@ namespace Xv2CoreLib.BSA
                 case BSA_Type7 type7:
                     return $"Sound ({ValuesDictionary.BSA.GetAcbTypeName(type7.AcbType)}, {type7.CueId})";
                 case BSA_Type8 type8:
-                    return $"Screen Effect ({type8.I_00}, {type8.I_02})";
+                    return $"Post Effect ({type8.I_00}, {type8.I_02})";
+                case BSA_Type9 type9:
+                    return $"Projectile Health Adjustment ({type9.HealthValue:0.###})";
                 case BSA_Type10 type10:
-                    return $"Unknown 10 ({type10.I_00}, {type10.I_04}, {type10.I_06})";
+                    return $"Modify Skill Upgrade Level ({type10.SkillType}, {type10.SkillID}, {type10.UpgradeLevelDelta})";
+                case BSA_Type11 type11:
+                    return $"Effect Property Control ({type11.SkillType}, {type11.SkillID}, {type11.EffectID})";
                 case BSA_Type12 type12:
                     return $"Send Projectile Signal ({ValuesDictionary.BSA.GetEepkTypeName(type12.EepkType)}, {type12.SkillID}, {type12.I_12})";
                 case BSA_Type13 type13:

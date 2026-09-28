@@ -127,8 +127,14 @@ namespace Xv2CoreLib.BSA
                                 case 8:
                                     bsaFile.BSA_Entries[thisEntry].Type8 = ParseType8(hdrOffset, dataOffset, typeCount);
                                     break;
+                                case 9:
+                                    bsaFile.BSA_Entries[thisEntry].Type9 = ParseType9(hdrOffset, dataOffset, typeCount);
+                                    break;
                                 case 10:
                                     bsaFile.BSA_Entries[thisEntry].Type10 = ParseType10(hdrOffset, dataOffset, typeCount);
+                                    break;
+                                case 11:
+                                    bsaFile.BSA_Entries[thisEntry].Type11 = ParseType11(hdrOffset, dataOffset, typeCount);
                                     break;
                                 case 12:
                                     bsaFile.BSA_Entries[thisEntry].Type12 = ParseType12(hdrOffset, dataOffset, typeCount);
@@ -387,16 +393,16 @@ namespace Xv2CoreLib.BSA
                     {
                         I_00 = BitConverter.ToInt32(rawBytes, offset + 0),
                         I_04 = BitConverter.ToInt32(rawBytes, offset + 4),
-                        I_08 = BitConverter.ToInt32(rawBytes, offset + 8),
+                        F_08 = BitConverter.ToSingle(rawBytes, offset + 8),
                         F_12 = BitConverter.ToSingle(rawBytes, offset + 12),
                         F_16 = BitConverter.ToSingle(rawBytes, offset + 16),
                         F_20 = BitConverter.ToSingle(rawBytes, offset + 20),
-                        I_24 = BitConverter.ToInt32(rawBytes, offset + 24),
-                        I_28 = BitConverter.ToInt32(rawBytes, offset + 28),
-                        I_32 = BitConverter.ToInt32(rawBytes, offset + 32),
-                        I_36 = BitConverter.ToInt32(rawBytes, offset + 36),
-                        I_40 = BitConverter.ToInt32(rawBytes, offset + 40),
-                        I_44 = BitConverter.ToInt32(rawBytes, offset + 44),
+                        F_24 = BitConverter.ToSingle(rawBytes, offset + 24),
+                        F_28 = BitConverter.ToSingle(rawBytes, offset + 28),
+                        F_32 = BitConverter.ToSingle(rawBytes, offset + 32),
+                        F_36 = BitConverter.ToSingle(rawBytes, offset + 36),
+                        F_40 = BitConverter.ToSingle(rawBytes, offset + 40),
+                        F_44 = BitConverter.ToSingle(rawBytes, offset + 44),
                         I_48 = BitConverter.ToUInt16(rawBytes, offset + 48),
                         I_50 = BitConverter.ToUInt16(rawBytes, offset + 50),
                         I_52 = BitConverter.ToUInt16(rawBytes, offset + 52),
@@ -496,9 +502,9 @@ namespace Xv2CoreLib.BSA
                         I_02 = BitConverter.ToUInt16(rawBytes, offset + 2),
                         I_04 = BitConverter.ToInt32(rawBytes, offset + 4),
                         I_08 = BitConverter.ToInt32(rawBytes, offset + 8),
-                        I_12 = BitConverter.ToInt32(rawBytes, offset + 12),
-                        I_16 = BitConverter.ToInt32(rawBytes, offset + 16),
-                        I_20 = BitConverter.ToInt32(rawBytes, offset + 20),
+                        F_12 = BitConverter.ToSingle(rawBytes, offset + 12),
+                        F_16 = BitConverter.ToSingle(rawBytes, offset + 16),
+                        F_20 = BitConverter.ToSingle(rawBytes, offset + 20),
                         StartTime = BitConverter.ToUInt16(rawBytes, hdrOffset + 0),
                         Duration = GetTypeDuration(BitConverter.ToUInt16(rawBytes, hdrOffset + 0), BitConverter.ToUInt16(rawBytes, hdrOffset + 2)),
                     });
@@ -514,6 +520,29 @@ namespace Xv2CoreLib.BSA
                 return null;
             }
         }
+        private List<BSA_Type9> ParseType9(int hdrOffset, int offset, int count)
+        {
+            if (count <= 0)
+                return null;
+
+            List<BSA_Type9> types = new List<BSA_Type9>();
+            for (int i = 0; i < count; i++)
+            {
+                ushort startTime = BitConverter.ToUInt16(rawBytes, hdrOffset);
+                types.Add(new BSA_Type9
+                {
+                    StartTime = startTime,
+                    Duration = GetTypeDuration(startTime, BitConverter.ToUInt16(rawBytes, hdrOffset + 2)),
+                    HealthValue = BitConverter.ToSingle(rawBytes, offset),
+                    Flags = BitConverter.ToUInt32(rawBytes, offset + 4)
+                });
+                hdrOffset += 4;
+                offset += 8;
+            }
+
+            return types;
+        }
+
         private List<BSA_Type10> ParseType10(int hdrOffset, int offset, int count)
         {
             if (count > 0)
@@ -542,6 +571,35 @@ namespace Xv2CoreLib.BSA
             {
                 return null;
             }
+        }
+
+        private List<BSA_Type11> ParseType11(int hdrOffset, int offset, int count)
+        {
+            if (count <= 0)
+                return null;
+
+            List<BSA_Type11> types = new List<BSA_Type11>();
+            for (int i = 0; i < count; i++)
+            {
+                ushort startTime = BitConverter.ToUInt16(rawBytes, hdrOffset);
+                types.Add(new BSA_Type11
+                {
+                    StartTime = startTime,
+                    Duration = GetTypeDuration(startTime, BitConverter.ToUInt16(rawBytes, hdrOffset + 2)),
+                    SkillID = BitConverter.ToUInt16(rawBytes, offset),
+                    SkillType = BitConverter.ToUInt16(rawBytes, offset + 2),
+                    EffectID = BitConverter.ToUInt16(rawBytes, offset + 4),
+                    FunctionDuration = BitConverter.ToUInt16(rawBytes, offset + 6),
+                    Function = BitConverter.ToUInt16(rawBytes, offset + 8),
+                    I_10 = BitConverter.ToUInt16(rawBytes, offset + 10),
+                    I_12 = BitConverter.ToUInt16(rawBytes, offset + 12),
+                    I_14 = BitConverter.ToUInt16(rawBytes, offset + 14)
+                });
+                hdrOffset += 4;
+                offset += 16;
+            }
+
+            return types;
         }
 
         private List<BSA_Type12> ParseType12(int hdrOffset, int offset, int count)
