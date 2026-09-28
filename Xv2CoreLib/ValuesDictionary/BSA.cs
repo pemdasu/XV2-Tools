@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using Xv2CoreLib.BSA;
+using Xv2CoreLib.CUS;
 
 namespace Xv2CoreLib.ValuesDictionary
 {
@@ -9,6 +10,137 @@ namespace Xv2CoreLib.ValuesDictionary
     // not an awoken skill, so it is shown as Any Skill. The real awoken skill is BAC EepkType 12.
     public static class BSA
     {
+        public static void AddMissing(BSA_File bsaFile)
+        {
+            if (bsaFile?.BSA_Entries == null) return;
+
+            foreach (BSA_Entry entry in bsaFile.BSA_Entries)
+            {
+                if (entry.IBsaTypes != null)
+                {
+                    foreach (IBsaType type in entry.IBsaTypes)
+                    {
+                        switch (type)
+                        {
+                            case BSA_Type0 passing:
+                                AddUnknown(EntryPassingCondition, passing.I_00);
+                                break;
+                            case BSA_Type6 effect:
+                                AddUnknown(EepkType, effect.EepkType);
+                                AddUnknown(ProjectileEffectAttachment, effect.I_06);
+                                AddUnknown(Switch, effect.I_08);
+                                break;
+                            case BSA_Type7 sound:
+                                AddUnknown(AcbType, sound.AcbType);
+                                break;
+                            case BSA_Type8 postEffect:
+                                AddUnknown(BAC.ScreenEffectIds, postEffect.I_00);
+                                AddUnknown(ProjectileEffectAttachment, postEffect.I_02);
+                                break;
+                            case BSA_Type10 upgrade:
+                                AddUnknown(CusSkillType, upgrade.SkillType);
+                                AddUnknown(SkillUpgradeOperation, upgrade.UpgradeOperation);
+                                break;
+                            case BSA_Type11 propertyControl:
+                                AddUnknown(BAC.EepkType, propertyControl.SkillType);
+                                break;
+                            case BSA_Type12 signal:
+                                AddUnknown(EepkType, signal.EepkType);
+                                AddUnknown(SignalDeliveryMode, signal.I_12);
+                                break;
+                            case BSA_Type13 protection:
+                                AddUnknown(ProjectileProtectionState, protection.I_00);
+                                AddUnknown(AdditionalSelectorCoverage, protection.I_12);
+                                break;
+                            case BSA_Type14 placement:
+                                AddUnknown(EffectPlacementMode, placement.I_00);
+                                AddUnknown(EepkType, placement.EepkType);
+                                if (placement.EepkType == Xv2CoreLib.BSA.EepkType.Common)
+                                    AddUnknown(CommonEepkType, placement.F_52);
+                                break;
+                        }
+                    }
+                }
+
+                if (entry.SubEntries?.CollisionEntries != null)
+                    foreach (BSA_Collision collision in entry.SubEntries.CollisionEntries)
+                        AddUnknown(EepkType, collision.EepkType);
+
+                if (entry.SubEntries?.ExpirationEntries != null)
+                    foreach (BSA_Expiration sound in entry.SubEntries.ExpirationEntries)
+                        AddUnknown(AcbType, sound.I_00);
+            }
+        }
+
+        private static void AddUnknown<TKey>(Dictionary<TKey, string> choices, TKey value)
+        {
+            if (!choices.ContainsKey(value))
+                choices.Add(value, $"Unknown ({value})");
+        }
+
+        public static Dictionary<short, string> EntryPassingCondition { get; private set; } = new Dictionary<short, string>()
+        {
+            { 0, "Always" },
+            { 1, "Enemy impact (1)" },
+            { 2, "Enemy impact (2)" },
+            { 3, "World ray hit" },
+            { 4, "Target within range" },
+            { 5, "Signal / BAC condition" },
+            { 6, "No enemy impact" },
+            { 7, "Set pending entry" },
+            { 8, "Actor state checks" },
+            { 9, "Related object within range" },
+            { 10, "Event flag 25" },
+            { 11, "Event flag 26" }
+        };
+
+        public static Dictionary<byte, string> ImpactA { get; } = new Dictionary<byte, string>()
+        {
+            { 0, "None" },
+            { 1, "Loop" },
+            { 2, "Enemy" },
+            { 3, "Loop, enemy" },
+            { 4, "Projectile" },
+            { 6, "Enemy or projectile" },
+            { 7, "Loop, enemy or projectile" },
+            { 8, "Ground" },
+            { 10, "Enemy or ground" },
+            { 12, "Projectile or ground" },
+            { 14, "Enemy, projectile, or ground" },
+            { 15, "Loop, enemy, projectile, or ground" }
+        };
+
+        public static Dictionary<byte, string> ImpactB { get; } = new Dictionary<byte, string>()
+        {
+            { 0, "None" },
+            { 1, "Target reaction check" },
+            { 2, "Linked actor state change" }
+        };
+
+        public static Dictionary<int, string> MovementOperation { get; private set; } = new Dictionary<int, string>()
+        {
+            { 0, "Set velocity" },
+            { 1, "Add velocity" },
+            { 2, "Set acceleration" },
+            { 3, "Add acceleration" },
+            { 4, "Stop movement" }
+        };
+
+        public static Dictionary<short, string> CusSkillType { get; private set; } = new Dictionary<short, string>()
+        {
+            { (short)CUS_File.SkillType.Super, "Super" },
+            { (short)CUS_File.SkillType.Ultimate, "Ultimate" },
+            { (short)CUS_File.SkillType.Evasive, "Evasive" },
+            { (short)CUS_File.SkillType.Blast, "Blast" },
+            { (short)CUS_File.SkillType.Awoken, "Awoken" }
+        };
+
+        public static Dictionary<byte, string> SkillUpgradeOperation { get; private set; } = new Dictionary<byte, string>()
+        {
+            { 0, "Add to level" },
+            { 1, "Reset level to zero" }
+        };
+
         public static Dictionary<EepkType, string> EepkType { get; private set; } = new Dictionary<EepkType, string>()
         {
             { Xv2CoreLib.BSA.EepkType.Common, "Common" },
@@ -38,6 +170,17 @@ namespace Xv2CoreLib.ValuesDictionary
             { Xv2CoreLib.BSA.AcbType.Common_SE, "Common SE" },
             { Xv2CoreLib.BSA.AcbType.Chara_SE, "Character SE" },
             { Xv2CoreLib.BSA.AcbType.Skill_SE, "Skill SE" }
+        };
+
+        public static Dictionary<ushort, string> ProjectileEffectAttachment { get; private set; } = new Dictionary<ushort, string>()
+        {
+            { 0, "ROOT" },
+            { 1, "TRS" },
+            { 2, "NULL_0" },
+            { 3, "NULL_1" },
+            { 4, "NULL_2" },
+            { 5, "NULL_3" },
+            { ushort.MaxValue, "No attachment" }
         };
 
         public static string GetEepkTypeName(Xv2CoreLib.BSA.EepkType type)
@@ -78,9 +221,9 @@ namespace Xv2CoreLib.ValuesDictionary
         public static Dictionary<float, string> AdditionalSelectorCoverage { get; private set; } = new Dictionary<float, string>()
         {
             { 0f, "None" },
-            { 1f, "Selectors 4 and 5" },
-            { 2f, "Selector 6" },
-            { 3f, "Selectors 4, 5, and 6" }
+            { 1f, "Groups 4 and 5" },
+            { 2f, "Group 6" },
+            { 3f, "Groups 4, 5, and 6" }
         };
     }
 }

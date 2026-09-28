@@ -233,12 +233,26 @@ namespace Xv2CoreLib.BSA
                     dataOffset.Add(results[1]);
                     typeList.Add(8);
                 }
+                if (types.Type9?.Count > 0)
+                {
+                    var results = WriteTypeHeader(9, types.Type9.Count);
+                    hdrOffset.Add(results[0]);
+                    dataOffset.Add(results[1]);
+                    typeList.Add(9);
+                }
                 if (types.Type10?.Count > 0)
                 {
                     var results = WriteTypeHeader(10, types.Type10.Count);
                     hdrOffset.Add(results[0]);
                     dataOffset.Add(results[1]);
                     typeList.Add(10);
+                }
+                if (types.Type11?.Count > 0)
+                {
+                    var results = WriteTypeHeader(11, types.Type11.Count);
+                    hdrOffset.Add(results[0]);
+                    dataOffset.Add(results[1]);
+                    typeList.Add(11);
                 }
                 if (types.Type12?.Count > 0)
                 {
@@ -291,8 +305,14 @@ namespace Xv2CoreLib.BSA
                         case 8:
                             WriteType8(types.Type8, hdrOffset[i], dataOffset[i]);
                             break;
+                        case 9:
+                            WriteType9(types.Type9, hdrOffset[i], dataOffset[i]);
+                            break;
                         case 10:
                             WriteType10(types.Type10, hdrOffset[i], dataOffset[i]);
+                            break;
+                        case 11:
+                            WriteType11(types.Type11, hdrOffset[i], dataOffset[i]);
                             break;
                         case 12:
                             WriteType12(types.Type12, hdrOffset[i], dataOffset[i]);
@@ -494,16 +514,16 @@ namespace Xv2CoreLib.BSA
                 {
                     bytes.AddRange(BitConverter.GetBytes(type[i].I_00));
                     bytes.AddRange(BitConverter.GetBytes(type[i].I_04));
-                    bytes.AddRange(BitConverter.GetBytes(type[i].I_08));
+                    bytes.AddRange(BitConverter.GetBytes(type[i].F_08));
                     bytes.AddRange(BitConverter.GetBytes(type[i].F_12));
                     bytes.AddRange(BitConverter.GetBytes(type[i].F_16));
                     bytes.AddRange(BitConverter.GetBytes(type[i].F_20));
-                    bytes.AddRange(BitConverter.GetBytes(type[i].I_24));
-                    bytes.AddRange(BitConverter.GetBytes(type[i].I_28));
-                    bytes.AddRange(BitConverter.GetBytes(type[i].I_32));
-                    bytes.AddRange(BitConverter.GetBytes(type[i].I_36));
-                    bytes.AddRange(BitConverter.GetBytes(type[i].I_40));
-                    bytes.AddRange(BitConverter.GetBytes(type[i].I_44));
+                    bytes.AddRange(BitConverter.GetBytes(type[i].F_24));
+                    bytes.AddRange(BitConverter.GetBytes(type[i].F_28));
+                    bytes.AddRange(BitConverter.GetBytes(type[i].F_32));
+                    bytes.AddRange(BitConverter.GetBytes(type[i].F_36));
+                    bytes.AddRange(BitConverter.GetBytes(type[i].F_40));
+                    bytes.AddRange(BitConverter.GetBytes(type[i].F_44));
                     bytes.AddRange(BitConverter.GetBytes(type[i].I_48));
                     bytes.AddRange(BitConverter.GetBytes(type[i].I_50));
                     bytes.AddRange(BitConverter.GetBytes(type[i].I_52));
@@ -600,13 +620,30 @@ namespace Xv2CoreLib.BSA
                     bytes.AddRange(BitConverter.GetBytes(type[i].I_02));
                     bytes.AddRange(BitConverter.GetBytes(type[i].I_04));
                     bytes.AddRange(BitConverter.GetBytes(type[i].I_08));
-                    bytes.AddRange(BitConverter.GetBytes(type[i].I_12));
-                    bytes.AddRange(BitConverter.GetBytes(type[i].I_16));
-                    bytes.AddRange(BitConverter.GetBytes(type[i].I_20));
+                    bytes.AddRange(BitConverter.GetBytes(type[i].F_12));
+                    bytes.AddRange(BitConverter.GetBytes(type[i].F_16));
+                    bytes.AddRange(BitConverter.GetBytes(type[i].F_20));
                 }
 
             }
 
+        }
+
+        private void WriteType9(List<BSA_Type9> type, int hdrOffset, int dataOffset)
+        {
+            bytes = Utils.ReplaceRange(bytes, BitConverter.GetBytes(bytes.Count - hdrOffset + 8), hdrOffset);
+            for (int i = 0; i < type.Count; i++)
+            {
+                bytes.AddRange(BitConverter.GetBytes(type[i].StartTime));
+                bytes.AddRange(BitConverter.GetBytes(GetTypeEndTime(type[i].StartTime, type[i].Duration)));
+            }
+
+            bytes = Utils.ReplaceRange(bytes, BitConverter.GetBytes(bytes.Count - dataOffset + 12), dataOffset);
+            for (int i = 0; i < type.Count; i++)
+            {
+                bytes.AddRange(BitConverter.GetBytes(type[i].HealthValue));
+                bytes.AddRange(BitConverter.GetBytes(type[i].Flags));
+            }
         }
 
         private void WriteType10(List<BSA_Type10> type, int hdrOffset, int dataOffset)
@@ -636,6 +673,29 @@ namespace Xv2CoreLib.BSA
 
             }
 
+        }
+
+        private void WriteType11(List<BSA_Type11> type, int hdrOffset, int dataOffset)
+        {
+            bytes = Utils.ReplaceRange(bytes, BitConverter.GetBytes(bytes.Count - hdrOffset + 8), hdrOffset);
+            for (int i = 0; i < type.Count; i++)
+            {
+                bytes.AddRange(BitConverter.GetBytes(type[i].StartTime));
+                bytes.AddRange(BitConverter.GetBytes(GetTypeEndTime(type[i].StartTime, type[i].Duration)));
+            }
+
+            bytes = Utils.ReplaceRange(bytes, BitConverter.GetBytes(bytes.Count - dataOffset + 12), dataOffset);
+            for (int i = 0; i < type.Count; i++)
+            {
+                bytes.AddRange(BitConverter.GetBytes(type[i].SkillID));
+                bytes.AddRange(BitConverter.GetBytes(type[i].SkillType));
+                bytes.AddRange(BitConverter.GetBytes(type[i].EffectID));
+                bytes.AddRange(BitConverter.GetBytes(type[i].FunctionDuration));
+                bytes.AddRange(BitConverter.GetBytes(type[i].Function));
+                bytes.AddRange(BitConverter.GetBytes(type[i].I_10));
+                bytes.AddRange(BitConverter.GetBytes(type[i].I_12));
+                bytes.AddRange(BitConverter.GetBytes(type[i].I_14));
+            }
         }
 
         private void WriteType12(List<BSA_Type12> type, int hdrOffset, int dataOffset)
@@ -786,7 +846,15 @@ namespace Xv2CoreLib.BSA
             {
                 count++;
             }
+            if (bsaEntry.Type9?.Count > 0)
+            {
+                count++;
+            }
             if (bsaEntry.Type10?.Count > 0)
+            {
+                count++;
+            }
+            if (bsaEntry.Type11?.Count > 0)
             {
                 count++;
             }
