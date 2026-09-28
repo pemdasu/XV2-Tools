@@ -1441,18 +1441,16 @@ namespace Xv2CoreLib.EMA
 
                     value = values[valueIdx];
                     interpolation = (KeyframeInterpolation)(rawBytes[offset + indexOffset + 1 + (i * 2)] & 0xc0);
-                    int extraOffset = 0;
-
                     if (interpolation == KeyframeInterpolation.QuadraticBezier)
                     {
-                        byte idx = (byte)(rawBytes[offset + indexOffset + (i * 2)] + 1);
+                        int idx = valueIdx + 1;
 
                         if (idx <= values.Length - 1)
                             controlPoint1 = values[idx];
                     }
                     else if (interpolation == KeyframeInterpolation.CubicBezier)
                     {
-                        byte idx = (byte)(rawBytes[offset + indexOffset + (i * 2)] + 1 + extraOffset);
+                        int idx = valueIdx + 1;
 
                         if (idx + 1 <= values.Length - 1)
                         {
