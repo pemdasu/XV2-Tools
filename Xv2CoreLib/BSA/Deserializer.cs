@@ -88,7 +88,7 @@ namespace Xv2CoreLib.BSA
                 if(bsaFile.BSA_Entries[i].SubEntries != null)
                 {
                     Unk1_Count = (bsaFile.BSA_Entries[i].SubEntries.CollisionEntries != null) ? bsaFile.BSA_Entries[i].SubEntries.CollisionEntries.Count() : 0;
-                    Unk2_Count = (bsaFile.BSA_Entries[i].SubEntries.ExpirationEntries != null) ? bsaFile.BSA_Entries[i].SubEntries.ExpirationEntries.Count() : 0;
+                    Unk2_Count = (bsaFile.BSA_Entries[i].SubEntries.CollisionSoundEntries != null) ? bsaFile.BSA_Entries[i].SubEntries.CollisionSoundEntries.Count() : 0;
                 }
 
 
@@ -101,9 +101,10 @@ namespace Xv2CoreLib.BSA
                 bytes.AddRange(new byte[4]);
                 bytes.Add(Int4Converter.GetByte(bsaFile.BSA_Entries[i].I_16_a, bsaFile.BSA_Entries[i].I_16_b, "BSA_Entry: I_16 > a", "BSA_Entry: I_16 > b"));
                 bytes.Add(bsaFile.BSA_Entries[i].I_17);
-                bytes.AddRange(BitConverter.GetBytes(bsaFile.BSA_Entries[i].I_18));
-                bytes.AddRange(BitConverter.GetBytes(bsaFile.BSA_Entries[i].I_22));
-                bytes.AddRange(BitConverter.GetBytes(bsaFile.BSA_Entries[i].I_24));
+                bytes.AddRange(BitConverter.GetBytes(bsaFile.BSA_Entries[i].FlagsHigh));
+                bytes.AddRange(BitConverter.GetBytes(bsaFile.BSA_Entries[i].I_20));
+                bytes.AddRange(BitConverter.GetBytes(bsaFile.BSA_Entries[i].Lifetime));
+                bytes.AddRange(BitConverter.GetBytes(bsaFile.BSA_Entries[i].LoopStartFrame));
                 bytes.AddRange(BitConverter.GetBytes(bsaFile.BSA_Entries[i].Expires));
                 bytes.AddRange(BitConverter.GetBytes(bsaFile.BSA_Entries[i].ImpactProjectile));
                 bytes.AddRange(BitConverter.GetBytes(bsaFile.BSA_Entries[i].ImpactEnemy));
@@ -111,14 +112,14 @@ namespace Xv2CoreLib.BSA
                 bytes.AddRange(BitConverter.GetBytes((short)BsaTypeCount(bsaFile.BSA_Entries[i])));
                 int SubEntries_Offset = bytes.Count();
                 bytes.AddRange(new byte[4]);
-                bytes.AddRange(BitConverter.GetBytes(bsaFile.BSA_Entries[i].I_40[0]));
-                bytes.AddRange(BitConverter.GetBytes(bsaFile.BSA_Entries[i].I_40[1]));
-                bytes.AddRange(BitConverter.GetBytes(bsaFile.BSA_Entries[i].I_40[2]));
+                bytes.AddRange(BitConverter.GetBytes(bsaFile.BSA_Entries[i].SpawnOffsetBits[0]));
+                bytes.AddRange(BitConverter.GetBytes(bsaFile.BSA_Entries[i].SpawnOffsetBits[1]));
+                bytes.AddRange(BitConverter.GetBytes(bsaFile.BSA_Entries[i].SpawnOffsetBits[2]));
 
                 if(bsaFile.BSA_Entries[i].SubEntries != null)
                 {
                     WriteUnk1(bsaFile.BSA_Entries[i].SubEntries.CollisionEntries, Unk1_Offset);
-                    WriteUnk2(bsaFile.BSA_Entries[i].SubEntries.ExpirationEntries, Unk2_Offset);
+                    WriteUnk2(bsaFile.BSA_Entries[i].SubEntries.CollisionSoundEntries, Unk2_Offset);
                 }
 
                 WriteTypes(bsaFile.BSA_Entries[i], SubEntries_Offset);
@@ -150,7 +151,7 @@ namespace Xv2CoreLib.BSA
             
         }
 
-        private void WriteUnk2(List<BSA_Expiration> unk2, int offsetToFill)
+        private void WriteUnk2(List<BSA_CollisionSound> unk2, int offsetToFill)
         {
             if (unk2 != null && unk2.Count > 0)
             {
@@ -158,10 +159,9 @@ namespace Xv2CoreLib.BSA
 
                 for (int i = 0; i < unk2.Count(); i++)
                 {
-                    bytes.AddRange(BitConverter.GetBytes((ushort)unk2[i].I_00));
+                    bytes.AddRange(BitConverter.GetBytes((ushort)unk2[i].AcbType));
                     bytes.AddRange(BitConverter.GetBytes(unk2[i].I_02));
-                    bytes.AddRange(BitConverter.GetBytes(unk2[i].I_04));
-                    bytes.AddRange(BitConverter.GetBytes(unk2[i].I_06));
+                    bytes.AddRange(BitConverter.GetBytes(unk2[i].CueId));
                 }
             }
 
@@ -367,12 +367,12 @@ namespace Xv2CoreLib.BSA
 
                 for(int i = 0; i < type.Count(); i++)
                 {
-                    bytes.AddRange(BitConverter.GetBytes(type[i].I_00));
-                    bytes.AddRange(BitConverter.GetBytes(type[i].I_02));
+                    bytes.AddRange(BitConverter.GetBytes(type[i].Condition));
+                    bytes.AddRange(BitConverter.GetBytes(type[i].ConditionFlags));
                     bytes.AddRange(BitConverter.GetBytes(type[i].BSA_EntryID));
-                    bytes.AddRange(BitConverter.GetBytes(type[i].I_06));
-                    bytes.AddRange(BitConverter.GetBytes(type[i].F_08));
-                    bytes.AddRange(BitConverter.GetBytes(type[i].F_12));
+                    bytes.AddRange(BitConverter.GetBytes(type[i].JumpFrame));
+                    bytes.AddRange(BitConverter.GetBytes(type[i].ConditionValue));
+                    bytes.AddRange(BitConverter.GetBytes(type[i].SignalPriority));
                 }
 
             }
@@ -464,9 +464,9 @@ namespace Xv2CoreLib.BSA
 
                 for (int i = 0; i < type.Count(); i++)
                 {
-                    bytes.AddRange(BitConverter.GetBytes(type[i].I_00));
+                    bytes.AddRange(BitConverter.GetBytes((ushort)type[i].ShapeType));
                     bytes.AddRange(BitConverter.GetBytes(type[i].I_02));
-                    bytes.AddRange(BitConverter.GetBytes(type[i].I_04));
+                    bytes.AddRange(BitConverter.GetBytes(type[i].ShapeFlags));
                     bytes.Add(Int4Converter.GetByte(type[i].I_06_a, type[i].I_06_b, "Hitbox I_06 > a", "Hitbox I_06 > b"));
                     bytes.Add(Int4Converter.GetByte(type[i].I_06_c, type[i].I_06_d, "Hitbox I_06 > c", "Hitbox I_06 > d"));
                     bytes.AddRange(BitConverter.GetBytes(type[i].F_08));
@@ -479,7 +479,7 @@ namespace Xv2CoreLib.BSA
                     bytes.AddRange(BitConverter.GetBytes(type[i].F_36));
                     bytes.AddRange(BitConverter.GetBytes(type[i].F_40));
                     bytes.AddRange(BitConverter.GetBytes(type[i].F_44));
-                    bytes.AddRange(BitConverter.GetBytes(type[i].I_48));
+                    bytes.AddRange(BitConverter.GetBytes(type[i].HitCountControl));
                     bytes.AddRange(BitConverter.GetBytes(type[i].I_50));
                     bytes.AddRange(BitConverter.GetBytes(type[i].I_52));
                     bytes.AddRange(BitConverter.GetBytes(type[i].I_54));
@@ -512,8 +512,8 @@ namespace Xv2CoreLib.BSA
 
                 for (int i = 0; i < type.Count(); i++)
                 {
-                    bytes.AddRange(BitConverter.GetBytes(type[i].I_00));
-                    bytes.AddRange(BitConverter.GetBytes(type[i].I_04));
+                    bytes.AddRange(BitConverter.GetBytes((int)type[i].ShapeType));
+                    bytes.AddRange(BitConverter.GetBytes(type[i].ShapeFlags));
                     bytes.AddRange(BitConverter.GetBytes(type[i].F_08));
                     bytes.AddRange(BitConverter.GetBytes(type[i].F_12));
                     bytes.AddRange(BitConverter.GetBytes(type[i].F_16));
@@ -590,7 +590,6 @@ namespace Xv2CoreLib.BSA
                     bytes.AddRange(BitConverter.GetBytes((ushort)type[i].AcbType));
                     bytes.AddRange(BitConverter.GetBytes(type[i].I_02));
                     bytes.AddRange(BitConverter.GetBytes(type[i].CueId));
-                    bytes.AddRange(BitConverter.GetBytes(type[i].I_06));
                 }
 
             }
@@ -781,29 +780,29 @@ namespace Xv2CoreLib.BSA
 
                 for (int i = 0; i < type.Count; i++)
                 {
-                    bytes.AddRange(BitConverter.GetBytes((ushort)type[i].I_00));
+                    bytes.AddRange(BitConverter.GetBytes((ushort)type[i].ShapeType));
                     bytes.AddRange(BitConverter.GetBytes(type[i].I_02));
-                    bytes.AddRange(BitConverter.GetBytes(type[i].F_04));
-                    bytes.AddRange(BitConverter.GetBytes(type[i].I_08));
-                    bytes.AddRange(BitConverter.GetBytes(type[i].F_12));
-                    bytes.AddRange(BitConverter.GetBytes(type[i].I_16));
-                    bytes.AddRange(BitConverter.GetBytes(type[i].F_20));
-                    bytes.AddRange(BitConverter.GetBytes(type[i].I_24));
-                    bytes.AddRange(BitConverter.GetBytes(type[i].F_28));
-                    bytes.AddRange(BitConverter.GetBytes(type[i].I_32));
-                    bytes.AddRange(BitConverter.GetBytes(type[i].I_36));
-                    bytes.AddRange(BitConverter.GetBytes(type[i].I_40));
-                    bytes.AddRange(BitConverter.GetBytes(type[i].F_44));
+                    bytes.AddRange(BitConverter.GetBytes(type[i].ShapeFlags));
+                    bytes.AddRange(BitConverter.GetBytes(type[i].OffsetX));
+                    bytes.AddRange(BitConverter.GetBytes(type[i].OffsetY));
+                    bytes.AddRange(BitConverter.GetBytes(type[i].OffsetZ));
+                    bytes.AddRange(BitConverter.GetBytes(type[i].Radius));
+                    bytes.AddRange(BitConverter.GetBytes(type[i].PointAX));
+                    bytes.AddRange(BitConverter.GetBytes(type[i].PointAY));
+                    bytes.AddRange(BitConverter.GetBytes(type[i].PointAZ));
+                    bytes.AddRange(BitConverter.GetBytes(type[i].PointBX));
+                    bytes.AddRange(BitConverter.GetBytes(type[i].PointBY));
+                    bytes.AddRange(BitConverter.GetBytes(type[i].PointBZ));
                     bytes.AddRange(BitConverter.GetBytes(type[i].I_48));
-                    bytes.AddRange(BitConverter.GetBytes(type[i].F_52));
-                    bytes.AddRange(BitConverter.GetBytes(type[i].I_56));
+                    bytes.AddRange(BitConverter.GetBytes(type[i].SkillID));
+                    bytes.AddRange(BitConverter.GetBytes(type[i].EffectID));
                     bytes.AddRange(BitConverter.GetBytes(type[i].F_60));
                     bytes.AddRange(BitConverter.GetBytes(type[i].I_64));
                     bytes.AddRange(BitConverter.GetBytes(type[i].F_68));
                     bytes.AddRange(BitConverter.GetBytes(type[i].I_72));
                     bytes.AddRange(BitConverter.GetBytes(type[i].I_76));
                     bytes.AddRange(BitConverter.GetBytes(type[i].I_80));
-                    bytes.AddRange(BitConverter.GetBytes(type[i].I_84));
+                    bytes.AddRange(BitConverter.GetBytes(type[i].TargetEffectFlags));
                 }
 
             }

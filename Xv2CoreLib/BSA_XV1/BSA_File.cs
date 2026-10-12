@@ -124,11 +124,12 @@ namespace Xv2CoreLib.BSA_XV1
                 I_16_a = I_16_a,
                 I_16_b = I_16_b,
                 I_17 = I_17,
-                I_18 = I_18,
-                I_22 = I_22,
-                I_24 = I_24,
+                FlagsHigh = (ushort)I_18,
+                I_20 = (ushort)(I_18 >> 16),
+                Lifetime = I_22,
+                LoopStartFrame = I_24,
                 Expires = (ushort)I_26,
-                I_40 = new int[3],
+                SpawnOffsetBits = new int[3],
                 SubEntries = Xv2SubEntries,
                 Type0 = Type0,
                 Type1 = BSA_Type1.ConvertToXv2(Type1),
@@ -148,7 +149,7 @@ namespace Xv2CoreLib.BSA_XV1
         [YAXCollection(YAXCollectionSerializationTypes.RecursiveWithNoContainingElement, EachElementName = "Collision")]
         public List<BSA.BSA_Collision> Unk1 { get; set; }
         [YAXCollection(YAXCollectionSerializationTypes.RecursiveWithNoContainingElement, EachElementName = "Expiration")]
-        public List<BSA.BSA_Expiration> Unk2 { get; set; }
+        public List<BSA.BSA_CollisionSound> Unk2 { get; set; }
 
         public BSA.BSA_SubEntries ConvertToXv2(int skillID)
         {
@@ -160,7 +161,7 @@ namespace Xv2CoreLib.BSA_XV1
             return new BSA.BSA_SubEntries()
             {
                 CollisionEntries = Unk1,
-                ExpirationEntries = Unk2
+                CollisionSoundEntries = Unk2
             };
         }
     }
