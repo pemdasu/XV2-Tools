@@ -3,6 +3,9 @@ using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.IO;
+using System.Globalization;
+using System.Xml.Linq;
+using YAXLib.Customization;
 using System.Linq;
 using System.Windows.Data;
 using System.Windows.Media;
@@ -73,6 +76,18 @@ namespace Xv2CoreLib.BCS
         [YAXErrorIfMissed(YAXExceptionTypes.Ignore, DefaultValue = Version.XV2)]
         public Version Version { get; set; } = Version.XV2;
 
+        [YAXAttributeForClass]
+        [YAXErrorIfMissed(YAXExceptionTypes.Ignore, DefaultValue = true)]
+        public bool HasSignature { get; set; } = true;
+        [YAXAttributeForClass]
+        [YAXErrorIfMissed(YAXExceptionTypes.Ignore)]
+        public ushort I_46 { get; set; }
+        [YAXAttributeForClass]
+        [YAXErrorIfMissed(YAXExceptionTypes.Ignore)]
+        public int TrailingZeroCount { get; set; }
+        [YAXDontSerializeIfNull]
+        public List<SkeletonData> ExtraSkeletonData2 { get; set; }
+
         [YAXAttributeFor("Race")]
         [YAXSerializeAs("value")]
         public Race Race { get; set; }
@@ -81,7 +96,7 @@ namespace Xv2CoreLib.BCS
         public Gender Gender { get; set; }
         [YAXAttributeFor("F_48")]
         [YAXSerializeAs("values")]
-        [YAXFormat("0.0###########")]
+        [YAXFormat("R")]
         [YAXCollection(YAXCollectionSerializationTypes.Serially, SeparateBy = ", ")]
         public float[] F_48 { get; set; } = new float[7]; // size 7
 
@@ -626,11 +641,11 @@ namespace Xv2CoreLib.BCS
 
         [YAXAttributeFor("F_36")]
         [YAXSerializeAs("value")]
-        [YAXFormat("0.0##########")]
+        [YAXFormat("R")]
         public float F_36 { get; set; }
         [YAXAttributeFor("F_40")]
         [YAXSerializeAs("value")]
-        [YAXFormat("0.0##########")]
+        [YAXFormat("R")]
         public float F_40 { get; set; }
         [YAXAttributeFor("I_44")]
         [YAXSerializeAs("value")]
@@ -662,8 +677,44 @@ namespace Xv2CoreLib.BCS
         [YAXCollection(YAXCollectionSerializationTypes.RecursiveWithNoContainingElement, EachElementName = "PhysicsObject")]
         public AsyncObservableCollection<PhysicsPart> PhysicsParts { get; set; } = new AsyncObservableCollection<PhysicsPart>();
         [YAXDontSerializeIfNull]
+        [YAXCollection(YAXCollectionSerializationTypes.RecursiveWithNoContainingElement, EachElementName = "HideException")]
+        public List<HideException> HideExceptions { get; set; }
+        [YAXAttributeForClass]
+        [YAXDontSerializeIfNull]
+        [YAXErrorIfMissed(YAXExceptionTypes.Ignore)]
+        public int? HideExceptionDataSize { get; set; }
+        [YAXDontSerializeIfNull]
+        public List<HideExceptionValue> UnusedHideExceptionValues { get; set; }
+
+        [YAXDontSerializeIfNull]
         [YAXCollection(YAXCollectionSerializationTypes.RecursiveWithNoContainingElement, EachElementName = "Unk3")]
-        public List<Unk3> Unk_3 { get; set; }
+        public List<OldHideException> Unk_3
+        {
+            get => null;
+            set
+            {
+                if (value == null || value.Count == 0) return;
+                if (value.Any(record => record?.Values?.Length != 6))
+                    throw new InvalidDataException("Unk3 must contain six short values.");
+                byte[] oldData = value.SelectMany(record => record.Values.SelectMany(BitConverter.GetBytes)).ToArray();
+                var records = new List<HideException>();
+                for (int recordIndex = 0; recordIndex < value.Count; recordIndex++)
+                {
+                    int recordOffset = recordIndex * 8;
+                    int modelCount = BitConverter.ToUInt16(oldData, recordOffset + 2);
+                    int modelOffset = BitConverter.ToInt32(oldData, recordOffset + 4);
+                    if (modelOffset < 0 || modelOffset > int.MaxValue - recordOffset)
+                        throw new InvalidDataException("Unk3 has an invalid model list offset.");
+                    var record = new HideException { PartType = BitConverter.ToUInt16(oldData, recordOffset) };
+                    int listStart = recordOffset + modelOffset;
+                    for (int modelIndex = 0; modelIndex < modelCount && listStart <= oldData.Length - 4; modelIndex++, listStart += 4)
+                        record.Models.Add(BitConverter.ToInt32(oldData, listStart));
+                    records.Add(record);
+                }
+                HideExceptions = records;
+            }
+        }
+
 
 
         //XenoKit
@@ -1026,12 +1077,37 @@ namespace Xv2CoreLib.BCS
     }
 
     [Serializable]
-    public class Unk3
+    public class HideExceptionValue
+    {
+        [YAXAttributeForClass]
+        public int Offset { get; set; }
+        [YAXAttributeForClass]
+        public int Value { get; set; }
+    }
+
+    [Serializable]
+    public class OldHideException
     {
         [YAXAttributeForClass]
         [YAXSerializeAs("values")]
         [YAXCollection(YAXCollectionSerializationTypes.Serially, SeparateBy = ", ")]
-        public short[] I_00 { get; set; } //size 6
+        public short[] Values { get; set; }
+    }
+
+    [Serializable]
+    public class HideException
+    {
+        [YAXAttributeForClass]
+        public ushort PartType { get; set; }
+        [YAXAttributeForClass]
+        [YAXDontSerializeIfNull]
+        [YAXSerializeAs("ListOffset")]
+        [YAXErrorIfMissed(YAXExceptionTypes.Ignore)]
+        public int? ListOffset { get; set; }
+        [YAXAttributeForClass]
+        [YAXSerializeAs("Models")]
+        [YAXCollection(YAXCollectionSerializationTypes.Serially, SeparateBy = ", ")]
+        public List<int> Models { get; set; } = new List<int>();
     }
 
     //Color
@@ -1366,12 +1442,15 @@ namespace Xv2CoreLib.BCS
         public string BoneName { get; set; }
         [YAXAttributeFor("Scale")]
         [YAXSerializeAs("X")]
+        [YAXFormat("R")]
         public float ScaleX { get; set; }
         [YAXAttributeFor("Scale")]
         [YAXSerializeAs("Y")]
+        [YAXFormat("R")]
         public float ScaleY { get; set; }
         [YAXAttributeFor("Scale")]
         [YAXSerializeAs("Z")]
+        [YAXFormat("R")]
         public float ScaleZ { get; set; }
 
         public void RefreshValues()
@@ -1420,39 +1499,39 @@ namespace Xv2CoreLib.BCS
         public int I_04 { get; set; }
         [YAXAttributeFor("F_12")]
         [YAXSerializeAs("value")]
-        [YAXFormat("0.0###########")]
+        [YAXLib.Attributes.YAXCustomSerializer(typeof(BcsFloatSerializer))]
         public float F_12 { get; set; }
         [YAXAttributeFor("F_16")]
         [YAXSerializeAs("value")]
-        [YAXFormat("0.0###########")]
+        [YAXLib.Attributes.YAXCustomSerializer(typeof(BcsFloatSerializer))]
         public float F_16 { get; set; }
         [YAXAttributeFor("F_20")]
         [YAXSerializeAs("value")]
-        [YAXFormat("0.0###########")]
+        [YAXLib.Attributes.YAXCustomSerializer(typeof(BcsFloatSerializer))]
         public float F_20 { get; set; }
         [YAXAttributeFor("F_24")]
         [YAXSerializeAs("value")]
-        [YAXFormat("0.0###########")]
+        [YAXLib.Attributes.YAXCustomSerializer(typeof(BcsFloatSerializer))]
         public float F_24 { get; set; }
         [YAXAttributeFor("F_28")]
         [YAXSerializeAs("value")]
-        [YAXFormat("0.0###########")]
+        [YAXLib.Attributes.YAXCustomSerializer(typeof(BcsFloatSerializer))]
         public float F_28 { get; set; }
         [YAXAttributeFor("F_32")]
         [YAXSerializeAs("value")]
-        [YAXFormat("0.0###########")]
+        [YAXLib.Attributes.YAXCustomSerializer(typeof(BcsFloatSerializer))]
         public float F_32 { get; set; }
         [YAXAttributeFor("F_36")]
         [YAXSerializeAs("value")]
-        [YAXFormat("0.0###########")]
+        [YAXLib.Attributes.YAXCustomSerializer(typeof(BcsFloatSerializer))]
         public float F_36 { get; set; }
         [YAXAttributeFor("F_40")]
         [YAXSerializeAs("value")]
-        [YAXFormat("0.0###########")]
+        [YAXLib.Attributes.YAXCustomSerializer(typeof(BcsFloatSerializer))]
         public float F_40 { get; set; }
         [YAXAttributeFor("F_44")]
         [YAXSerializeAs("value")]
-        [YAXFormat("0.0###########")]
+        [YAXLib.Attributes.YAXCustomSerializer(typeof(BcsFloatSerializer))]
         public float F_44 { get; set; }
 
         public void RefreshValues()
@@ -1460,6 +1539,26 @@ namespace Xv2CoreLib.BCS
             NotifyPropertyChanged(nameof(BoneName));
         }
 
+    }
+
+    public class BcsFloatSerializer : ICustomSerializer<float>
+    {
+        public string SerializeToValue(float value, ISerializationContext context)
+        {
+            return value == 0f && float.IsNegativeInfinity(1f / value) ? "-0" : value.ToString("R", CultureInfo.InvariantCulture);
+        }
+
+        public float DeserializeFromValue(string text, ISerializationContext context)
+        {
+            float value = float.Parse(text, CultureInfo.InvariantCulture);
+            return value == 0f && text.TrimStart().StartsWith("-", StringComparison.Ordinal)
+                ? BitConverter.ToSingle(new byte[] { 0, 0, 0, 128 }, 0) : value;
+        }
+
+        public void SerializeToAttribute(float value, XAttribute attribute, ISerializationContext context) => attribute.Value = SerializeToValue(value, context);
+        public void SerializeToElement(float value, XElement element, ISerializationContext context) => element.Value = SerializeToValue(value, context);
+        public float DeserializeFromAttribute(XAttribute attribute, ISerializationContext context) => DeserializeFromValue(attribute.Value, context);
+        public float DeserializeFromElement(XElement element, ISerializationContext context) => DeserializeFromValue(element.Value, context);
     }
 
 }

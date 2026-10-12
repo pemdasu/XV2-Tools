@@ -29,6 +29,8 @@ namespace Xv2CoreLib.BCS
         int Skeleton1Table = 0;
 
         //Strings
+        private readonly List<HideExceptionValue> hideReferences = new List<HideExceptionValue>();
+
         List<StringWriter.StringInfo> stringInfo = new List<StringWriter.StringInfo>();
 
         public Deserializer(string location)
@@ -72,8 +74,8 @@ namespace Xv2CoreLib.BCS
             }
 
             //Header
-            int I_18 = (bcsFile.SkeletonData2?.Bones?.Count > 0) ? 1 : 0;
-            byte[] _i_44 = { (byte)bcsFile.Race, (byte)bcsFile.Gender, 0, 0 };
+            int I_18 = (bcsFile.SkeletonData2?.Bones?.Count > 0) ? 1 + (bcsFile.ExtraSkeletonData2?.Count ?? 0) : 0;
+            byte[] _i_44 = { (byte)bcsFile.Race, (byte)bcsFile.Gender, (byte)bcsFile.I_46, (byte)(bcsFile.I_46 >> 8) };
             int partSetOffset;
             int partColorOffset;
             int bodyOffset;
@@ -199,7 +201,7 @@ namespace Xv2CoreLib.BCS
                 {
                     bytes = Utils.ReplaceRange(bytes, BitConverter.GetBytes(bytes.Count), 36);
                     Skeleton2Table = bytes.Count;
-                    bytes.AddRange(new byte[4]);
+                    bytes.AddRange(new byte[I_18 * 4]);
                 }
             }
 
@@ -381,11 +383,30 @@ namespace Xv2CoreLib.BCS
                 WriteSkeleton(bcsFile.SkeletonData1, Skeleton1Table);
 
                 //Skeleton2
-                WriteSkeleton(bcsFile.SkeletonData2, Skeleton2Table);
+                if (I_18 > 0)
+                {
+                    int skeletonHeaders = bytes.Count;
+                    bytes.AddRange(new byte[I_18 * 8]);
+                    WriteSkeleton(bcsFile.SkeletonData2, Skeleton2Table, skeletonHeaders);
+                    for (int skeletonIndex = 1; skeletonIndex < I_18; skeletonIndex++)
+                        WriteSkeleton(bcsFile.ExtraSkeletonData2[skeletonIndex - 1], Skeleton2Table + skeletonIndex * 4, skeletonHeaders + skeletonIndex * 8);
+                }
             }
+
+            if (!bcsFile.HasSignature)
+                bytes = Utils.ReplaceRange(bytes, new byte[8], 0);
 
             //Strings
             bytes = StringWriter.WritePointerStrings(stringInfo, bytes);
+            if (bcsFile.TrailingZeroCount < 0)
+                throw new InvalidDataException("BCS trailing zero count cannot be negative.");
+            bytes.AddRange(new byte[bcsFile.TrailingZeroCount]);
+            byte[] writtenBytes = hideReferences.Count > 0 ? bytes.ToArray() : null;
+            foreach (HideExceptionValue reference in hideReferences)
+            {
+                if (reference.Offset < 0 || reference.Offset > bytes.Count - 4 || BitConverter.ToInt32(writtenBytes, reference.Offset) != reference.Value)
+                    throw new InvalidDataException("BCS hide exception overlaps changed data. Clear HideExceptionDataSize, UnusedHideExceptionValues, and each ListOffset to write separate model lists.");
+            }
         }
 
         //Part Writers
@@ -398,7 +419,7 @@ namespace Xv2CoreLib.BCS
                 int partStartOffset = bytes.Count;
                 int ColorSelectorsCount = (part.ColorSelectors != null) ? part.ColorSelectors.Count : 0;
                 int PhysicsObjectCount = (part.PhysicsParts != null) ? part.PhysicsParts.Count : 0;
-                int Unk3Count = (part.Unk_3 != null) ? part.Unk_3.Count : 0;
+                int hideExceptionCount = (part.HideExceptions != null) ? part.HideExceptions.Count : 0;
 
                 //Write bytes
                 bytes.AddRange(BitConverter.GetBytes(part.Model));
@@ -456,7 +477,7 @@ namespace Xv2CoreLib.BCS
                 if(bcsFile.Version == Version.XV2)
                 {
                     bytes.AddRange(new byte[2]);
-                    bytes.AddRange(BitConverter.GetBytes((short)Unk3Count));
+                    bytes.AddRange(BitConverter.GetBytes((short)hideExceptionCount));
                     bytes.AddRange(new byte[4]);
                 }
 
@@ -466,7 +487,7 @@ namespace Xv2CoreLib.BCS
 
                 if(bcsFile.Version == Version.XV2)
                 {
-                    WriteUnk3(part.Unk_3, partStartOffset + 84, partStartOffset);
+                    WriteHideExceptions(part, partStartOffset + 84, partStartOffset);
                 }
             }
         }
@@ -559,35 +580,115 @@ namespace Xv2CoreLib.BCS
             }
         }
 
-        private void WriteUnk3(List<Unk3> unk3, int offsetToFill, int relativeOffset)
+        private void WriteHideExceptions(Part part, int offsetToFill, int relativeOffset)
         {
-            if (unk3 != null)
-            {
-                bytes = Utils.ReplaceRange(bytes, BitConverter.GetBytes(bytes.Count - relativeOffset), offsetToFill);
+            List<HideException> hideExceptions = part.HideExceptions;
+            if (hideExceptions == null) return;
 
-                for (int i = 0; i < unk3.Count; i++)
+            bytes = Utils.ReplaceRange(bytes, BitConverter.GetBytes(bytes.Count - relativeOffset), offsetToFill);
+
+            //Records come first, then each model list. A list without an explicit offset goes after the previous list.
+            if (hideExceptions.Count > ushort.MaxValue)
+                throw new InvalidDataException("BCS has too many hide exception records.");
+            int tableSize = hideExceptions.Count * 8;
+            int nextListPosition = tableSize;
+            int[] listPositions = new int[hideExceptions.Count];
+            int regionSize = tableSize;
+
+            for (int i = 0; i < hideExceptions.Count; i++)
+            {
+                HideException hideException = hideExceptions[i];
+                int recordPosition = i * 8;
+
+                if (hideException?.Models == null)
+                    throw new InvalidDataException("BCS hide exception model list cannot be null.");
+                if (hideException.Models.Count > ushort.MaxValue)
+                    throw new InvalidDataException("BCS hide exception needs at most 65535 models.");
+                if (hideException.ListOffset.HasValue)
                 {
-                    Assertion.AssertArraySize(unk3[i].I_00, 6, "Unk3", "values");
-                    bytes.AddRange(BitConverter_Ex.GetBytes(unk3[i].I_00));
+                    if (hideException.ListOffset.Value < 0 || hideException.ListOffset.Value > int.MaxValue - recordPosition - hideException.Models.Count * 4)
+                        throw new InvalidDataException("BCS hide exception ListOffset is outside the supported range.");
+                    listPositions[i] = recordPosition + hideException.ListOffset.Value;
+                }
+                else
+                {
+                    listPositions[i] = nextListPosition;
+                }
+
+                if (listPositions[i] > int.MaxValue - hideException.Models.Count * 4)
+                    throw new InvalidDataException("BCS hide exception model list is too large.");
+                if (hideException.Models.Count > 0)
+                    nextListPosition = Math.Max(nextListPosition, listPositions[i] + hideException.Models.Count * 4);
+                if (hideException.Models.Count > 0 && listPositions[i] % 4 != 0)
+                {
+                    throw new InvalidDataException(string.Format("HideException {0}: ListOffset must use whole integers.", i));
+                }
+
+                if (hideException.Models.Count > 0)
+                {
+                    regionSize = Math.Max(regionSize, listPositions[i] + hideException.Models.Count * 4);
                 }
             }
+
+            if (part.HideExceptionDataSize.HasValue) regionSize = part.HideExceptionDataSize.Value;
+            if (regionSize < tableSize || regionSize % 4 != 0)
+                throw new InvalidDataException("BCS hide exception data size must fit its records and use whole integers.");
+            byte[] region = new byte[regionSize];
+            if (part.UnusedHideExceptionValues != null)
+            {
+                foreach (HideExceptionValue value in part.UnusedHideExceptionValues)
+                {
+                    if (value.Offset < tableSize || value.Offset > regionSize - 4 || value.Offset % 4 != 0 ||
+                        hideExceptions.Where((record, index) => value.Offset >= listPositions[index] && value.Offset < listPositions[index] + record.Models.Count * 4).Any())
+                        throw new InvalidDataException("BCS unused hide exception value is outside its data block.");
+                    Array.Copy(BitConverter.GetBytes(value.Value), 0, region, value.Offset, 4);
+                }
+            }
+
+            for (int i = 0; i < hideExceptions.Count; i++)
+            {
+                HideException hideException = hideExceptions[i];
+                int recordPosition = i * 8;
+
+                Array.Copy(BitConverter.GetBytes(hideException.PartType), 0, region, recordPosition, 2);
+                Array.Copy(BitConverter.GetBytes((ushort)hideException.Models.Count), 0, region, recordPosition + 2, 2);
+                Array.Copy(BitConverter.GetBytes(listPositions[i] - recordPosition), 0, region, recordPosition + 4, 4);
+            }
+
+            for (int i = 0; i < hideExceptions.Count; i++)
+            {
+                for (int j = 0; j < hideExceptions[i].Models.Count; j++)
+                {
+                    int modelOffset = listPositions[i] + j * 4;
+                    int model = hideExceptions[i].Models[j];
+                    if (modelOffset >= tableSize && modelOffset <= regionSize - 4)
+                        Array.Copy(BitConverter.GetBytes(model), 0, region, modelOffset, 4);
+                    if (modelOffset > int.MaxValue - bytes.Count)
+                        throw new InvalidDataException("BCS hide exception model offset is too large.");
+                    hideReferences.Add(new HideExceptionValue { Offset = bytes.Count + modelOffset, Value = model });
+                }
+            }
+
+            bytes.AddRange(region);
         }
 
         //Skeleton Writers
-        private void WriteSkeleton(SkeletonData skeleton, int offsetToFill)
+        private void WriteSkeleton(SkeletonData skeleton, int offsetToFill, int headerOffset = -1)
         {
             if(skeleton?.Bones?.Count > 0)
             {
                 int relativeTo = bcsFile.Version == Version.XV1 ? 32 : 0;
 
-                bytes = Utils.ReplaceRange(bytes, BitConverter.GetBytes(bytes.Count - relativeTo), offsetToFill);
+                int skeletonOffset = headerOffset >= 0 ? headerOffset : bytes.Count;
+                bytes = Utils.ReplaceRange(bytes, BitConverter.GetBytes(skeletonOffset - relativeTo), offsetToFill);
                 int boneCount = (skeleton.Bones != null) ? skeleton.Bones.Count : 0;
 
                 if(bcsFile.Version == Version.XV2)
                 {
-                    bytes.AddRange(BitConverter.GetBytes(skeleton.I_00));
-                    bytes.AddRange(BitConverter.GetBytes((short)boneCount));
-                    bytes.AddRange(BitConverter.GetBytes((skeleton.Bones != null) ? 8 : 0));
+                    if (headerOffset < 0) bytes.AddRange(new byte[8]);
+                    bytes = Utils.ReplaceRange(bytes, BitConverter.GetBytes(skeleton.I_00), skeletonOffset);
+                    bytes = Utils.ReplaceRange(bytes, BitConverter.GetBytes((short)boneCount), skeletonOffset + 2);
+                    bytes = Utils.ReplaceRange(bytes, BitConverter.GetBytes(bytes.Count - skeletonOffset), skeletonOffset + 4);
                 }
                 
                 for(int i = 0; i < boneCount; i++)
