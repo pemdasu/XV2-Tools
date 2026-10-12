@@ -23,7 +23,13 @@ namespace Xv2CoreLib.ValuesDictionary
                         switch (type)
                         {
                             case BSA_Type0 passing:
-                                AddUnknown(EntryPassingCondition, passing.I_00);
+                                AddUnknown(EntryPassingCondition, passing.Condition);
+                                break;
+                            case BSA_Type3 hitbox:
+                                AddUnknown(ShapeType, hitbox.ShapeType);
+                                break;
+                            case BSA_Type4 deflection:
+                                AddUnknown(ShapeType, deflection.ShapeType);
                                 break;
                             case BSA_Type6 effect:
                                 AddUnknown(EepkType, effect.EepkType);
@@ -42,7 +48,7 @@ namespace Xv2CoreLib.ValuesDictionary
                                 AddUnknown(SkillUpgradeOperation, upgrade.UpgradeOperation);
                                 break;
                             case BSA_Type11 propertyControl:
-                                AddUnknown(BAC.EepkType, propertyControl.SkillType);
+                                AddUnknown(EepkTypeById, propertyControl.SkillType);
                                 break;
                             case BSA_Type12 signal:
                                 AddUnknown(EepkType, signal.EepkType);
@@ -53,10 +59,10 @@ namespace Xv2CoreLib.ValuesDictionary
                                 AddUnknown(AdditionalSelectorCoverage, protection.I_12);
                                 break;
                             case BSA_Type14 placement:
-                                AddUnknown(EffectPlacementMode, placement.I_00);
+                                AddUnknown(ShapeType, placement.ShapeType);
                                 AddUnknown(EepkType, placement.EepkType);
                                 if (placement.EepkType == Xv2CoreLib.BSA.EepkType.Common)
-                                    AddUnknown(CommonEepkType, placement.F_52);
+                                    AddUnknown(CommonEepkType, placement.SkillID);
                                 break;
                         }
                     }
@@ -66,9 +72,9 @@ namespace Xv2CoreLib.ValuesDictionary
                     foreach (BSA_Collision collision in entry.SubEntries.CollisionEntries)
                         AddUnknown(EepkType, collision.EepkType);
 
-                if (entry.SubEntries?.ExpirationEntries != null)
-                    foreach (BSA_Expiration sound in entry.SubEntries.ExpirationEntries)
-                        AddUnknown(AcbType, sound.I_00);
+                if (entry.SubEntries?.CollisionSoundEntries != null)
+                    foreach (BSA_CollisionSound sound in entry.SubEntries.CollisionSoundEntries)
+                        AddUnknown(AcbType, sound.AcbType);
             }
         }
 
@@ -151,7 +157,22 @@ namespace Xv2CoreLib.ValuesDictionary
             { Xv2CoreLib.BSA.EepkType.UltimateSkill, "Ultimate Skill" },
             { Xv2CoreLib.BSA.EepkType.EvasiveSkill, "Evasive Skill" },
             { Xv2CoreLib.BSA.EepkType.KiBlastSkill, "Ki Blast Skill" },
-            { Xv2CoreLib.BSA.EepkType.Stage, "Stage" }
+            { Xv2CoreLib.BSA.EepkType.Stage, "Stage" },
+            { Xv2CoreLib.BSA.EepkType.AwokenSkillGroup, "Awoken Skill" }
+        };
+
+        public static Dictionary<ushort, string> EepkTypeById { get; private set; } = new Dictionary<ushort, string>()
+        {
+            { 0, "Common" },
+            { 1, "Stage BG" },
+            { 2, "Character" },
+            { 3, "Any Skill" },
+            { 5, "Super Skill" },
+            { 6, "Ultimate Skill" },
+            { 7, "Evasive Skill" },
+            { 9, "Ki Blast Skill" },
+            { 11, "Stage" },
+            { 12, "Awoken Skill" }
         };
 
         public static Dictionary<uint, string> CommonEepkType { get; private set; } = new Dictionary<uint, string>()
@@ -211,11 +232,11 @@ namespace Xv2CoreLib.ValuesDictionary
             { Xv2CoreLib.BSA.ProjectileProtectionOperation.DisableWithoutSignal, "Off" }
         };
 
-        public static Dictionary<SpatialEffectGeometryMode, string> EffectPlacementMode { get; private set; } = new Dictionary<SpatialEffectGeometryMode, string>()
+        public static Dictionary<BsaShapeType, string> ShapeType { get; private set; } = new Dictionary<BsaShapeType, string>()
         {
-            { Xv2CoreLib.BSA.SpatialEffectGeometryMode.Default, "Default Placement" },
-            { Xv2CoreLib.BSA.SpatialEffectGeometryMode.DistanceRelative, "Distance-Based Placement" },
-            { Xv2CoreLib.BSA.SpatialEffectGeometryMode.FullVector, "Explicit Vector Placement" }
+            { BsaShapeType.Sphere, "Sphere" },
+            { BsaShapeType.Capsule, "Capsule" },
+            { BsaShapeType.Box, "Box" }
         };
 
         public static Dictionary<float, string> AdditionalSelectorCoverage { get; private set; } = new Dictionary<float, string>()

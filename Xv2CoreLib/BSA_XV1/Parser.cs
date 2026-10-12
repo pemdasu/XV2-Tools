@@ -169,21 +169,20 @@ namespace Xv2CoreLib.BSA_XV1
             }
         }
 
-        private List<BSA.BSA_Expiration> ParseUnk2(int offset, int count)
+        private List<BSA.BSA_CollisionSound> ParseUnk2(int offset, int count)
         {
 
             if(count > 0)
             {
-                List<BSA.BSA_Expiration> unk2 = new List<BSA.BSA_Expiration>();
+                List<BSA.BSA_CollisionSound> unk2 = new List<BSA.BSA_CollisionSound>();
 
                 for (int i = 0; i < count; i++)
                 {
-                    unk2.Add(new BSA.BSA_Expiration()
+                    unk2.Add(new BSA.BSA_CollisionSound()
                     {
-                        I_00 = (BSA.AcbType)BitConverter.ToUInt16(rawBytes, offset + 0),
+                        AcbType = (BSA.AcbType)BitConverter.ToUInt16(rawBytes, offset + 0),
                         I_02 = BitConverter.ToUInt16(rawBytes, offset + 2),
-                        I_04 = BitConverter.ToUInt16(rawBytes, offset + 4),
-                        I_06 = BitConverter.ToUInt16(rawBytes, offset + 6)
+                        CueId = BitConverter.ToInt32(rawBytes, offset + 4)
                     });
                     offset += 8;
                 }
@@ -209,12 +208,12 @@ namespace Xv2CoreLib.BSA_XV1
                 {
                     Type0.Add(new BSA.BSA_Type0()
                     {
-                        I_00 = BitConverter.ToInt16(rawBytes, offset + 0),
-                        I_02 = BitConverter.ToUInt16(rawBytes, offset + 2),
+                        Condition = BitConverter.ToInt16(rawBytes, offset + 0),
+                        ConditionFlags = BitConverter.ToUInt16(rawBytes, offset + 2),
                         BSA_EntryID = BitConverter.ToUInt16(rawBytes, offset + 4),
-                        I_06 = BitConverter.ToInt16(rawBytes, offset + 6),
-                        F_08 = BitConverter.ToSingle(rawBytes, offset + 8),
-                        F_12 = BitConverter.ToSingle(rawBytes, offset + 12),
+                        JumpFrame = BitConverter.ToInt16(rawBytes, offset + 6),
+                        ConditionValue = BitConverter.ToSingle(rawBytes, offset + 8),
+                        SignalPriority = BitConverter.ToSingle(rawBytes, offset + 12),
                         StartTime = BitConverter.ToUInt16(rawBytes, hdrOffset + 0),
                         Duration = GetTypeDuration(BitConverter.ToUInt16(rawBytes, hdrOffset + 0), BitConverter.ToUInt16(rawBytes, hdrOffset + 2)),
                     });
@@ -304,9 +303,9 @@ namespace Xv2CoreLib.BSA_XV1
                 {
                     Type.Add(new BSA.BSA_Type3()
                     {
-                        I_00 = BitConverter.ToUInt16(rawBytes, offset + 0),
+                        ShapeType = (BSA.BsaShapeType)BitConverter.ToUInt16(rawBytes, offset + 0),
                         I_02 = BitConverter.ToUInt16(rawBytes, offset + 2),
-                        I_04 = BitConverter.ToUInt16(rawBytes, offset + 4),
+                        ShapeFlags = BitConverter.ToUInt16(rawBytes, offset + 4),
                         I_06_a = Int4Converter.ToInt4(rawBytes[offset + 6])[0],
                         I_06_b = Int4Converter.ToInt4(rawBytes[offset + 6])[1],
                         I_06_c = Int4Converter.ToInt4(rawBytes[offset + 7])[0],
@@ -321,7 +320,7 @@ namespace Xv2CoreLib.BSA_XV1
                         F_36 = BitConverter.ToSingle(rawBytes, offset + 36),
                         F_40 = BitConverter.ToSingle(rawBytes, offset + 40),
                         F_44 = BitConverter.ToSingle(rawBytes, offset + 44),
-                        I_48 = BitConverter.ToUInt16(rawBytes, offset + 48),
+                        HitCountControl = BitConverter.ToUInt16(rawBytes, offset + 48),
                         I_50 = BitConverter.ToUInt16(rawBytes, offset + 50),
                         I_52 = BitConverter.ToUInt16(rawBytes, offset + 52),
                         I_54 = BitConverter.ToUInt16(rawBytes, offset + 54),
@@ -355,8 +354,8 @@ namespace Xv2CoreLib.BSA_XV1
                 {
                     Type.Add(new BSA.BSA_Type4()
                     {
-                        I_00 = BitConverter.ToInt32(rawBytes, offset + 0),
-                        I_04 = BitConverter.ToInt32(rawBytes, offset + 4),
+                        ShapeType = (BSA.BsaShapeType)BitConverter.ToInt32(rawBytes, offset + 0),
+                        ShapeFlags = BitConverter.ToInt32(rawBytes, offset + 4),
                         F_08 = BitConverter.ToSingle(rawBytes, offset + 8),
                         F_12 = BitConverter.ToSingle(rawBytes, offset + 12),
                         F_16 = BitConverter.ToSingle(rawBytes, offset + 16),
@@ -434,8 +433,7 @@ namespace Xv2CoreLib.BSA_XV1
                     {
                         AcbType = (BSA.AcbType)BitConverter.ToUInt16(rawBytes, offset + 0),
                         I_02 = BitConverter.ToUInt16(rawBytes, offset + 2),
-                        CueId = BitConverter.ToUInt16(rawBytes, offset + 4),
-                        I_06 = BitConverter.ToUInt16(rawBytes, offset + 6),
+                        CueId = BitConverter.ToInt32(rawBytes, offset + 4),
                         StartTime = BitConverter.ToUInt16(rawBytes, hdrOffset + 0),
                         Duration = GetTypeDuration(BitConverter.ToUInt16(rawBytes, hdrOffset + 0), BitConverter.ToUInt16(rawBytes, hdrOffset + 2)),
                     });
