@@ -1,273 +1,215 @@
 ﻿using System;
-using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Xml.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using YAXLib;
-using Xv2CoreLib;
 
 namespace Xv2CoreLib.BCM
 {
     public class Deserializer
     {
         BCM_File bcmFile { get; set; }
-        public List<byte> bytes = new List<byte>() { 35, 66, 67, 77, 254, 255, 0, 0 };
-        string saveLocation { get; set; }
+        public List<byte> bytes = new List<byte>();
 
-        int TotalEntryCount = 0;
-
-        //Loop
-        List<PtrToWrite> PtrToWriteList = new List<PtrToWrite>();
-        List<string> IndexList = new List<string>();
-
+        private readonly List<WriteEntry> entries = new List<WriteEntry>();
+        private readonly Dictionary<BCM_Entry, WriteEntry> writeEntries = new Dictionary<BCM_Entry, WriteEntry>();
+        private readonly Dictionary<string, int> slotsByIndex = new Dictionary<string, int>();
+        private readonly HashSet<string> duplicateIndexes = new HashSet<string>();
 
         public Deserializer (string location)
         {
             YAXSerializer serializer = new YAXSerializer(typeof(BCM_File), YAXSerializationOptions.DontSerializeNullObjects);
             bcmFile = (BCM_File)serializer.Deserialize(XDocument.Load(location).Root);
-            saveLocation = String.Format("{0}/{1}", Path.GetDirectoryName(location), Path.GetFileNameWithoutExtension(location));
-            if (Validation())
-            {
-                WriteBinaryFile();
-                File.WriteAllBytes(saveLocation, bytes.ToArray());
-            }
-            
+            WriteBinaryFile();
+            File.WriteAllBytes(String.Format("{0}/{1}", Path.GetDirectoryName(location), Path.GetFileNameWithoutExtension(location)), bytes.ToArray());
         }
 
         public Deserializer(BCM_File _bcmFile, string _saveLocation)
         {
             bcmFile = _bcmFile;
-            saveLocation = _saveLocation;
-            if (Validation())
-            {
-                WriteBinaryFile();
-                File.WriteAllBytes(saveLocation, bytes.ToArray());
-            }
+            WriteBinaryFile();
+            File.WriteAllBytes(_saveLocation, bytes.ToArray());
         }
 
         public Deserializer(BCM_File _bcmFile)
         {
             bcmFile = _bcmFile;
-            if (Validation())
-            {
-                WriteBinaryFile();
-            }
-        }
-
-        private bool Validation()
-        {
-            if(bcmFile.BCMEntries.Count() != 1)
-            {
-                Console.WriteLine("Incorrect hierarchy setup. There can only be 1 root BCMEntry!\nDeserialization failed.");
-                Console.ReadLine();
-                return false;
-            }
-
-            if(bcmFile.BCMEntries[0].LoopAsChild != null)
-            {
-                Console.WriteLine("Child_GoTo_Idx is not valid for the root BCMEntry!\nDeserialization failed.");
-                Console.ReadLine();
-                return false;
-            }
-
-            if (bcmFile.BCMEntries[0].LoopAsSibling != null)
-            {
-                Console.WriteLine("Sibling_GoTo_Idx is not valid for the root BCMEntry!/nDeserialization failed.");
-                Console.ReadLine();
-                return false;
-            }
-
-            return true;
+            WriteBinaryFile();
         }
 
         private void WriteBinaryFile()
         {
-            //Header
-            bytes.AddRange(BitConverter.GetBytes(0));
-            bytes.AddRange(BitConverter.GetBytes(16));
+            byte[] header = new byte[BCM_File.HeaderSize] { 35, 66, 67, 77, 254, 255, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
 
-            //BCM Entries
-            SortEntry(bcmFile.BCMEntries, 0, true, 0, false);
-            
-            //Count
-            bytes = Utils.ReplaceRange(bytes, BitConverter.GetBytes(TotalEntryCount), 8);
-
-            //GoTo loops
-            FillInGoTos();
-
-        }
-
-        private void SortEntry(List<BCM_Entry> Entries, int parentOffset, bool useRoot, int rootOffset, bool rootLevel)
-        {
-            int previousSibling = 0;
-            for(int i = 0; i < Entries.Count(); i++)
+            if (bcmFile.BCMEntries == null || bcmFile.BCMEntries.Count == 0)
             {
-                if(i > 0)
-                {
-                    bytes = Utils.ReplaceRange(bytes, BitConverter.GetBytes(bytes.Count()), previousSibling);
-                }
-                previousSibling = bytes.Count() + 48;
-                int ChilfOffsetToFill = bytes.Count() + 52;
-
-                WriteBcmEntry(Entries[i], parentOffset, rootOffset);
-
-                if(Entries[i].BCMEntries?.Count > 0)
-                {
-                    bytes = Utils.ReplaceRange(bytes, BitConverter.GetBytes(bytes.Count()), ChilfOffsetToFill);
-                    if(useRoot == true)
-                    {
-                        SortEntry(Entries[i].BCMEntries, 0, false, bytes.Count(), true);
-                    }
-                    else
-                    {
-                        SortEntry(Entries[i].BCMEntries, ChilfOffsetToFill - 52, false, rootOffset, false);
-                    }
-                }
-                
-                if(rootLevel== true)
-                {
-                    rootOffset = bytes.Count();
-                }
-
-            }
-        }
-
-        private void WriteBcmEntry(BCM_Entry bcmEntry, int parentOffset, int rootOffset)
-        {
-            ValidateEntry(bcmEntry);
-            IndexList.Add(bcmEntry.Index);
-            bytes.AddRange(BitConverter.GetBytes(bcmEntry.I_00));
-            bytes.AddRange(BitConverter.GetBytes((uint)bcmEntry.DirectionalInput));
-            bytes.AddRange(BitConverter.GetBytes((uint)bcmEntry.ButtonInput));
-            bytes.AddRange(BitConverter.GetBytes(bcmEntry.HoldDownConditions));
-            bytes.AddRange(BitConverter.GetBytes(bcmEntry.OpponentSizeConditions));
-            bytes.AddRange(BitConverter.GetBytes(bcmEntry.MinimumLoopDuration));
-            bytes.AddRange(BitConverter.GetBytes(bcmEntry.MaximumLoopDuration));
-            bytes.AddRange(BitConverter.GetBytes((uint)bcmEntry.PrimaryActivatorConditions));
-            bytes.AddRange(BitConverter.GetBytes((uint)bcmEntry.ActivatorState));
-            bytes.AddRange(BitConverter.GetBytes(bcmEntry.BacEntryPrimary));
-            bytes.AddRange(BitConverter.GetBytes(bcmEntry.BacEntryCharge));
-            bytes.AddRange(BitConverter.GetBytes(bcmEntry.I_36));
-            bytes.AddRange(BitConverter.GetBytes(bcmEntry.BacEntryUserConnect));
-            bytes.AddRange(BitConverter.GetBytes(bcmEntry.BacEntryVictimConnect));
-            bytes.AddRange(BitConverter.GetBytes(bcmEntry.BacEntryAirborne));
-            bytes.AddRange(BitConverter.GetBytes(bcmEntry.BacEntryTargetingOverride));
-            bytes.AddRange(BitConverter.GetBytes(bcmEntry.RandomFlag));
-
-            if (bcmEntry.LoopAsSibling != null)
-            {
-                PtrToWriteList.Add(new PtrToWrite()
-                {
-                    Idx = bcmEntry.LoopAsSibling,
-                    OffsetToFill = bytes.Count()
-                });
-            }
-            bytes.AddRange(BitConverter.GetBytes(0));
-
-            if (bcmEntry.LoopAsChild != null)
-            {
-                PtrToWriteList.Add(new PtrToWrite()
-                {
-                    Idx = bcmEntry.LoopAsChild,
-                    OffsetToFill = bytes.Count()
-                });
-            }
-            bytes.AddRange(BitConverter.GetBytes(0));
-
-            bytes.AddRange(BitConverter.GetBytes(parentOffset));
-            bytes.AddRange(BitConverter.GetBytes(rootOffset));
-
-
-            bytes.AddRange(BitConverter.GetBytes(bcmEntry.I_64));
-            bytes.AddRange(BitConverter.GetBytes(bcmEntry.I_68));
-            bytes.AddRange(BitConverter.GetBytes(bcmEntry.I_72));
-            bytes.AddRange(BitConverter.GetBytes(bcmEntry.ReceiverLinkID));
-            bytes.AddRange(BitConverter.GetBytes(bcmEntry.I_80));
-            bytes.AddRange(BitConverter.GetBytes(bcmEntry.StaminaCost));
-            bytes.AddRange(BitConverter.GetBytes(bcmEntry.I_88));
-            bytes.AddRange(BitConverter.GetBytes(bcmEntry.KiRequired));
-            bytes.AddRange(BitConverter.GetBytes(bcmEntry.HealthRequired));
-            bytes.AddRange(BitConverter.GetBytes(bcmEntry.TransStage));
-            bytes.AddRange(BitConverter.GetBytes(bcmEntry.CusAura));
-            bytes.AddRange(BitConverter.GetBytes(bcmEntry.I_104));
-            bytes.AddRange(BitConverter.GetBytes(bcmEntry.I_108));
-
-            
-
-            TotalEntryCount++;
-        }
-
-        private void FillInGoTos()
-        {
-            for(int i = 0; i < PtrToWriteList.Count(); i++)
-            {
-                if(IndexList.IndexOf(PtrToWriteList[i].Idx) == -1)
-                {
-                    Console.WriteLine(String.Format("Cannot complete GoTo loop. Idx {0} does not exist in the BCM file.", PtrToWriteList[i].Idx));
-                    Utils.WaitForInputThenQuit();
-                }
-
-                int pointer = (IndexList.IndexOf(PtrToWriteList[i].Idx) * 112) + 16;
-                bytes = Utils.ReplaceRange(bytes, BitConverter.GetBytes(pointer), PtrToWriteList[i].OffsetToFill);
-
-            }
-        }
-
-        private int GetBcmEntryOffset (int index)
-        {
-
-            if(index == -1)
-            {
-                return 0;
+                bytes = header.ToList();
+                return;
             }
 
-            index = index * 112;
-            return index + 16;
+            if (bcmFile.BCMEntries.Count != 1)
+                throw new InvalidDataException("Incorrect BCM hierarchy. There must be exactly 1 root BCM entry.");
 
-        }
+            if (bcmFile.BCMEntries[0].LoopAsChild != null)
+                throw new InvalidDataException("Child_GoTo_Idx is not valid for the root BCM entry.");
 
-        private void ValidateEntry(BCM_Entry entry)
-        {
-            //Checks for children if it has a Child GoTo
-            if (entry.LoopAsChild != null && entry.BCMEntries?.Count > 0)
+            if (bcmFile.BCMEntries[0].LoopAsSibling != null)
+                throw new InvalidDataException("Sibling_GoTo_Idx is not valid for the root BCM entry.");
+
+            AddEntries(bcmFile.BCMEntries, null, null);
+            SetSlots();
+
+            byte[] file = new byte[BCM_File.HeaderSize + entries.Count * BCM_File.EntrySize];
+            using (BinaryWriter writer = new BinaryWriter(new MemoryStream(file)))
             {
-                throw new InvalidDataException(String.Format("Invalid Loop_As_Child tag on Idx {0}.\nCannot set the tag (Loop_As_Child=\"{1}\") as the BCM Entry at Idx {0} has actual child entries.", entry.Index, entry.LoopAsChild));
-            }
+                writer.Write(header, 0, 8);
+                writer.Write(entries.Count);
+                writer.Write(GetOffset(entries[0]));
 
-            if (entry.BCMEntries != null)
-            {
-                bool siblingLoop = false;
-                string idx = null;
-                string loopIdx = null;
-
-                foreach (var child in entry.BCMEntries)
+                foreach (WriteEntry entry in entries)
                 {
-                    if (siblingLoop)
-                    {
-                        throw new InvalidDataException(String.Format("Invalid Loop_As_Sibling tag on Idx {0}.\nCannot set the tag (Sibling_GoTo_Idx=\"{1}\") as the BCM Entry at Idx {0} has an actual sibling.", idx, loopIdx));
-                    }
-
-                    if (child.LoopAsSibling != null)
-                    {
-                        siblingLoop = true;
-                        idx = child.Index;
-                        loopIdx = child.LoopAsSibling;
-                    }
+                    writer.BaseStream.Position = GetOffset(entry);
+                    WriteEntryBytes(writer, entry);
                 }
             }
+
+            bytes = file.ToList();
         }
 
-
-        //Helper
-
-        private struct PtrToWrite
+        private void AddEntries(List<BCM_Entry> list, WriteEntry parent, WriteEntry topLevel)
         {
-            public string Idx { get; set; }
-            public int OffsetToFill { get; set; }
+            for (int i = 0; i < list.Count; i++)
+            {
+                BCM_Entry entry = list[i];
+
+                if (entry.LoopAsSibling != null && i < list.Count - 1)
+                    throw new InvalidDataException($"Invalid Sibling_GoTo_Idx on BCM entry {entry.Index}. It has a following sibling, so the GoTo ({entry.LoopAsSibling}) cannot be used.");
+
+                if (writeEntries.ContainsKey(entry))
+                    throw new InvalidDataException($"BCM entry {entry.Index} is in the tree more than once. Use a GoTo link to reuse it.");
+
+                WriteEntry writeEntry = new WriteEntry()
+                {
+                    Entry = entry,
+                    Parent = parent,
+                    NextSibling = i < list.Count - 1 ? list[i + 1] : null,
+                    TreePosition = entries.Count
+                };
+                writeEntry.TopLevel = parent == null ? null : topLevel ?? writeEntry;
+
+                entries.Add(writeEntry);
+                writeEntries.Add(entry, writeEntry);
+
+                if (entry.BCMEntries?.Count > 0)
+                    AddEntries(entry.BCMEntries, writeEntry, writeEntry.TopLevel);
+            }
         }
 
+        //Entries with a numeric Index go first, in Index order, which keeps the layout of a parsed file.
+        //Other entries (such as ones with installer suffixes) follow in tree order.
+        private void SetSlots()
+        {
+            List<WriteEntry> layout = entries
+                .OrderBy(x => int.TryParse(x.Entry.Index, out int index) ? index : int.MaxValue)
+                .ThenBy(x => x.TreePosition)
+                .ToList();
+
+            for (int slot = 0; slot < layout.Count; slot++)
+            {
+                WriteEntry entry = layout[slot];
+                entry.Slot = slot;
+
+                if (entry.Entry.Index == null) continue;
+
+                if (slotsByIndex.ContainsKey(entry.Entry.Index))
+                    duplicateIndexes.Add(entry.Entry.Index);
+                else
+                    slotsByIndex.Add(entry.Entry.Index, slot);
+            }
+        }
+
+        private void WriteEntryBytes(BinaryWriter writer, WriteEntry writeEntry)
+        {
+            BCM_Entry bcmEntry = writeEntry.Entry;
+
+            int siblingOffset = bcmEntry.LoopAsSibling != null ? GetGoToOffset(bcmEntry, bcmEntry.LoopAsSibling)
+                : writeEntry.NextSibling != null ? GetOffset(writeEntries[writeEntry.NextSibling]) : 0;
+
+            int childOffset = bcmEntry.LoopAsChild != null ? GetGoToOffset(bcmEntry, bcmEntry.LoopAsChild)
+                : bcmEntry.BCMEntries?.Count > 0 ? GetOffset(writeEntries[bcmEntry.BCMEntries[0]]) : 0;
+
+            //Children of the root entry store 0 as parent. Every entry below the root stores its top-level ancestor.
+            int parentOffset = writeEntry.Parent?.Parent == null ? 0 : GetOffset(writeEntry.Parent);
+            int rootOffset = writeEntry.TopLevel == null ? 0 : GetOffset(writeEntry.TopLevel);
+
+            writer.Write(bcmEntry.I_00);
+            writer.Write((uint)bcmEntry.DirectionalInput);
+            writer.Write((uint)bcmEntry.ButtonInput);
+            writer.Write(bcmEntry.HoldDownConditions);
+            writer.Write(bcmEntry.PriorityLayer);
+            writer.Write(bcmEntry.I_18);
+            writer.Write(bcmEntry.I_19);
+            writer.Write(bcmEntry.MinimumLoopDuration);
+            writer.Write(bcmEntry.MaximumLoopDuration);
+            writer.Write((uint)bcmEntry.PrimaryActivatorConditions);
+            writer.Write((uint)bcmEntry.ActivatorState);
+            writer.Write(bcmEntry.BacEntryPrimary);
+            writer.Write(bcmEntry.BacEntryCharge);
+            writer.Write(bcmEntry.I_36);
+            writer.Write(bcmEntry.BacEntryUserConnect);
+            writer.Write(bcmEntry.BacEntryVictimConnect);
+            writer.Write(bcmEntry.BacEntryAirborne);
+            writer.Write(bcmEntry.BacEntryTargetingOverride);
+            writer.Write(bcmEntry.RandomFlag);
+            writer.Write(siblingOffset);
+            writer.Write(childOffset);
+            writer.Write(parentOffset);
+            writer.Write(rootOffset);
+            writer.Write(bcmEntry.I_64);
+            writer.Write(bcmEntry.I_68);
+            writer.Write(bcmEntry.I_72);
+            writer.Write(bcmEntry.MoveCategory);
+            writer.Write(bcmEntry.I_80);
+            writer.Write(bcmEntry.StaminaCost);
+            writer.Write(bcmEntry.I_88);
+            writer.Write(bcmEntry.KiRequired);
+            writer.Write(bcmEntry.HealthRequired);
+            writer.Write(bcmEntry.TransStage);
+            writer.Write(bcmEntry.CusAura);
+            writer.Write(bcmEntry.I_104);
+            writer.Write(bcmEntry.I_108);
+        }
+
+        private int GetOffset(WriteEntry entry)
+        {
+            return GetSlotOffset(entry.Slot);
+        }
+
+        private int GetSlotOffset(int slot)
+        {
+            return BCM_File.HeaderSize + slot * BCM_File.EntrySize;
+        }
+
+        private int GetGoToOffset(BCM_Entry entry, string targetIndex)
+        {
+            if (duplicateIndexes.Contains(targetIndex))
+                throw new InvalidDataException($"Cannot complete GoTo on BCM entry {entry.Index}. More than one entry has Idx {targetIndex}.");
+
+            if (!slotsByIndex.TryGetValue(targetIndex, out int slot))
+                throw new InvalidDataException($"Cannot complete GoTo on BCM entry {entry.Index}. Idx {targetIndex} does not exist in the BCM file.");
+
+            return GetSlotOffset(slot);
+        }
+
+        private class WriteEntry
+        {
+            public BCM_Entry Entry;
+            public WriteEntry Parent;
+            public WriteEntry TopLevel;
+            public BCM_Entry NextSibling;
+            public int TreePosition;
+            public int Slot;
+        }
     }
 }

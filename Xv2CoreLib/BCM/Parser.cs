@@ -2,20 +2,15 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.IO;
-using System.Threading.Tasks;
 using YAXLib;
-using System.Collections;
 
 namespace Xv2CoreLib.BCM
 {
     public class Parser
     {
-        string saveLocation { get; set; }
         public BCM_File bcmFile { get; private set; } = new BCM_File();
         byte[] rawBytes { get; set; }
-
-        int totalTestCount = 0;
-
+        int count;
 
         public Parser(byte[] _rawBytes)
         {
@@ -26,18 +21,15 @@ namespace Xv2CoreLib.BCM
 
         public Parser (string location, bool writeXml)
         {
-            saveLocation = location;
-            rawBytes = File.ReadAllBytes(saveLocation);
-            
+            rawBytes = File.ReadAllBytes(location);
+
             ParseBcm();
 
             if (writeXml)
             {
                 YAXSerializer serializer = new YAXSerializer(typeof(BCM_File));
-                serializer.SerializeToFile(bcmFile, saveLocation + ".xml");
+                serializer.SerializeToFile(bcmFile, location + ".xml");
             }
-
-            
         }
 
         public BCM_File GetBcmFile()
@@ -47,70 +39,137 @@ namespace Xv2CoreLib.BCM
 
         private void ParseBcm()
         {
-            int count = BitConverter.ToInt32(rawBytes, 8);
-            int offset = BitConverter.ToInt32(rawBytes, 12);
+            count = BitConverter.ToInt32(rawBytes, 8);
+            int rootOffset = BitConverter.ToInt32(rawBytes, 12);
 
-            if(offset > 0)
+            if (rootOffset == 0)
+                return;
+
+            if (count <= 0 || rawBytes.Length != BCM_File.HeaderSize + count * BCM_File.EntrySize)
+                throw new InvalidDataException($"BCM header declares {count} entries, but the file size is {rawBytes.Length} bytes.");
+
+            BCM_Entry[] entries = new BCM_Entry[count];
+            for (int i = 0; i < count; i++)
+                entries[i] = ParseBcmEntry(BCM_File.HeaderSize + i * BCM_File.EntrySize, i);
+
+            int rootIndex = GetEntryIndex(rootOffset, "header", "root");
+
+            //The tree comes from each entry's parent offset. Sibling and child links that do not follow
+            //that tree stay as GoTo links, so every entry keeps its place in the file.
+            int[] parents = new int[count];
+            List<int>[] children = new List<int>[count];
+            for (int i = 0; i < count; i++)
             {
-                bcmFile.BCMEntries = ParseChild(offset, true);
+                if (i == rootIndex) continue;
+
+                int parentOffset = ReadLink(i, 56);
+                parents[i] = parentOffset == 0 ? rootIndex : GetEntryIndex(parentOffset, entries[i].Index, "parent");
+
+                if (children[parents[i]] == null)
+                    children[parents[i]] = new List<int>();
+
+                children[parents[i]].Add(i);
             }
-            
-            /*
-            if(totalTestCount != count)
+
+            bool[] placed = new bool[count];
+            for (int i = 0; i < count; i++)
             {
-                Console.WriteLine(String.Format("Count mismatch! (Declared: {0}, Parsed: {1})\n" +
-                    "Probably caused by some manual edits done to this file. You can ignore this error, but make sure you have a back up!", count, totalTestCount));
-                Console.ReadLine();
+                List<int> ordered = children[i] == null ? new List<int>() : OrderChildren(i, children[i], parents, placed);
+
+                if (ordered.Count > 0)
+                    entries[i].BCMEntries = ordered.Select(x => entries[x]).ToList();
+
+                entries[i].LoopAsChild = GetGoTo(entries[i], ReadLink(i, 52), ordered.Count > 0 ? ordered[0] : -1, "child");
+
+                for (int k = 0; k < ordered.Count; k++)
+                    entries[ordered[k]].LoopAsSibling = GetGoTo(entries[ordered[k]], ReadLink(ordered[k], 48), k < ordered.Count - 1 ? ordered[k + 1] : -1, "sibling");
             }
-            */
+
+            entries[rootIndex].LoopAsSibling = GetGoTo(entries[rootIndex], ReadLink(rootIndex, 48), -1, "sibling");
+            bcmFile.BCMEntries = new List<BCM_Entry>() { entries[rootIndex] };
+
+            HashSet<BCM_Entry> inTree = new HashSet<BCM_Entry>(BCM_File.FlattenEntries(bcmFile.BCMEntries));
+            BCM_Entry detached = entries.FirstOrDefault(x => !inTree.Contains(x));
+            if (detached != null)
+                throw new InvalidDataException($"BCM entry {detached.Index} has a parent offset loop and does not connect to the root entry.");
         }
 
-        private List<BCM_Entry> ParseChild(int offset, bool ignoreLoop, int parentOffset = 16)
+        //Follow the stored sibling chain first, then add the children it does not reach in file order.
+        private List<int> OrderChildren(int parent, List<int> children, int[] parents, bool[] placed)
         {
-            //This will parse all children of the calling method (so Siblings)
-            //If an Entry has children of its own, it will call this method again (recursively)
+            List<int> ordered = new List<int>();
+            int offset = ReadLink(parent, 52);
 
-            List<BCM_Entry> bcmEntries = new List<BCM_Entry>();
-            int index = 0;
-
-            while(true)
+            while (IsEntryOffset(offset))
             {
-                bcmEntries.Add(ParseBcmEntry(offset, parentOffset, GetBcmIndex(offset), ignoreLoop));
-                
-                int ChildOffset = BitConverter.ToInt32(rawBytes, offset + 52);
-                if (ChildOffset != 0 && bcmEntries[index].LoopAsChild == null)
-                {
-                    bcmEntries[index].BCMEntries = ParseChild(ChildOffset, false, offset);
+                int index = GetBcmIndex(offset);
+                if (parents[index] != parent || placed[index]) break;
 
-                }
-
-                if(BitConverter.ToInt32(rawBytes, offset + 48) != 0 && bcmEntries[index].LoopAsSibling == null)
-                {
-                    offset = BitConverter.ToInt32(rawBytes, offset + 48);
-                }
-                else
-                {
-                    break;
-                }
-
-                index++;
+                ordered.Add(index);
+                placed[index] = true;
+                offset = ReadLink(index, 48);
             }
 
-            return bcmEntries;
+            foreach (int index in children)
+            {
+                if (placed[index]) continue;
+
+                ordered.Add(index);
+                placed[index] = true;
+            }
+
+            return ordered;
         }
 
-        private BCM_Entry ParseBcmEntry (int offset, int parentOffset, int index, bool ignoreLoop)
+        private string GetGoTo(BCM_Entry entry, int linkOffset, int treeTarget, string linkName)
         {
-            totalTestCount++;
+            if (linkOffset == 0)
+            {
+                if (treeTarget != -1)
+                    throw new InvalidDataException($"BCM entry {entry.Index} has no {linkName} link, but the parent offsets place entry {treeTarget} there. This layout cannot be represented.");
 
-            BCM_Entry bcmEntry = new BCM_Entry()
+                return null;
+            }
+
+            int target = GetEntryIndex(linkOffset, entry.Index, linkName);
+            return target == treeTarget ? null : target.ToString();
+        }
+
+        private int ReadLink(int index, int fieldOffset)
+        {
+            return BitConverter.ToInt32(rawBytes, BCM_File.HeaderSize + index * BCM_File.EntrySize + fieldOffset);
+        }
+
+        private bool IsEntryOffset(int offset)
+        {
+            return offset >= BCM_File.HeaderSize && (offset - BCM_File.HeaderSize) % BCM_File.EntrySize == 0 && GetBcmIndex(offset) < count;
+        }
+
+        private int GetEntryIndex(int offset, string entryIndex, string linkName)
+        {
+            if (!IsEntryOffset(offset))
+                throw new InvalidDataException($"BCM entry {entryIndex} has an invalid {linkName} offset 0x{offset:X}.");
+
+            return GetBcmIndex(offset);
+        }
+
+        private int GetBcmIndex(int offset)
+        {
+            return (offset - BCM_File.HeaderSize) / BCM_File.EntrySize;
+        }
+
+        private BCM_Entry ParseBcmEntry(int offset, int index)
+        {
+            return new BCM_Entry()
             {
                 Index = index.ToString(),
                 I_00 = BitConverter.ToUInt32(rawBytes, offset + 0),
                 DirectionalInput = (DirectionalInput)BitConverter.ToUInt32(rawBytes, offset + 4),
                 ButtonInput = (ButtonInput)BitConverter.ToUInt32(rawBytes, offset + 8),
                 HoldDownConditions = BitConverter.ToUInt32(rawBytes, offset + 12),
-                OpponentSizeConditions = BitConverter.ToUInt32(rawBytes, offset + 16),
+                PriorityLayer = BitConverter.ToUInt16(rawBytes, offset + 16),
+                I_18 = rawBytes[offset + 18],
+                I_19 = rawBytes[offset + 19],
                 MinimumLoopDuration = BitConverter.ToUInt16(rawBytes, offset + 20),
                 MaximumLoopDuration = BitConverter.ToUInt16(rawBytes, offset + 22),
                 PrimaryActivatorConditions = (PrimaryActivatorConditions)BitConverter.ToUInt32(rawBytes, offset + 24),
@@ -126,7 +185,7 @@ namespace Xv2CoreLib.BCM
                 I_64 = BitConverter.ToUInt32(rawBytes, offset + 64),
                 I_68 = BitConverter.ToUInt32(rawBytes, offset + 68),
                 I_72 = BitConverter.ToUInt32(rawBytes, offset + 72),
-                ReceiverLinkID = BitConverter.ToUInt32(rawBytes, offset + 76),
+                MoveCategory = BitConverter.ToUInt32(rawBytes, offset + 76),
                 I_80 = BitConverter.ToUInt32(rawBytes, offset + 80),
                 StaminaCost = BitConverter.ToUInt32(rawBytes, offset + 84),
                 I_88 = BitConverter.ToUInt32(rawBytes, offset + 88),
@@ -135,76 +194,8 @@ namespace Xv2CoreLib.BCM
                 TransStage = BitConverter.ToInt16(rawBytes, offset + 100),
                 CusAura = BitConverter.ToInt16(rawBytes, offset + 102),
                 I_104 = BitConverter.ToUInt32(rawBytes, offset + 104),
-                I_108 = BitConverter.ToUInt32(rawBytes, offset + 108),
-
+                I_108 = BitConverter.ToUInt32(rawBytes, offset + 108)
             };
-
-            //Loop Check
-            int sibling = (BitConverter.ToInt32(rawBytes, offset + 48) != 0) ? GetBcmIndex(BitConverter.ToInt32(rawBytes, offset + 48)) : -1;
-            int child = (BitConverter.ToInt32(rawBytes, offset + 52) != 0) ? GetBcmIndex(BitConverter.ToInt32(rawBytes, offset + 52)) : -1;
-
-            
-
-            if(SiblingLoop(offset) && sibling != -1)
-            {
-                bcmEntry.LoopAsSibling = sibling.ToString();
-            }
-            if (ChildrenLoop(offset) && ignoreLoop == false && child != -1)
-            {
-                bcmEntry.LoopAsChild = child.ToString();
-            }
-
-            return bcmEntry;
         }
-
-        private int GetBcmIndex(int offset)
-        {
-            if(offset != 0)
-            {
-                offset -= -16;
-                return offset / 112;
-            }
-            else
-            {
-                return -1;
-            }
-        }
-        
-
-        //Helpers
-        private bool ChildrenLoop(int offset)
-        {
-            int parentID = GetBcmIndex(offset);
-            int childOffset = BitConverter.ToInt32(rawBytes, offset + 52);
-
-            if(GetBcmIndex(BitConverter.ToInt32(rawBytes, childOffset + 56)) == parentID)
-            {
-                return false;
-            }
-            else
-            {
-                return true;
-            }
-        }
-
-        private bool SiblingLoop(int offset)
-        {
-            int parentID = GetBcmIndex(BitConverter.ToInt32(rawBytes, offset + 56));
-            int siblingOffset = BitConverter.ToInt32(rawBytes, offset + 48);
-
-            if (GetBcmIndex(BitConverter.ToInt32(rawBytes, siblingOffset + 56)) == parentID)
-            {
-                return false;
-            }
-            else
-            {
-                return true;
-            }
-        }
-
-
-
-        
-
     }
 }
