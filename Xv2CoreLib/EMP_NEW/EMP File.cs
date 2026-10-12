@@ -638,27 +638,67 @@ namespace Xv2CoreLib.EMP_NEW
             }
         }
 
-        //DEBUG:
-        public List<ParticleNode> GetAllParticleEffects_DEBUG()
+        public List<ParticleNode> GetAllParticleNodes()
         {
-            List<ParticleNode> GetAllParticleEffectsRecursive_DEBUG(IList<ParticleNode> particleEffects)
-            {
-                List<ParticleNode> total = new List<ParticleNode>();
+            return GetParticleNodes(ParticleNodes);
+        }
 
-                foreach (var particle in particleEffects)
+        private static List<ParticleNode> GetParticleNodes(IList<ParticleNode> rootNodes)
+        {
+            var nodes = new List<ParticleNode>();
+
+            void AddNodes(IList<ParticleNode> particleEffects)
+            {
+                foreach (ParticleNode particle in particleEffects)
                 {
-                    total.Add(particle);
+                    nodes.Add(particle);
 
                     if (particle.ChildParticleNodes != null)
-                    {
-                        total.AddRange(GetAllParticleEffectsRecursive_DEBUG(particle.ChildParticleNodes));
-                    }
+                        AddNodes(particle.ChildParticleNodes);
                 }
-
-                return total;
             }
 
-            return GetAllParticleEffectsRecursive_DEBUG(ParticleNodes);
+            AddNodes(rootNodes);
+            return nodes;
+        }
+
+        public void AssignUnusedRenderGroupKeys(ParticleNode incomingNode)
+        {
+            var usedKeys = new HashSet<uint>(GetAllParticleNodes()
+                .Where(node => node.IsEmission)
+                .Select(node => node.EmissionNode.Texture.RenderGroupKey));
+            var incomingNodes = GetParticleNodes(new[] { incomingNode })
+                .Where(node => node.IsEmission)
+                .ToList();
+            var reservedKeys = new HashSet<uint>(usedKeys);
+            reservedKeys.UnionWith(incomingNodes.Select(node => node.EmissionNode.Texture.RenderGroupKey));
+
+            var changedKeys = new Dictionary<uint, uint>();
+            uint nextKey = usedKeys.Count > 0 ? usedKeys.Max() : 0;
+            foreach (uint oldKey in incomingNodes.Select(node => node.EmissionNode.Texture.RenderGroupKey)
+                .Distinct().Where(usedKeys.Contains).OrderBy(key => key))
+            {
+                do
+                {
+                    nextKey = unchecked(nextKey + 1);
+                }
+                while (reservedKeys.Contains(nextKey));
+
+                changedKeys.Add(oldKey, nextKey);
+                reservedKeys.Add(nextKey);
+            }
+
+            foreach (ParticleNode node in incomingNodes)
+            {
+                ParticleTexture texture = node.EmissionNode.Texture;
+                if (!changedKeys.TryGetValue(texture.RenderGroupKey, out uint newKey))
+                    continue;
+
+                texture.I_00 = (byte)newKey;
+                texture.I_01 = (byte)(newKey >> 8);
+                texture.I_02 = (byte)(newKey >> 16);
+                texture.I_03 = (byte)(newKey >> 24);
+            }
         }
     }
 
@@ -1301,6 +1341,7 @@ namespace Xv2CoreLib.EMP_NEW
         public byte I_01 { get; set; }
         public byte I_02 { get; set; }
         public byte I_03 { get; set; }
+        public uint RenderGroupKey => (uint)I_00 | ((uint)I_01 << 8) | ((uint)I_02 << 16) | ((uint)I_03 << 24);
 
         public float RenderDepth { get; set; }
         public int I_08 { get; set; }
@@ -1457,6 +1498,7 @@ namespace Xv2CoreLib.EMP_NEW
                 ScaleBase = ScaleBase.Copy(),
                 ScaleBase_Variance = ScaleBase_Variance,
                 ScaleXY = ScaleXY.Copy(),
+                ScaleXY_Variance = new CustomVector4(ScaleXY_Variance.X, ScaleXY_Variance.Y, ScaleXY_Variance.Z, ScaleXY_Variance.W),
                 Color1 = Color1.Copy(),
                 Color_Variance = Color_Variance.Copy(),
                 Color2 = Color2.Copy(),
@@ -2694,6 +2736,7 @@ namespace Xv2CoreLib.EMP_NEW
             Acceleration = 3, //Guess
             InverseTranslation = 4,
             InverseAcceleration = 5,
+            Sine = 6,
             Unk7 = 7
         }
 
@@ -2821,6 +2864,7 @@ namespace Xv2CoreLib.EMP_NEW
 
         public void CompileEtr()
         {
+            List<EMP_KeyframedValue> oldValues = KeyframedValues.ToList();
             KeyframedValues.Clear();
 
             switch (EtrType)
@@ -2837,6 +2881,13 @@ namespace Xv2CoreLib.EMP_NEW
                     AddKeyframedValues(Unk7_20.CompileKeyframes());
                     AddKeyframedValues(Unk7_21.CompileKeyframes());
                     break;
+            }
+
+            //Typed properties only cover part of each modifier type's parameters. Keep the rest unchanged.
+            foreach (EMP_KeyframedValue value in oldValues)
+            {
+                if (!KeyframedValues.Any(x => x.Parameter == value.Parameter && x.Component == value.Component))
+                    KeyframedValues.Add(value);
             }
         }
 
