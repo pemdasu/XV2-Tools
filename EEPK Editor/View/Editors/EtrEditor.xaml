@@ -165,8 +165,8 @@
                                                         <ColumnDefinition Width="120"/>
                                                         <ColumnDefinition Width="*"/>
                                                     </Grid.ColumnDefinitions>
-                                                    <Label Content="Segment Delay" ToolTip="The time in frames before a new geometry segment (planes or cylinders) will be created. "/>
-                                                    <Controls:NumericUpDown Grid.Column="1" Value="{Binding ElementName=UserControl, Path=ViewModel.SegementFrameStep}" Minimum="0"/>
+                                                    <Label Content="Segment Spacing" ToolTip="Frames between new segments. With Spawn By Distance, the distance the head moves before a new segment."/>
+                                                    <Controls:NumericUpDown Grid.Column="1" Value="{Binding ElementName=UserControl, Path=ViewModel.SegmentSpacing}" StringFormat="0.###" Interval="0.1"/>
                                                 </Grid>
 
                                                 <Grid Margin="3,5,0,0" Width="250" HorizontalAlignment="Left">
@@ -364,12 +364,12 @@
                                         </ScrollViewer>
                                     </Grid>
                                 </Controls:MetroTabItem>
-                                <Controls:MetroTabItem Header="Path" Controls:HeaderedControlHelper.HeaderFontSize="16">
+                                <Controls:MetroTabItem Header="Spline Weights" Controls:HeaderedControlHelper.HeaderFontSize="16">
                                     <Grid Background="{DynamicResource MahApps.Brushes.SystemControlBackgroundAltMediumLow}">
                                         <ScrollViewer>
                                             <StackPanel>
 
-                                                <DataGrid x:Name="pathDataGrid" Margin="20" Height="500"  BorderBrush="{DynamicResource MahApps.Brushes.SystemControlForegroundListMedium}" BorderThickness="1" ItemsSource="{Binding ElementName=UserControl, Path=SelectedNode.ExtrudePaths.Binding}" SelectedItem="{Binding ElementName=UserControl, Path=SelectedPath}" Controls:ControlsHelper.ContentCharacterCasing="Normal" CanUserAddRows="False" CanUserDeleteRows="False" CanUserSortColumns="False" AutoGenerateColumns="False">
+                                                <DataGrid x:Name="pathDataGrid" Margin="20" Height="500"  BorderBrush="{DynamicResource MahApps.Brushes.SystemControlForegroundListMedium}" BorderThickness="1" ItemsSource="{Binding ElementName=UserControl, Path=SelectedNode.SplineWeights.Binding}" SelectedItem="{Binding ElementName=UserControl, Path=SelectedPath}" Controls:ControlsHelper.ContentCharacterCasing="Normal" CanUserAddRows="False" CanUserDeleteRows="False" CanUserSortColumns="False" AutoGenerateColumns="False">
                                                     <DataGrid.InputBindings>
                                                         <KeyBinding Key="Delete" Command="{Binding ElementName=UserControl, Path=DeletePathCommand}"/>
                                                         <KeyBinding Modifiers="Ctrl" Key="C" Command="{Binding ElementName=UserControl, Path=CopyPathCommand}"/>
@@ -377,10 +377,10 @@
                                                     </DataGrid.InputBindings>
 
                                                     <DataGrid.Columns>
-                                                        <Controls:DataGridNumericUpDownColumn Header="World Scale Factor" Width="*" Binding="{Binding UndoableWorldScaleFactor}" StringFormat="0.0####" Interval="0.01" TextAlignment="Left"/>
-                                                        <Controls:DataGridNumericUpDownColumn Header="World Scale Add" Width="*" Binding="{Binding UndoableWorldScaleAdd}" StringFormat="0.0####" Interval="0.01" TextAlignment="Left"/>
-                                                        <Controls:DataGridNumericUpDownColumn Header="World Offset Factor" Width="*" Binding="{Binding UndoableWorldOffsetFactor}" StringFormat="0.0####" Interval="0.01" TextAlignment="Left"/>
-                                                        <Controls:DataGridNumericUpDownColumn Header="World Offset Factor 2" Width="*" Binding="{Binding UndoableWorldOffsetFactor2}" StringFormat="0.0####" Interval="0.01" TextAlignment="Left"/>
+                                                        <Controls:DataGridNumericUpDownColumn Header="Start Point" Width="*" Binding="{Binding UndoableStartWeight}" StringFormat="0.0####" Interval="0.01" TextAlignment="Left"/>
+                                                        <Controls:DataGridNumericUpDownColumn Header="End Point" Width="*" Binding="{Binding UndoableEndWeight}" StringFormat="0.0####" Interval="0.01" TextAlignment="Left"/>
+                                                        <Controls:DataGridNumericUpDownColumn Header="Start Tangent" Width="*" Binding="{Binding UndoableStartTangentWeight}" StringFormat="0.0####" Interval="0.01" TextAlignment="Left"/>
+                                                        <Controls:DataGridNumericUpDownColumn Header="End Tangent" Width="*" Binding="{Binding UndoableEndTangentWeight}" StringFormat="0.0####" Interval="0.01" TextAlignment="Left"/>
                                                     </DataGrid.Columns>
 
                                                     <DataGrid.ContextMenu>
@@ -414,14 +414,6 @@
                                                     </Grid.ColumnDefinitions>
                                                     <Label Content="I__88" />
                                                     <Controls:NumericUpDown Grid.Column="1" Value="{Binding ElementName=UserControl, Path=ViewModel.I_88}" Minimum="0" Maximum="255"/>
-                                                </Grid>
-                                                <Grid Margin="3,5,0,0" Width="250" HorizontalAlignment="Left">
-                                                    <Grid.ColumnDefinitions>
-                                                        <ColumnDefinition Width="120"/>
-                                                        <ColumnDefinition Width="*"/>
-                                                    </Grid.ColumnDefinitions>
-                                                    <Label Content="I__92" />
-                                                    <Controls:NumericUpDown Grid.Column="1" Value="{Binding ElementName=UserControl, Path=ViewModel.I_92}" Minimum="0" Maximum="255"/>
                                                 </Grid>
                                                 <Grid Margin="3,5,0,0" Width="250" HorizontalAlignment="Left">
                                                     <Grid.ColumnDefinitions>
