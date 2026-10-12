@@ -451,7 +451,7 @@
                                                 <Label Content="Link Flags" FontSize="10" FontWeight="SemiBold" HorizontalAlignment="Center" Margin="0, 2"/>
                                                 <WrapPanel>
                                                     <CheckBox Width="160" Margin="3,1" IsChecked="{Binding EffectPartViewModel.I_39_3, UpdateSourceTrigger=PropertyChanged}" Content="_RelativePosZ_To_AbsPosZ"/>
-                                                    <CheckBox Width="160" Margin="3,1" IsChecked="{Binding EffectPartViewModel.I_39_4, UpdateSourceTrigger=PropertyChanged}" Content="_ScaleZ_To_BonePosZ"/>
+                                                    <CheckBox Width="160" Margin="3,1" IsChecked="{Binding EffectPartViewModel.I_39_4, UpdateSourceTrigger=PropertyChanged}" Content="Scale By Body Size" ToolTip="Particle parts only. Scales the effect by the character body size when it spawns."/>
                                                     <CheckBox Width="160" Margin="3,1" IsChecked="{Binding EffectPartViewModel.I_39_7, UpdateSourceTrigger=PropertyChanged}" Content="_ObjectRotation_To_XXXX" ToolTip="Dont ask"/>
                                                 </WrapPanel>
 
