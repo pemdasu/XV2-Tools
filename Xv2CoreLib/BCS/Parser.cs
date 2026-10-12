@@ -12,6 +12,8 @@ namespace Xv2CoreLib.BCS
     {
         string saveLocation;
         byte[] rawBytes;
+        private readonly List<int> recordOffsets = new List<int>();
+        private int lastStringEnd;
         public BCS_File bcsFile { get; private set; } = new BCS_File();
 
 
@@ -53,6 +55,8 @@ namespace Xv2CoreLib.BCS
                     throw new InvalidDataException("BCS: Unknown BCS version!");
             }
 
+            bcsFile.HasSignature = BitConverter.ToInt64(rawBytes, 0) != 0;
+
             //counts
             int partsetCount = BitConverter.ToUInt16(rawBytes, 12);
             int partcolorsCount = BitConverter.ToUInt16(rawBytes, 14);
@@ -87,9 +91,26 @@ namespace Xv2CoreLib.BCS
                 skeleton1Offset = BitConverter.ToInt32(rawBytes, 40);
                 bcsFile.F_48 = BitConverter_Ex.ToFloat32Array(rawBytes, 48, 7);
 
+                bcsFile.I_46 = BitConverter.ToUInt16(rawBytes, 46);
                 byte[] _I_44 = rawBytes.GetRange(44, 4);
                 bcsFile.Race = (Race)_I_44[0];
                 bcsFile.Gender = (Gender)_I_44[1];
+            }
+
+            recordOffsets.Add(rawBytes.Length);
+            foreach (int table in new[] { partcolorsOffset, bodyOffset, skeleton1Offset, skeleton2Offset })
+                if (table > 0) recordOffsets.Add(BitConverter.ToInt32(rawBytes, table));
+            for (int partSetIndex = 0; partSetIndex < partsetCount; partSetIndex++)
+            {
+                int partSetStart = BitConverter.ToInt32(rawBytes, partsetOffset + partSetIndex * 4);
+                if (partSetStart == 0) continue;
+                recordOffsets.Add(partSetStart);
+                int partTable = partSetStart + BitConverter.ToInt32(rawBytes, partSetStart + 24);
+                for (int partIndex = 0; partIndex < 10; partIndex++)
+                {
+                    int partStart = BitConverter.ToInt32(rawBytes, partTable + partIndex * 4);
+                    if (partStart > 0) recordOffsets.Add(partSetStart + partStart);
+                }
             }
 
             //PartSets
@@ -143,7 +164,7 @@ namespace Xv2CoreLib.BCS
                         bcsFile.PartColors.Add(new PartColor()
                         {
                             Index = i.ToString(),
-                            Name = StringEx.GetString(rawBytes, BitConverter.ToInt32(rawBytes, thisPartColorOffset + 0) + thisPartColorOffset, false),
+                            Name = ReadString(BitConverter.ToInt32(rawBytes, thisPartColorOffset + 0) + thisPartColorOffset),
                             ColorsList = ParseColors(BitConverter.ToInt32(rawBytes, thisPartColorOffset + 12) + thisPartColorOffset, BitConverter.ToInt16(rawBytes, thisPartColorOffset + 10))
                         });
                     }
@@ -163,8 +184,7 @@ namespace Xv2CoreLib.BCS
                     {
                         Body body = ParseBody(thisBodyScaleOffset, i);
 
-                        if(body?.BodyScales?.Count > 0)
-                            bcsFile.Bodies.Add(body);
+                        bcsFile.Bodies.Add(body);
                     }
 
                     bodyOffset += 4;
@@ -180,9 +200,31 @@ namespace Xv2CoreLib.BCS
             if(skeleton2Offset != 0)
             {
                 bcsFile.SkeletonData2 = ParseSkeleton(BitConverter.ToInt32(rawBytes, skeleton2Offset));
+                int skeletonCount = BitConverter.ToUInt16(rawBytes, 18);
+                if (skeletonCount > 1)
+                {
+                    bcsFile.ExtraSkeletonData2 = new List<SkeletonData>();
+                    for (int skeletonIndex = 1; skeletonIndex < skeletonCount; skeletonIndex++)
+                        bcsFile.ExtraSkeletonData2.Add(ParseSkeleton(BitConverter.ToInt32(rawBytes, skeleton2Offset + skeletonIndex * 4)));
+                }
+            }
+            if (lastStringEnd > 0)
+            {
+                if (rawBytes.Skip(lastStringEnd).Any(value => value != 0))
+                    throw new InvalidDataException("BCS has nonzero data after its last string.");
+                bcsFile.TrailingZeroCount = rawBytes.Length - lastStringEnd;
             }
         }
 
+
+        private string ReadString(int offset)
+        {
+            int end = Array.IndexOf(rawBytes, (byte)0, offset);
+            if (end < 0) throw new InvalidDataException("BCS string has no end.");
+            recordOffsets.Add(offset);
+            lastStringEnd = Math.Max(lastStringEnd, end + 1);
+            return StringEx.GetString(rawBytes, offset, false);
+        }
 
         //Part Parsers
         private Part ParsePart(int offset, int partOffset)
@@ -225,7 +267,48 @@ namespace Xv2CoreLib.BCS
 
                 if(bcsFile.Version == Version.XV2)
                 {
-                    part.Unk_3 = ParseUnk3(BitConverter.ToInt32(rawBytes, offset + 84) + offset, BitConverter.ToInt16(rawBytes, offset + 82));
+                    int hideCount = BitConverter.ToUInt16(rawBytes, offset + 82);
+                    if (hideCount > 0)
+                    {
+                        int hideOffset = BitConverter.ToInt32(rawBytes, offset + 84);
+                        if (hideOffset < 0 || hideOffset > rawBytes.Length - offset)
+                            throw new InvalidDataException("BCS hide exception offset is outside the file.");
+                        int hideStart = hideOffset + offset;
+                        int hideEnd = recordOffsets.Where(value => value > hideStart).DefaultIfEmpty(rawBytes.Length).Min();
+                        if (hideEnd > rawBytes.Length || hideEnd - hideStart < hideCount * 8 || (hideEnd - hideStart) % 4 != 0)
+                            throw new InvalidDataException("BCS hide exception block does not fit its records.");
+                        part.HideExceptions = ParseHideExceptions(hideStart, hideCount);
+                        part.HideExceptionDataSize = hideEnd - hideStart;
+                        var usedOffsets = new HashSet<int>();
+                        for (int recordIndex = 0; recordIndex < hideCount; recordIndex++)
+                        {
+                            usedOffsets.Add(recordIndex * 8);
+                            usedOffsets.Add(recordIndex * 8 + 4);
+                            HideException record = part.HideExceptions[recordIndex];
+                            for (int modelIndex = 0; modelIndex < record.Models.Count; modelIndex++)
+                                usedOffsets.Add(recordIndex * 8 + record.ListOffset.Value + modelIndex * 4);
+                        }
+                        part.UnusedHideExceptionValues = new List<HideExceptionValue>();
+                        for (int valueOffset = 0; valueOffset < part.HideExceptionDataSize; valueOffset += 4)
+                        {
+                            if (!usedOffsets.Contains(valueOffset))
+                                part.UnusedHideExceptionValues.Add(new HideExceptionValue { Offset = valueOffset, Value = BitConverter.ToInt32(rawBytes, hideStart + valueOffset) });
+                        }
+                        int nextList = hideCount * 8;
+                        bool separateLists = true;
+                        for (int recordIndex = 0; recordIndex < hideCount; recordIndex++)
+                        {
+                            HideException record = part.HideExceptions[recordIndex];
+                            separateLists &= recordIndex * 8 + record.ListOffset.Value == nextList;
+                            nextList += record.Models.Count * 4;
+                        }
+                        if (separateLists && nextList == part.HideExceptionDataSize)
+                        {
+                            part.HideExceptionDataSize = null;
+                            foreach (HideException record in part.HideExceptions) record.ListOffset = null;
+                        }
+                        if (part.UnusedHideExceptionValues.Count == 0) part.UnusedHideExceptionValues = null;
+                    }
                 }
 
                 return part;
@@ -299,28 +382,31 @@ namespace Xv2CoreLib.BCS
             return physicsObjects;
         }
         
-        private List<Unk3> ParseUnk3(int offset, int count)
+        private List<HideException> ParseHideExceptions(int offset, int count)
         {
-            if(count > 0)
-            {
-                List<Unk3> unk3 = new List<Unk3>();
+            if (count <= 0) return null;
+            if (offset < 0 || offset > rawBytes.Length || count > (rawBytes.Length - offset) / 8)
+                throw new InvalidDataException("BCS hide exception records are outside the file.");
 
-                for(int i = 0; i < count; i++)
+            List<HideException> hideExceptions = new List<HideException>();
+
+            for (int i = 0; i < count; i++)
+            {
+                int recordOffset = offset + (i * 8);
+                int modelCount = BitConverter.ToUInt16(rawBytes, recordOffset + 2);
+                int listOffset = BitConverter.ToInt32(rawBytes, recordOffset + 4);
+                if (listOffset < 0 || listOffset > rawBytes.Length - recordOffset || modelCount > (rawBytes.Length - recordOffset - listOffset) / 4)
+                    throw new InvalidDataException("BCS hide exception model list is outside the file.");
+
+                hideExceptions.Add(new HideException()
                 {
-                    unk3.Add(new Unk3()
-                    {
-                        I_00 = BitConverter_Ex.ToInt16Array(rawBytes, offset, 6)
-                    });
-                    offset += 12;
-                }
-
-                return unk3;
-
+                    PartType = BitConverter.ToUInt16(rawBytes, recordOffset),
+                    ListOffset = listOffset,
+                    Models = new List<int>(BitConverter_Ex.ToInt32Array(rawBytes, recordOffset + listOffset, modelCount))
+                });
             }
-            else
-            {
-                return null;
-            }
+
+            return hideExceptions;
         }
 
         //Color Parsers
@@ -379,7 +465,7 @@ namespace Xv2CoreLib.BCS
                     ScaleX = BitConverter.ToSingle(rawBytes, bodyOffset + 0),
                     ScaleY = BitConverter.ToSingle(rawBytes, bodyOffset + 4),
                     ScaleZ = BitConverter.ToSingle(rawBytes, bodyOffset + 8),
-                    BoneName = StringEx.GetString(rawBytes, BitConverter.ToInt32(rawBytes, bodyOffset + 12) + bodyOffset, false)
+                    BoneName = ReadString(BitConverter.ToInt32(rawBytes, bodyOffset + 12) + bodyOffset)
                 });
                 bodyOffset += 16;
             }
@@ -421,7 +507,7 @@ namespace Xv2CoreLib.BCS
                                 F_36 = BitConverter.ToSingle(rawBytes, boneOffset + 40),
                                 F_40 = BitConverter.ToSingle(rawBytes, boneOffset + 44),
                                 F_44 = BitConverter.ToSingle(rawBytes, boneOffset + 48),
-                                BoneName = StringEx.GetString(rawBytes, BitConverter.ToInt32(rawBytes, boneOffset + 12) + boneOffset, false)
+                                BoneName = ReadString(BitConverter.ToInt32(rawBytes, boneOffset + 12) + boneOffset)
                             });
                         }
                         else
@@ -439,7 +525,7 @@ namespace Xv2CoreLib.BCS
                                 F_36 = BitConverter.ToSingle(rawBytes, boneOffset + 36),
                                 F_40 = BitConverter.ToSingle(rawBytes, boneOffset + 40),
                                 F_44 = BitConverter.ToSingle(rawBytes, boneOffset + 44),
-                                BoneName = StringEx.GetString(rawBytes, BitConverter.ToInt32(rawBytes, boneOffset + 48) + boneOffset, false)
+                                BoneName = ReadString(BitConverter.ToInt32(rawBytes, boneOffset + 48) + boneOffset)
                             });
                         }
 
@@ -457,7 +543,7 @@ namespace Xv2CoreLib.BCS
         {
             if(relativeOffset != 0)
             {
-                return StringEx.GetString(rawBytes, relativeOffset + mainOffset, false);
+                return ReadString(relativeOffset + mainOffset);
             }
             else
             {
