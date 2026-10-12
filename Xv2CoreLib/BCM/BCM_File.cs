@@ -192,6 +192,9 @@ namespace Xv2CoreLib.BCM
     [Serializable]
     public class BCM_File : IIsNull
     {
+        internal const int HeaderSize = 16;
+        internal const int EntrySize = 112;
+
         [YAXDontSerializeIfNull]
         [YAXCollection(YAXCollectionSerializationTypes.RecursiveWithNoContainingElement, EachElementName = "BCMEntry")]
         public List<BCM_Entry> BCMEntries { get; set; } = new List<BCM_Entry>();
@@ -483,7 +486,7 @@ namespace Xv2CoreLib.BCM
             }
         }
 
-        private static List<BCM_Entry> FlattenEntries(IEnumerable<BCM_Entry> entries)
+        internal static List<BCM_Entry> FlattenEntries(IEnumerable<BCM_Entry> entries)
         {
             List<BCM_Entry> flatEntries = new List<BCM_Entry>();
             AddFlattenedEntries(entries, flatEntries);
@@ -668,7 +671,9 @@ namespace Xv2CoreLib.BCM
                        entry.DirectionalInput == otherEntry.DirectionalInput &&
                        entry.ButtonInput == otherEntry.ButtonInput &&
                        entry.HoldDownConditions == otherEntry.HoldDownConditions &&
-                       entry.OpponentSizeConditions == otherEntry.OpponentSizeConditions &&
+                       entry.PriorityLayer == otherEntry.PriorityLayer &&
+                       entry.I_18 == otherEntry.I_18 &&
+                       entry.I_19 == otherEntry.I_19 &&
                        entry.MinimumLoopDuration == otherEntry.MinimumLoopDuration &&
                        entry.MaximumLoopDuration == otherEntry.MaximumLoopDuration &&
                        entry.PrimaryActivatorConditions == otherEntry.PrimaryActivatorConditions &&
@@ -684,7 +689,7 @@ namespace Xv2CoreLib.BCM
                        entry.I_64 == otherEntry.I_64 &&
                        entry.I_68 == otherEntry.I_68 &&
                        entry.I_72 == otherEntry.I_72 &&
-                       entry.ReceiverLinkID == otherEntry.ReceiverLinkID &&
+                       entry.MoveCategory == otherEntry.MoveCategory &&
                        entry.I_80 == otherEntry.I_80 &&
                        entry.StaminaCost == otherEntry.StaminaCost &&
                        entry.I_88 == otherEntry.I_88 &&
@@ -717,7 +722,9 @@ namespace Xv2CoreLib.BCM
                     hash = (hash * 31) + entry.DirectionalInput.GetHashCode();
                     hash = (hash * 31) + entry.ButtonInput.GetHashCode();
                     hash = (hash * 31) + entry.HoldDownConditions.GetHashCode();
-                    hash = (hash * 31) + entry.OpponentSizeConditions.GetHashCode();
+                    hash = (hash * 31) + entry.PriorityLayer.GetHashCode();
+                    hash = (hash * 31) + entry.I_18.GetHashCode();
+                    hash = (hash * 31) + entry.I_19.GetHashCode();
                     hash = (hash * 31) + entry.MinimumLoopDuration.GetHashCode();
                     hash = (hash * 31) + entry.MaximumLoopDuration.GetHashCode();
                     hash = (hash * 31) + entry.PrimaryActivatorConditions.GetHashCode();
@@ -733,7 +740,7 @@ namespace Xv2CoreLib.BCM
                     hash = (hash * 31) + entry.I_64.GetHashCode();
                     hash = (hash * 31) + entry.I_68.GetHashCode();
                     hash = (hash * 31) + entry.I_72.GetHashCode();
-                    hash = (hash * 31) + entry.ReceiverLinkID.GetHashCode();
+                    hash = (hash * 31) + entry.MoveCategory.GetHashCode();
                     hash = (hash * 31) + entry.I_80.GetHashCode();
                     hash = (hash * 31) + entry.StaminaCost.GetHashCode();
                     hash = (hash * 31) + entry.I_88.GetHashCode();
@@ -782,10 +789,18 @@ namespace Xv2CoreLib.BCM
         [YAXSerializeAs("value")]
         [YAXHexValue]
         public uint HoldDownConditions { get; set; }
-        [YAXAttributeFor("OpponentSizeConditions")]
+        [YAXAltAliases("OpponentSizeConditions/value:int0")]
+        [YAXAttributeFor("PriorityLayer")]
         [YAXSerializeAs("value")]
-        [YAXHexValue]
-        public uint OpponentSizeConditions { get; set; }
+        public ushort PriorityLayer { get; set; }
+        [YAXAltAliases("OpponentSizeConditions/value:int2")]
+        [YAXAttributeFor("I_18")]
+        [YAXSerializeAs("value")]
+        public byte I_18 { get; set; }
+        [YAXAltAliases("OpponentSizeConditions/value:int3")]
+        [YAXAttributeFor("I_19")]
+        [YAXSerializeAs("value")]
+        public byte I_19 { get; set; }
         [YAXAttributeFor("MinimumLoopDuration")]
         [YAXSerializeAs("value")]
         public ushort MinimumLoopDuration { get; set; }
@@ -834,10 +849,10 @@ namespace Xv2CoreLib.BCM
         public uint I_72 { get; set; }
 
 
-        [YAXAttributeFor("ReceiverLinkID")]
+        [YAXAltAliases("ReceiverLinkID/value")]
+        [YAXAttributeFor("MoveCategory")]
         [YAXSerializeAs("value")]
-        [YAXHexValue]
-        public uint ReceiverLinkID { get; set; }
+        public uint MoveCategory { get; set; }
 
         [YAXAttributeFor("I_80")]
         [YAXSerializeAs("value")]
@@ -884,7 +899,7 @@ namespace Xv2CoreLib.BCM
             {
                 ButtonInput = buttonInput,
                 BacEntryPrimary = (short)bacIdPrimary,
-                ReceiverLinkID = (uint)cases,
+                MoveCategory = (uint)cases,
                 ActivatorState = activatorState
             };
         }
@@ -902,7 +917,9 @@ namespace Xv2CoreLib.BCM
                 I_104 = I_104,
                 I_108 = I_108,
                 HoldDownConditions = HoldDownConditions,
-                OpponentSizeConditions = OpponentSizeConditions,
+                PriorityLayer = PriorityLayer,
+                I_18 = I_18,
+                I_19 = I_19,
                 MinimumLoopDuration = MinimumLoopDuration,
                 MaximumLoopDuration = MaximumLoopDuration,
                 PrimaryActivatorConditions = PrimaryActivatorConditions,
@@ -918,7 +935,7 @@ namespace Xv2CoreLib.BCM
                 I_64 = I_64,
                 I_68 = I_68,
                 I_72 = I_72,
-                ReceiverLinkID = ReceiverLinkID,
+                MoveCategory = MoveCategory,
                 I_80 = I_80,
                 StaminaCost = StaminaCost,
                 I_88 = I_88,
@@ -935,7 +952,8 @@ namespace Xv2CoreLib.BCM
         public bool Compare(BCM_Entry entry)
         {
             if (I_00 == entry.I_00 && DirectionalInput == entry.DirectionalInput &&
-                HoldDownConditions == entry.HoldDownConditions && OpponentSizeConditions == entry.OpponentSizeConditions &&
+                HoldDownConditions == entry.HoldDownConditions && PriorityLayer == entry.PriorityLayer &&
+                I_18 == entry.I_18 && I_19 == entry.I_19 &&
                 MinimumLoopDuration == entry.MinimumLoopDuration && MaximumLoopDuration == entry.MaximumLoopDuration &&
                 PrimaryActivatorConditions == entry.PrimaryActivatorConditions && ActivatorState == entry.ActivatorState &&
                 BacEntryPrimary == entry.BacEntryPrimary && BacEntryCharge == entry.BacEntryCharge &&
@@ -947,7 +965,7 @@ namespace Xv2CoreLib.BCM
                 StaminaCost == entry.StaminaCost && I_88 == entry.I_88 &&
                 KiRequired == entry.KiRequired && TransStage == entry.TransStage &&
                 CusAura == entry.CusAura && I_104 == entry.I_104 &&
-                I_108 == entry.I_108 && ReceiverLinkID == entry.ReceiverLinkID
+                I_108 == entry.I_108 && MoveCategory == entry.MoveCategory
                 )
             {
                 return true;
@@ -966,11 +984,13 @@ namespace Xv2CoreLib.BCM
                 hash = 31 * hash + DirectionalInput.GetHashCode();
                 hash = 31 * hash + ButtonInput.GetHashCode();
                 hash = 31 * hash + HoldDownConditions.GetHashCode();
-                hash = 31 * hash + OpponentSizeConditions.GetHashCode();
+                hash = 31 * hash + PriorityLayer.GetHashCode();
+                hash = 31 * hash + I_18.GetHashCode();
+                hash = 31 * hash + I_19.GetHashCode();
                 hash = 31 * hash + PrimaryActivatorConditions.GetHashCode();
                 hash = 31 * hash + ActivatorState.GetHashCode();
                 hash = 31 * hash + I_64.GetHashCode();
-                hash = 31 * hash + ReceiverLinkID.GetHashCode();
+                hash = 31 * hash + MoveCategory.GetHashCode();
                 hash = 31 * hash + I_80.GetHashCode();
                 hash = 31 * hash + StaminaCost.GetHashCode();
                 hash = 31 * hash + I_88.GetHashCode();
