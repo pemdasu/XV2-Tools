@@ -117,6 +117,7 @@ namespace EEPK_Organiser.View
 
             AsyncObservableCollection<ParticleNode> nodes = EmpFile.GetParentList(SelectedNode);
             ParticleNode newNode = ParticleNode.GetNew(nodeType, nodes);
+            EmpFile.AssignUnusedRenderGroupKeys(newNode);
             nodes.Add(newNode);
 
             UndoManager.Instance.AddUndo(new UndoableListAdd<ParticleNode>(nodes, newNode, "New Node"));
@@ -128,6 +129,7 @@ namespace EEPK_Organiser.View
             if (SelectedNode == null) return;
             AsyncObservableCollection<ParticleNode> nodes = SelectedNode.ChildParticleNodes;
             ParticleNode newNode = ParticleNode.GetNew(nodeType, nodes);
+            EmpFile.AssignUnusedRenderGroupKeys(newNode);
             nodes.Add(newNode);
 
             UndoManager.Instance.AddUndo(new UndoableListAdd<ParticleNode>(nodes, newNode, "New Node"));
@@ -139,6 +141,7 @@ namespace EEPK_Organiser.View
             AsyncObservableCollection<ParticleNode> nodes = EmpFile.GetParentList(SelectedNode);
             ParticleNode newNode = SelectedNode.Clone();
             newNode.Name = NameHelper.GetUniqueName(newNode.Name, nodes);
+            EmpFile.AssignUnusedRenderGroupKeys(newNode);
             nodes.Add(newNode);
 
             UndoManager.Instance.AddUndo(new UndoableListAdd<ParticleNode>(nodes, newNode, "Duplicate Node"));
@@ -191,13 +194,15 @@ namespace EEPK_Organiser.View
             if (!CustomClipboard.TryGetData(EMP_File.CLIPBOARD_NODE, out ParticleNode copiedNode))
                 return;
 
-            copiedNode.Name = NameHelper.GetUniqueName(copiedNode.Name, nodes);
+            ParticleNode newNode = copiedNode.Clone();
+            newNode.Name = NameHelper.GetUniqueName(newNode.Name, nodes);
 
             List<IUndoRedo> undos = new List<IUndoRedo>();
-            AssetContainer.AddPbindDependencies(copiedNode, EmpFile, undos);
+            AssetContainer.AddPbindDependencies(newNode, EmpFile, undos);
+            EmpFile.AssignUnusedRenderGroupKeys(newNode);
 
-            nodes.Add(copiedNode);
-            undos.Add(new UndoableListAdd<ParticleNode>(nodes, copiedNode));
+            nodes.Add(newNode);
+            undos.Add(new UndoableListAdd<ParticleNode>(nodes, newNode));
             UndoManager.Instance.AddCompositeUndo(undos, "Paste Node");
         }
 
