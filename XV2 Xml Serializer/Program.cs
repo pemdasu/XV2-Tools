@@ -111,6 +111,9 @@ namespace XV2_Xml_Serializer
                                 case ".bsa":
                                     new Xv2CoreLib.BSA.Parser(fileLocation, true);
                                     break;
+                                case ".scd":
+                                    new Xv2CoreLib.SCD.Parser(fileLocation, true);
+                                    break;
                                 case ".bcm":
                                     new Xv2CoreLib.BCM.Parser(fileLocation, true);
                                     break;
@@ -432,6 +435,9 @@ namespace XV2_Xml_Serializer
                         break;
                     case ".bsa":
                         new Xv2CoreLib.BSA.Deserializer(fileLocation);
+                        break;
+                    case ".scd":
+                        new Xv2CoreLib.SCD.Deserializer(fileLocation);
                         break;
                     case ".bas":
                         new Xv2CoreLib.BAS.Deserializer(fileLocation);

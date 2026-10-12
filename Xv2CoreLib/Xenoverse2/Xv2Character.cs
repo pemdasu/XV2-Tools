@@ -21,6 +21,7 @@ using Xv2CoreLib.EMM;
 using Xv2CoreLib.ERS;
 using Xv2CoreLib.ESK;
 using Xv2CoreLib.PSC;
+using Xv2CoreLib.SCD;
 using Xv2CoreLib.Resource;
 using Xv2CoreLib.Resource.UndoRedo;
 
@@ -616,8 +617,7 @@ namespace Xv2CoreLib
         public bool IsEdited { get; set; }
         private bool WasManualLoaded { get; set; }
         public object File { get; private set; }
-        //Used for unsupported file types like SCD that have no parser. Otherwise, its null
-        public byte[] Bytes { get; private set; }
+        public byte[] Bytes => (File as SCD_File)?.Write();
 
         //Constructors:
         /// <summary>
@@ -672,7 +672,7 @@ namespace Xv2CoreLib
                     File = FileManager.Instance.LoadFile<ESK_File>(RelativePath, onlyLoadFromCPK);
                     break;
                 case Type.SCD:
-                    Bytes = FileManager.Instance.GetBytesFromGame(RelativePath, onlyLoadFromCPK);
+                    File = SCD_File.Load(FileManager.Instance.GetBytesFromGame(RelativePath, onlyLoadFromCPK));
                     break;
                 default:
                     return;
@@ -703,7 +703,7 @@ namespace Xv2CoreLib
                     File = ESK_File.Load(path);
                     break;
                 case Type.SCD:
-                    Bytes = System.IO.File.ReadAllBytes(path);
+                    File = SCD_File.Load(path);
                     break;
                 default:
                     throw new ArgumentException($"Xv2PartSetFile.LoadManual: File type not supported here ({FileType}).");
@@ -728,7 +728,7 @@ namespace Xv2CoreLib
                         FileManager.Instance.SaveFileToGame(RelativePath, File);
                         break;
                     case Type.SCD:
-                        System.IO.File.WriteAllBytes(FileManager.Instance.FileIO.PathInGameDir(RelativePath), Bytes);
+                        ((SCD_File)File).SaveBinary(FileManager.Instance.FileIO.PathInGameDir(RelativePath));
                         break;
                 }
 
@@ -766,7 +766,6 @@ namespace Xv2CoreLib
             return new Xv2PartSetFile(Name, null)
             {
                 File = File,
-                Bytes = Bytes,
                 IsLoaded = IsLoaded,
                 PartTypes = PartTypes
             };
@@ -780,7 +779,6 @@ namespace Xv2CoreLib
             return new Xv2PartSetFile(Name, null)
             {
                 File = File != null ? File.Copy() : null,
-                Bytes = Bytes != null ? Bytes.Copy() : null,
                 IsLoaded = IsLoaded,
                 PartTypes = PartTypes
             };
