@@ -126,6 +126,9 @@ namespace Xv2CoreLib.BPE
                                     case 9:
                                         bpeFile.Entries[actualIndex].SubEntries[a].Type9 = ParseType9(typeOffset, typeCount);
                                         break;
+                                    case 10:
+                                        bpeFile.Entries[actualIndex].SubEntries[a].Type10 = ParseType10(typeOffset, typeCount);
+                                        break;
                                 }
 
                                 subEntryOffset += 48;
@@ -164,7 +167,7 @@ namespace Xv2CoreLib.BPE
 
             } else
             {
-                return null;
+                return new List<BPE_Type0>();
             }
 
         }
@@ -192,7 +195,7 @@ namespace Xv2CoreLib.BPE
             }
             else
             {
-                return null;
+                return new List<BPE_Type1>();
             }
 
         }
@@ -229,7 +232,7 @@ namespace Xv2CoreLib.BPE
             }
             else
             {
-                return null;
+                return new List<BPE_Type2>();
             }
 
         }
@@ -259,7 +262,7 @@ namespace Xv2CoreLib.BPE
             }
             else
             {
-                return null;
+                return new List<BPE_Type3>();
             }
 
         }
@@ -285,7 +288,7 @@ namespace Xv2CoreLib.BPE
             }
             else
             {
-                return null;
+                return new List<BPE_Type4>();
             }
 
         }
@@ -321,7 +324,7 @@ namespace Xv2CoreLib.BPE
             }
             else
             {
-                return null;
+                return new List<BPE_Type5>();
             }
 
         }
@@ -357,7 +360,7 @@ namespace Xv2CoreLib.BPE
             }
             else
             {
-                return null;
+                return new List<BPE_Type6>();
             }
 
         }
@@ -383,7 +386,7 @@ namespace Xv2CoreLib.BPE
             }
             else
             {
-                return null;
+                return new List<BPE_Type7>();
             }
 
         }
@@ -414,7 +417,7 @@ namespace Xv2CoreLib.BPE
             }
             else
             {
-                return null;
+                return new List<BPE_Type8>();
             }
 
         }
@@ -447,9 +450,37 @@ namespace Xv2CoreLib.BPE
             }
             else
             {
-                return null;
+                return new List<BPE_Type9>();
             }
 
+        }
+
+        private List<BPE_Type10> ParseType10(int offset, int count)
+        {
+            List<BPE_Type10> type = new List<BPE_Type10>();
+
+            for (int i = 0; i < count; i++)
+            {
+                type.Add(new BPE_Type10()
+                {
+                    I_00 = BitConverter.ToInt32(rawBytes, offset + 0),
+                    F_04 = BitConverter.ToSingle(rawBytes, offset + 4),
+                    F_08 = BitConverter.ToSingle(rawBytes, offset + 8),
+                    F_12 = BitConverter.ToSingle(rawBytes, offset + 12),
+                    F_16 = BitConverter.ToSingle(rawBytes, offset + 16),
+                    F_20 = BitConverter.ToSingle(rawBytes, offset + 20),
+                    F_24 = BitConverter.ToSingle(rawBytes, offset + 24),
+                    F_28 = BitConverter.ToSingle(rawBytes, offset + 28),
+                    F_32 = BitConverter.ToSingle(rawBytes, offset + 32),
+                    I_36 = BitConverter.ToUInt32(rawBytes, offset + 36),
+                    I_40 = BitConverter.ToUInt32(rawBytes, offset + 40),
+                    I_44 = BitConverter.ToUInt32(rawBytes, offset + 44),
+                    I_48 = BitConverter.ToUInt32(rawBytes, offset + 48)
+                });
+                offset += 52;
+            }
+
+            return type;
         }
 
     }

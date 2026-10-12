@@ -1,4 +1,5 @@
-﻿using LB_Common.Forms;
+﻿using Xv2CoreLib.BPE;
+using LB_Common.Forms;
 using LB_Common.Mvvm;
 using LB_Common.Numbers;
 using System;
@@ -32,7 +33,8 @@ namespace EEPK_Organiser.Forms
             Global,
             ParticleNode,
             TraceNode,
-            ColorFadeNode
+            ColorFadeNode,
+            BpeKeyframes
         }
 
         private readonly AssetType AssetType = AssetType.EMO;
@@ -43,6 +45,8 @@ namespace EEPK_Organiser.Forms
         private readonly ParticleNode particleNode = null;
         private readonly IList<ETR_Node> etrNodes = null;
         private readonly IList<ECF_Node> ecfNodes = null;
+        private readonly BPE_File bpeFile = null;
+        private readonly IList<object> bpeKeyframes = null;
 
 
         private readonly Mode CurrentMode = Mode.Asset;
@@ -232,6 +236,20 @@ namespace EEPK_Organiser.Forms
             DataContext = this;
         }
 
+        /// <summary>
+        /// Hue shift BPE keyframes that have a color.
+        /// </summary>
+        public RecolorAll(BPE_File file, IList<object> keyframes, bool isHueSet)
+        {
+            this.isHueSet = isHueSet;
+            CurrentMode = Mode.BpeKeyframes;
+            bpeFile = file;
+            bpeKeyframes = keyframes;
+
+            InitializeComponent();
+            DataContext = this;
+        }
+
         #endregion
 
         #region Setup
@@ -280,6 +298,9 @@ namespace EEPK_Organiser.Forms
                     break;
                 case Mode.ColorFadeNode:
                     Title += ecfNodes.Count > 1 ? $" ({ecfNodes.Count} Color Fade Nodes)" : " (1 Color Fade Node)";
+                    break;
+                case Mode.BpeKeyframes:
+                    Title += bpeKeyframes.Count > 1 ? $" ({bpeKeyframes.Count} BPE Keyframes)" : " (1 BPE Keyframe)";
                     break;
             }
 
@@ -400,6 +421,15 @@ namespace EEPK_Organiser.Forms
                         node.AccumulateUsedColors(ColorAccumulator);
                     }
                     break;
+                case Mode.BpeKeyframes:
+                    foreach (object keyframe in bpeKeyframes)
+                    {
+                        Xv2Color color = BpeColors.GetColor(keyframe);
+
+                        if (!color.IsWhiteOrBlack)
+                            ColorAccumulator.AddColor(color);
+                    }
+                    break;
             }
 
             PreviewColor = ColorAccumulator.ToCustomColor();
@@ -466,6 +496,8 @@ namespace EEPK_Organiser.Forms
                     return etrNodes;
                 case Mode.ColorFadeNode:
                     return ecfNodes;
+                case Mode.BpeKeyframes:
+                    return bpeFile;
                 default:
                     return null;
             }
@@ -532,6 +564,13 @@ namespace EEPK_Organiser.Forms
                 foreach (var node in ecfNodes)
                 {
                     node.ChangeHue(hueChange, saturationChange, lightnessChange, undos, isHueSet, lastRecolorVariance);
+                }
+            }
+            else if (CurrentMode == Mode.BpeKeyframes)
+            {
+                foreach (object keyframe in bpeKeyframes)
+                {
+                    BpeColors.ChangeHue(keyframe, hueChange, saturationChange, lightnessChange, undos, isHueSet, lastRecolorVariance);
                 }
             }
 

@@ -24,7 +24,7 @@ namespace Xv2CoreLib.BPE
             YAXSerializer serializer = new YAXSerializer(typeof(BPE_File), YAXSerializationOptions.DontSerializeNullObjects);
             bpeFile = (BPE_File)serializer.DeserializeFromFile(location);
             bpeFile.SortEntries();
-            EntryCount = (bpeFile.Entries != null) ? int.Parse(bpeFile.Entries[bpeFile.Entries.Count() - 1].Index) + 1 : 0;
+            EntryCount = (bpeFile.Entries?.Count > 0) ? int.Parse(bpeFile.Entries[bpeFile.Entries.Count - 1].Index) + 1 : 0;
             WriteBpe();
             File.WriteAllBytes(saveLocation, bytes.ToArray());
         }
@@ -34,7 +34,7 @@ namespace Xv2CoreLib.BPE
             saveLocation = location;
             bpeFile = _bpeFile;
             bpeFile.SortEntries();
-            EntryCount = (bpeFile.Entries != null) ? int.Parse(bpeFile.Entries[bpeFile.Entries.Count() - 1].Index) + 1 : 0;
+            EntryCount = (bpeFile.Entries?.Count > 0) ? int.Parse(bpeFile.Entries[bpeFile.Entries.Count - 1].Index) + 1 : 0;
             WriteBpe();
             File.WriteAllBytes(saveLocation, bytes.ToArray());
         }
@@ -43,12 +43,30 @@ namespace Xv2CoreLib.BPE
         {
             bpeFile = _bpeFile;
             bpeFile.SortEntries();
-            EntryCount = (bpeFile.Entries != null) ? int.Parse(bpeFile.Entries[bpeFile.Entries.Count() - 1].Index) + 1 : 0;
+            EntryCount = (bpeFile.Entries?.Count > 0) ? int.Parse(bpeFile.Entries[bpeFile.Entries.Count - 1].Index) + 1 : 0;
             WriteBpe();
         }
 
+        private void Validate()
+        {
+            HashSet<int> ids = new HashSet<int>();
+            foreach (BPE_Entry entry in bpeFile.Entries)
+            {
+                if (!int.TryParse(entry.Index, out int id) || id < 0 || id >= short.MaxValue || !ids.Add(id))
+                    throw new InvalidDataException("Each BPE entry needs a unique ID from 0 to 32766.");
+                if (entry.SubEntries?.Count > short.MaxValue)
+                    throw new InvalidDataException("Too many BPE layers.");
+                foreach (BPE_SubEntry layer in entry.SubEntries ?? Enumerable.Empty<BPE_SubEntry>())
+                {
+                    TypeValidation(layer, entry);
+                    if (GetTypeCount((int)layer.BpeType, layer) > short.MaxValue)
+                        throw new InvalidDataException("Too many BPE keyframes.");
+                }
+            }
+        }
         private void WriteBpe()
         {
+            Validate();
             bytes.AddRange(BitConverter.GetBytes((short)EntryCount));
             bytes.AddRange(BitConverter.GetBytes(24));
 
@@ -91,7 +109,6 @@ namespace Xv2CoreLib.BPE
                 //SubEntries
                 for(int a = 0; a < subEntryCount; a++)
                 {
-                    TypeValidation(bpeFile.Entries[i].SubEntries[a], bpeFile.Entries[i]);
                     bytes.AddRange(BitConverter.GetBytes((int)bpeFile.Entries[i].SubEntries[a].BpeType));
                     bytes.AddRange(BitConverter.GetBytes(bpeFile.Entries[i].SubEntries[a].I_04));
                     bytes.AddRange(BitConverter.GetBytes(bpeFile.Entries[i].SubEntries[a].I_06));
@@ -143,6 +160,9 @@ namespace Xv2CoreLib.BPE
                             break;
                         case 9:
                             WriteType9(bpeFile.Entries[i].SubEntries[a].Type9, TypeOffsets[a]);
+                            break;
+                        case 10:
+                            WriteType10(bpeFile.Entries[i].SubEntries[a].Type10, TypeOffsets[a]);
                             break;
                     }
                 }
@@ -323,6 +343,28 @@ namespace Xv2CoreLib.BPE
 
         }
 
+        private void WriteType10(List<BPE_Type10> type, int offsetToFill)
+        {
+            bytes = Utils.ReplaceRange(bytes, BitConverter.GetBytes(bytes.Count() - offsetToFill + 44), offsetToFill);
+
+            for (int i = 0; i < type.Count(); i++)
+            {
+                bytes.AddRange(BitConverter.GetBytes(type[i].I_00));
+                bytes.AddRange(BitConverter.GetBytes(type[i].F_04));
+                bytes.AddRange(BitConverter.GetBytes(type[i].F_08));
+                bytes.AddRange(BitConverter.GetBytes(type[i].F_12));
+                bytes.AddRange(BitConverter.GetBytes(type[i].F_16));
+                bytes.AddRange(BitConverter.GetBytes(type[i].F_20));
+                bytes.AddRange(BitConverter.GetBytes(type[i].F_24));
+                bytes.AddRange(BitConverter.GetBytes(type[i].F_28));
+                bytes.AddRange(BitConverter.GetBytes(type[i].F_32));
+                bytes.AddRange(BitConverter.GetBytes(type[i].I_36));
+                bytes.AddRange(BitConverter.GetBytes(type[i].I_40));
+                bytes.AddRange(BitConverter.GetBytes(type[i].I_44));
+                bytes.AddRange(BitConverter.GetBytes(type[i].I_48));
+            }
+        }
+
         //Utility
         private int GetTypeCount(int type, BPE_SubEntry subEntry)
         {
@@ -348,6 +390,8 @@ namespace Xv2CoreLib.BPE
                     return subEntry.Type8.Count;
                 case 9:
                     return subEntry.Type9.Count;
+                case 10:
+                    return subEntry.Type10.Count;
                 default:
                     return 0;
             }
@@ -417,18 +461,21 @@ namespace Xv2CoreLib.BPE
                         TypeDoesntExist(entry, subEntry.BpeType);
                     }
                     break;
-                default:
-                    Console.WriteLine(String.Format("{0} is not a valid BPE_Type (BPE_Entry: Index = {1})", subEntry.BpeType, entry.Index));
-                    Utils.WaitForInputThenQuit();
+                case 10:
+                    if (subEntry.Type10 == null)
+                    {
+                        TypeDoesntExist(entry, subEntry.BpeType);
+                    }
                     break;
+                default:
+                    throw new InvalidDataException($"Unsupported BPE layer type {subEntry.BpeType} in entry {entry.Index}.");
 
             }
         }
 
         private void TypeDoesntExist(BPE_Entry entry, BpeType type)
         {
-            Console.WriteLine(String.Format("BPE Type{0} was not found on BPE_Entry (index = {1})", type, entry.Index));
-            Utils.WaitForInputThenQuit();
+            throw new InvalidDataException($"BPE type {type} has no keyframe list in entry {entry.Index}.");
         }
     }
 }

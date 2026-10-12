@@ -4,26 +4,79 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using Xv2CoreLib.Color;
+using Xv2CoreLib.Resource.UndoRedo;
 using YAXLib;
 
 namespace Xv2CoreLib.BPE
 {
+    /// <summary>
+    /// The 0 to 1 color of the keyframe types that have one.
+    /// </summary>
+    public static class BpeColors
+    {
+        /// <summary>
+        /// The red, green and blue field names of a keyframe, or null when its type has no color.
+        /// </summary>
+        public static string[] GetColorFields(object keyframe)
+        {
+            switch (keyframe)
+            {
+                case BPE_Type2 _: return new[] { nameof(BPE_Type2.F_28), nameof(BPE_Type2.F_32), nameof(BPE_Type2.F_36) };
+                case BPE_Type6 _: return new[] { nameof(BPE_Type6.F_08), nameof(BPE_Type6.F_12), nameof(BPE_Type6.F_16) };
+                case BPE_Type8 _: return new[] { nameof(BPE_Type8.F_12), nameof(BPE_Type8.F_16), nameof(BPE_Type8.F_20) };
+                case BPE_Type9 _: return new[] { nameof(BPE_Type9.F_20), nameof(BPE_Type9.F_24), nameof(BPE_Type9.F_28) };
+                default: return null;
+            }
+        }
+
+        public static Xv2Color GetColor(object keyframe)
+        {
+            float[] values = GetColorFields(keyframe).Select(field => (float)keyframe.GetType().GetProperty(field).GetValue(keyframe)).ToArray();
+            return new Xv2Color(values[0], values[1], values[2]);
+        }
+
+        /// <summary>
+        /// Shifts the hue, saturation and lightness of the keyframe color, or sets its hue when hueSet is true. White and black stay the same.
+        /// </summary>
+        public static void ChangeHue(object keyframe, double hue, double saturation, double lightness, List<IUndoRedo> undos, bool hueSet, int variance)
+        {
+            Xv2Color color = GetColor(keyframe);
+            if (color.IsWhiteOrBlack) return;
+
+            Xv2Color newColor = hueSet ? color.ApplyHueSet((int)hue, variance) : color.ApplyHueAdjustment((int)hue, (float)saturation, (float)lightness);
+            string[] fields = GetColorFields(keyframe);
+            float[] newValues = { newColor.R, newColor.G, newColor.B };
+
+            for (int i = 0; i < fields.Length; i++)
+            {
+                var property = keyframe.GetType().GetProperty(fields[i]);
+                float oldValue = (float)property.GetValue(keyframe);
+                float newValue = newValues[i];
+                property.SetValue(keyframe, newValue);
+                undos.Add(new UndoablePropertyGeneric(fields[i], keyframe, oldValue, newValue));
+            }
+        }
+    }
+
     
     public enum BpeType
     {
         Blur = 0,
         WhiteShine = 1,
+        ColorFilter = 2,
         Disorientation = 4,
         Zoom = 6,
         Hue = 8,
-        BodyOutline = 9
+        BodyOutline = 9,
+        Fog = 10
     }
 
     [YAXSerializeAs("BPE")]
     public class BPE_File : ISorting
     {
         [YAXCollection(YAXCollectionSerializationTypes.RecursiveWithNoContainingElement, EachElementName = "BPE_Entry")]
-        public List<BPE_Entry> Entries { get; set; }
+        public List<BPE_Entry> Entries { get; set; } = new List<BPE_Entry>();
 
         public byte[] SaveToBytes()
         {
@@ -71,7 +124,7 @@ namespace Xv2CoreLib.BPE
 
         
         [YAXCollection(YAXCollectionSerializationTypes.RecursiveWithNoContainingElement, EachElementName = "BPE_SubEntry")]
-        public List<BPE_SubEntry> SubEntries { get; set; }
+        public List<BPE_SubEntry> SubEntries { get; set; } = new List<BPE_SubEntry>();
 
         
 
@@ -156,6 +209,7 @@ namespace Xv2CoreLib.BPE
         [YAXCollection(YAXCollectionSerializationTypes.RecursiveWithNoContainingElement, EachElementName = "BodyOutline")]
         [YAXDontSerializeIfNull]
         public List<BPE_Type9> Type9 { get; set; }
+        public List<BPE_Type10> Type10 { get; set; }
 
 
     }
@@ -471,5 +525,59 @@ namespace Xv2CoreLib.BPE
         public float F_32 { get; set; }
     }
 
+    /// <summary>
+    /// Depth fog over the whole screen. Colors are ARGB.
+    /// </summary>
+    [YAXSerializeAs("Fog")]
+    public class BPE_Type10
+    {
+        [YAXAttributeFor("Start_Time")]
+        [YAXSerializeAs("value")]
+        public int I_00 { get; set; }
+        [YAXAttributeFor("F_04")]
+        [YAXSerializeAs("value")]
+        [YAXFormat("0.0###########")]
+        public float F_04 { get; set; }
+        [YAXAttributeFor("F_08")]
+        [YAXSerializeAs("value")]
+        [YAXFormat("0.0###########")]
+        public float F_08 { get; set; }
+        [YAXAttributeFor("F_12")]
+        [YAXSerializeAs("value")]
+        [YAXFormat("0.0###########")]
+        public float F_12 { get; set; }
+        [YAXAttributeFor("F_16")]
+        [YAXSerializeAs("value")]
+        [YAXFormat("0.0###########")]
+        public float F_16 { get; set; }
+        [YAXAttributeFor("FogDistance")]
+        [YAXSerializeAs("Near")]
+        [YAXFormat("0.0###########")]
+        public float F_20 { get; set; }
+        [YAXAttributeFor("FogDistance")]
+        [YAXSerializeAs("Far")]
+        [YAXFormat("0.0###########")]
+        public float F_24 { get; set; }
+        [YAXAttributeFor("F_28")]
+        [YAXSerializeAs("value")]
+        [YAXFormat("0.0###########")]
+        public float F_28 { get; set; }
+        [YAXAttributeFor("FogCurve")]
+        [YAXSerializeAs("value")]
+        [YAXFormat("0.0###########")]
+        public float F_32 { get; set; }
+        [YAXAttributeFor("I_36")]
+        [YAXSerializeAs("value")]
+        public uint I_36 { get; set; }
+        [YAXAttributeFor("I_40")]
+        [YAXSerializeAs("value")]
+        public uint I_40 { get; set; }
+        [YAXAttributeFor("FogColor")]
+        [YAXSerializeAs("ARGB")]
+        public uint I_44 { get; set; }
+        [YAXAttributeFor("AddColor")]
+        [YAXSerializeAs("ARGB")]
+        public uint I_48 { get; set; }
+    }
 
 }
