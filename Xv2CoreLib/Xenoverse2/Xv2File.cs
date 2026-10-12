@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Linq;
 using System.IO;
 using System.Text;
@@ -48,6 +48,8 @@ namespace Xv2CoreLib
                     case Xenoverse2.MoveFileTypes.CAM_EAN:
                         if (Costumes.Count == 1 && Costumes[0] == 0 && IsDefault)
                             return "Main";
+                        if (MoveType == Xenoverse2.MoveType.Common)
+                            return System.IO.Path.GetFileNameWithoutExtension(Path);
                         return !string.IsNullOrWhiteSpace(CharaCode) ? CharaCode : System.IO.Path.GetFileNameWithoutExtension(Path);
                         //return (Costumes.Count == 1 && !string.IsNullOrWhiteSpace(Path)) ? System.IO.Path.GetFileNameWithoutExtension(Path) : CharaCode;
                     case Xenoverse2.MoveFileTypes.VOX_ACB:
@@ -282,7 +284,7 @@ namespace Xv2CoreLib
             }
             else if (File is BDM_File && System.IO.Path.GetExtension(path) == ".bdm")
             {
-                newFile = BDM_File.Load(path);
+                newFile = BDM_File.Load(path, true);
             }
             else if (File is BSA_File && System.IO.Path.GetExtension(path) == ".bsa")
             {
