@@ -51,14 +51,15 @@ namespace EEPK_Organiser.ViewModel
                 RaisePropertyChanged(nameof(StartTime));
             }
         }
-        public byte SegementFrameStep
+        public float SegmentSpacing
         {
-            get => node.SegementFrameSize;
+            get => node.SegmentSpacing;
             set
             {
-                UndoManager.Instance.AddUndo(new UndoablePropertyGeneric(nameof(node.SegementFrameSize), node, node.SegementFrameSize, value, "ETR -> Segement Frame Step"));
-                node.SegementFrameSize = value;
-                RaisePropertyChanged(nameof(SegementFrameStep));
+                ushort oldInterval = node.SegmentInterval;
+                node.SegmentSpacing = value;
+                UndoManager.Instance.AddUndo(new UndoablePropertyGeneric(nameof(node.SegmentInterval), node, oldInterval, node.SegmentInterval, "ETR -> Segment Spacing"));
+                RaisePropertyChanged(nameof(SegmentSpacing));
             }
         }
         public short ExtrudeDuration
@@ -89,16 +90,6 @@ namespace EEPK_Organiser.ViewModel
                 UndoManager.Instance.AddUndo(new UndoablePropertyGeneric(nameof(node.PositionExtrudeZ), node, node.PositionExtrudeZ, value, "ETR -> Position Extrude Z"));
                 node.PositionExtrudeZ = value;
                 RaisePropertyChanged(nameof(PositionExtrudeZ));
-            }
-        }
-        public byte I_92
-        {
-            get => node.I_92;
-            set
-            {
-                UndoManager.Instance.AddUndo(new UndoablePropertyGeneric(nameof(node.I_92), node, node.I_92, value, "ETR -> I_92"));
-                node.I_92 = value;
-                RaisePropertyChanged(nameof(I_92));
             }
         }
         public byte I_88
@@ -157,13 +148,14 @@ namespace EEPK_Organiser.ViewModel
                 RaisePropertyChanged(() => Flag_UseColor2);
             }
         }
-        public bool Flag_DoublePointOfMiddleSection
+        public bool Flag_SpawnByDistance
         {
-            get => node.Flags.HasFlag(ETR_Node.ExtrudeFlags.DoublePointOfMiddleSection);
+            get => node.Flags.HasFlag(ETR_Node.ExtrudeFlags.SpawnByDistance);
             set
             {
-                SetNodeFlags(ETR_Node.ExtrudeFlags.DoublePointOfMiddleSection, value);
-                RaisePropertyChanged(() => Flag_DoublePointOfMiddleSection);
+                SetNodeFlags(ETR_Node.ExtrudeFlags.SpawnByDistance, value);
+                RaisePropertyChanged(() => Flag_SpawnByDistance);
+                RaisePropertyChanged(nameof(SegmentSpacing));
             }
         }
         public bool Flag_Unk5
@@ -324,11 +316,10 @@ namespace EEPK_Organiser.ViewModel
             RaisePropertyChanged(nameof(Position));
             RaisePropertyChanged(nameof(Rotation));
             RaisePropertyChanged(nameof(StartTime));
-            RaisePropertyChanged(nameof(SegementFrameStep));
+            RaisePropertyChanged(nameof(SegmentSpacing));
             RaisePropertyChanged(nameof(ExtrudeDuration));
             RaisePropertyChanged(nameof(HoldDuration));
             RaisePropertyChanged(nameof(PositionExtrudeZ));
-            RaisePropertyChanged(nameof(I_92));
             RaisePropertyChanged(nameof(I_88));
             RaisePropertyChanged(nameof(I_100));
             RaisePropertyChanged(nameof(Scale));
@@ -341,7 +332,7 @@ namespace EEPK_Organiser.ViewModel
             RaisePropertyChanged(nameof(Flag_AutoOrientation));
             RaisePropertyChanged(nameof(Flag_Unk2));
             RaisePropertyChanged(nameof(Flag_UseColor2));
-            RaisePropertyChanged(nameof(Flag_DoublePointOfMiddleSection));
+            RaisePropertyChanged(nameof(Flag_SpawnByDistance));
             RaisePropertyChanged(nameof(Flag_Unk5));
             RaisePropertyChanged(nameof(Flag_Unk6));
             RaisePropertyChanged(nameof(Flag_Unk7));

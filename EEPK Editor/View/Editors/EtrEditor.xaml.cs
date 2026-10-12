@@ -370,8 +370,8 @@ namespace EEPK_Organiser.View.Editors
         #endregion
 
         #region Paths
-        private ConeExtrudePoint _selectedPath = null;
-        public ConeExtrudePoint SelectedPath
+        private ETR_SplineWeight _selectedPath = null;
+        public ETR_SplineWeight SelectedPath
         {
             get => _selectedPath;
             set
@@ -387,10 +387,10 @@ namespace EEPK_Organiser.View.Editors
         [RelayCommand(CanExecute = nameof(IsNodeSelected))]
         private void NewPath()
         {
-            ConeExtrudePoint newPoint = new ConeExtrudePoint();
+            ETR_SplineWeight newPoint = new ETR_SplineWeight();
 
-            UndoManager.Instance.AddUndo(new UndoableListAdd<ConeExtrudePoint>(SelectedNode.ExtrudePaths, newPoint, "Path -> Add Path"));
-            SelectedNode.ExtrudePaths.Add(newPoint);
+            UndoManager.Instance.AddUndo(new UndoableListAdd<ETR_SplineWeight>(SelectedNode.SplineWeights, newPoint, "Path -> Add Path"));
+            SelectedNode.SplineWeights.Add(newPoint);
 
             SelectedPath = newPoint;
         }
@@ -398,15 +398,15 @@ namespace EEPK_Organiser.View.Editors
         [RelayCommand(CanExecute = nameof(CanDeletePath))]
         private void DeletePath()
         {
-            List<ConeExtrudePoint> selectedPoints = pathDataGrid.SelectedItems.Cast<ConeExtrudePoint>().ToList();
+            List<ETR_SplineWeight> selectedPoints = pathDataGrid.SelectedItems.Cast<ETR_SplineWeight>().ToList();
             List<IUndoRedo> undos = new List<IUndoRedo>();
 
-            foreach (ConeExtrudePoint point in selectedPoints)
+            foreach (ETR_SplineWeight point in selectedPoints)
             {
-                if (SelectedNode.ExtrudePaths.IndexOf(point) == 0) continue; //Cannot remove or edit first point
+                if (SelectedNode.SplineWeights.IndexOf(point) == 0) continue; //Cannot remove or edit first point
 
-                undos.Add(new UndoableListRemove<ConeExtrudePoint>(SelectedNode.ExtrudePaths, point));
-                SelectedNode.ExtrudePaths.Remove(point);
+                undos.Add(new UndoableListRemove<ETR_SplineWeight>(SelectedNode.SplineWeights, point));
+                SelectedNode.SplineWeights.Remove(point);
             }
 
             UndoManager.Instance.AddCompositeUndo(undos, "Path -> Delete Point");
@@ -415,25 +415,25 @@ namespace EEPK_Organiser.View.Editors
         [RelayCommand(CanExecute = nameof(IsPathSelected))]
         private void CopyPath()
         {
-            List<ConeExtrudePoint> selectedPoints = pathDataGrid.SelectedItems.Cast<ConeExtrudePoint>().ToList();
-            CustomClipboard.SetData(EMP_File.CLIPBOARD_CONE_EXTRUSION, selectedPoints);
+            List<ETR_SplineWeight> selectedPoints = pathDataGrid.SelectedItems.Cast<ETR_SplineWeight>().ToList();
+            CustomClipboard.SetData(ETR_Node.CLIPBOARD_SPLINE_WEIGHTS, selectedPoints);
         }
 
         [RelayCommand(CanExecute = nameof(CanPastePath))]
         private void PastePath()
         {
-            if (!CustomClipboard.TryGetData(EMP_File.CLIPBOARD_CONE_EXTRUSION, out List<ConeExtrudePoint> points))
+            if (!CustomClipboard.TryGetData(ETR_Node.CLIPBOARD_SPLINE_WEIGHTS, out List<ETR_SplineWeight> points))
                 return;
 
             if (points != null)
             {
                 List<IUndoRedo> undos = new List<IUndoRedo>();
 
-                SelectedNode.ExtrudePaths.AddRange(points);
+                SelectedNode.SplineWeights.AddRange(points);
 
-                foreach (ConeExtrudePoint point in points)
+                foreach (ETR_SplineWeight point in points)
                 {
-                    undos.Add(new UndoableListAdd<ConeExtrudePoint>(SelectedNode.ExtrudePaths, point));
+                    undos.Add(new UndoableListAdd<ETR_SplineWeight>(SelectedNode.SplineWeights, point));
                 }
 
                 UndoManager.Instance.AddCompositeUndo(undos, "Path -> Paste");
@@ -443,12 +443,12 @@ namespace EEPK_Organiser.View.Editors
         private bool CanDeletePath()
         {
             if (SelectedPath == null || SelectedNode == null) return false;
-            return SelectedNode.ExtrudePaths.IndexOf(SelectedPath) != 0;
+            return SelectedNode.SplineWeights.IndexOf(SelectedPath) != 0;
         }
         
         private bool CanPastePath()
         {
-            return CustomClipboard.ContainsData(EMP_File.CLIPBOARD_CONE_EXTRUSION);
+            return CustomClipboard.ContainsData(ETR_Node.CLIPBOARD_SPLINE_WEIGHTS);
         }
 
         private bool IsPathSelected()

@@ -98,10 +98,10 @@ namespace Xv2CoreLib.ETR
                     node.CompileAllKeyframes();
                 }
 
-                if (node.ExtrudePaths.Count == 0)
+                if (node.SplineWeights.Count == 0)
                 {
                     //There should always be at least 1 path
-                    node.ExtrudePaths.Add(new ConeExtrudePoint(1, 0, 0, 0));
+                    node.SplineWeights.Add(new ETR_SplineWeight(1, 0, 0, 0));
                 }
 
                 bytes.AddRange(StringEx.WriteFixedSizeString(node.AttachBone, 32));
@@ -113,10 +113,9 @@ namespace Xv2CoreLib.ETR
                 bytes.AddRange(BitConverter.GetBytes((float)MathHelpers.ConvertDegreesToRadians(node.Rotation.Y)));
                 bytes.AddRange(BitConverter.GetBytes((float)MathHelpers.ConvertDegreesToRadians(node.Rotation.Z)));
                 bytes.Add(node.I_88);
-                bytes.Add((byte)(node.ExtrudePaths.Count - 1));
+                bytes.Add((byte)(node.SplineWeights.Count - 1));
                 bytes.AddRange(BitConverter.GetBytes(node.StartTime));
-                bytes.Add(node.I_92);
-                bytes.Add(node.SegementFrameSize);
+                bytes.AddRange(BitConverter.GetBytes(node.SegmentInterval));
                 bytes.AddRange(BitConverter.GetBytes(node.ExtrudeDuration));
                 bytes.AddRange(BitConverter.GetBytes((uint)node.Flags));
                 bytes.AddRange(BitConverter.GetBytes(node.I_100));
@@ -176,7 +175,8 @@ namespace Xv2CoreLib.ETR
                     //Write keyframes
                     foreach(EMP_Modifier modifier in node.Modifiers)
                     {
-                        Utils.ReplaceRange(bytes, BitConverter.GetBytes(bytes.Count - modifersStart), modifersStart + (8 * node.Modifiers.IndexOf(modifier)) + 4);
+                        int modifierOffset = modifersStart + (8 * node.Modifiers.IndexOf(modifier));
+                        Utils.ReplaceRange(bytes, BitConverter.GetBytes(bytes.Count - modifierOffset), modifierOffset + 4);
                         WriteKeyframedValues(modifier.KeyframedValues, bytes);
                     }
 
@@ -199,12 +199,12 @@ namespace Xv2CoreLib.ETR
                 //Extrude paths
                 Utils.ReplaceRange(bytes, BitConverter.GetBytes(bytes.Count - nodeOffset), nodeOffset + 116);
 
-                foreach(ConeExtrudePoint path in node.ExtrudePaths)
+                foreach(ETR_SplineWeight path in node.SplineWeights)
                 {
-                    bytes.AddRange(BitConverter.GetBytes(path.WorldScaleFactor));
-                    bytes.AddRange(BitConverter.GetBytes(path.WorldScaleAdd));
-                    bytes.AddRange(BitConverter.GetBytes(path.WorldOffsetFactor));
-                    bytes.AddRange(BitConverter.GetBytes(path.WorldOffsetFactor2));
+                    bytes.AddRange(BitConverter.GetBytes(path.StartWeight));
+                    bytes.AddRange(BitConverter.GetBytes(path.EndWeight));
+                    bytes.AddRange(BitConverter.GetBytes(path.StartTangentWeight));
+                    bytes.AddRange(BitConverter.GetBytes(path.EndTangentWeight));
                 }
 
                 //There need to be at least 2 points
@@ -427,6 +427,7 @@ namespace Xv2CoreLib.ETR
         #endregion
 
         public const string CLIPBOARD_ID = "XV2_ETR_NODE";
+        public const string CLIPBOARD_SPLINE_WEIGHTS = "XV2_ETR_SPLINE_WEIGHTS";
 
         [Flags]
         public enum ExtrudeFlags : uint
@@ -434,7 +435,7 @@ namespace Xv2CoreLib.ETR
             AutoOrientation = 0x1,
             Unk2 = 0x2,
             NoDegrade = 0x4,
-            DoublePointOfMiddleSection = 0x8,
+            SpawnByDistance = 0x8,
             Unk5 = 0x10,
             Unk6 = 0x20,
             Unk7 = 0x40,
@@ -548,7 +549,15 @@ namespace Xv2CoreLib.ETR
         public CustomVector4 Rotation { get; set; } = new CustomVector4();
 
         public ushort StartTime { get; set; }
-        public byte SegementFrameSize { get; set; } //NumberFrameForNextSegment
+        //Frames between new segments, or with SpawnByDistance a half-float distance the head must move first
+        public ushort SegmentInterval { get; set; } = 1;
+
+        /// <summary>The segment spacing in frames, or in world units when <see cref="ExtrudeFlags.SpawnByDistance"/> is set.</summary>
+        public float SegmentSpacing
+        {
+            get => Flags.HasFlag(ExtrudeFlags.SpawnByDistance) ? HalfHelper.ReadHalf(BitConverter.GetBytes(SegmentInterval), 0) : (short)SegmentInterval;
+            set => SegmentInterval = Flags.HasFlag(ExtrudeFlags.SpawnByDistance) ? BitConverter.ToUInt16(HalfHelper.GetBytes(value), 0) : (ushort)(short)value;
+        }
         public short ExtrudeDuration { get; set; }
         public ushort HoldDuration { get; set; }
         public ExtrudeFlags Flags { get; set; }
@@ -561,12 +570,12 @@ namespace Xv2CoreLib.ETR
         public KeyframedFloatValue Color1_Transparency { get; set; } = new KeyframedFloatValue(1f, KeyframedValueType.ETR_Color1_Transparency, true);
         public KeyframedFloatValue Color2_Transparency { get; set; } = new KeyframedFloatValue(1f, KeyframedValueType.ETR_Color2_Transparency, true);
 
-        public byte I_92 { get; set; } //Looks like flags
         public byte I_88 { get; set; } //Possibily flags
         public int I_100 { get; set; } //69, 71, 79, 199... looks similar to ParticleTexture.I_00 from EMP
         public ushort I_168 { get; set; } = 1; //Always 1
 
-        public AsyncObservableCollection<ConeExtrudePoint> ExtrudePaths { get; set; } = new AsyncObservableCollection<ConeExtrudePoint>();
+        //Cubic Hermite weights for each row of a span between two trail segments, at t = row / count. The count minus one is the number of extra rows per span.
+        public AsyncObservableCollection<ETR_SplineWeight> SplineWeights { get; set; } = new AsyncObservableCollection<ETR_SplineWeight>();
         public AsyncObservableCollection<ShapeDrawPoint> ExtrudeShapePoints { get; set; } = new AsyncObservableCollection<ShapeDrawPoint>();
         public AsyncObservableCollection<EMP_KeyframedValue> KeyframedValues { get; set; } = new AsyncObservableCollection<EMP_KeyframedValue>();
         public AsyncObservableCollection<EMP_Modifier> Modifiers { get; set; } = new AsyncObservableCollection<EMP_Modifier>();
@@ -597,8 +606,7 @@ namespace Xv2CoreLib.ETR
             node.Rotation.Z = (float)MathHelpers.ConvertRadiansToDegrees(BitConverter.ToSingle(bytes, nodeOffset + 84));
             node.I_88 = bytes[nodeOffset + 88];
             node.StartTime = BitConverter.ToUInt16(bytes, nodeOffset + 90);
-            node.I_92 = bytes[nodeOffset + 92];
-            node.SegementFrameSize = bytes[nodeOffset + 93];
+            node.SegmentInterval = BitConverter.ToUInt16(bytes, nodeOffset + 92);
             node.ExtrudeDuration = BitConverter.ToInt16(bytes, nodeOffset + 94);
             node.Flags = (ExtrudeFlags)BitConverter.ToUInt32(bytes, nodeOffset + 96);
             node.I_100 = BitConverter.ToInt32(bytes, nodeOffset + 100);
@@ -652,7 +660,7 @@ namespace Xv2CoreLib.ETR
 
             for(int i = 0; i < extrudePathCount; i++)
             {
-                node.ExtrudePaths.Add(new ConeExtrudePoint(bytes, extrudePathOffset));
+                node.SplineWeights.Add(new ETR_SplineWeight(bytes, extrudePathOffset));
                 extrudePathOffset += 16;
             }
 
@@ -868,9 +876,9 @@ namespace Xv2CoreLib.ETR
             return new ETR_Node()
             {
                 AttachBone = "TRS",
-                ExtrudePaths = new AsyncObservableCollection<ConeExtrudePoint>()
+                SplineWeights = new AsyncObservableCollection<ETR_SplineWeight>()
                 {
-                    new ConeExtrudePoint(1,0,0,0)
+                    new ETR_SplineWeight(1,0,0,0)
                 },
                 TextureEntryRef = new AsyncObservableCollection<TextureEntry_Ref>()
                 {
@@ -921,5 +929,155 @@ namespace Xv2CoreLib.ETR
         ShapeStartToEnd = 2, //Interpolate down the length of the extruded parts, where the first keyframe is the end of the extrusion.
         Default = 1, //Interpolation is based on duration, where the first keyframe applies at the start, the last one at the end (so, like a regular animation) (Extrude State)
         DefaultEnd = 0 //Interpolation is based on duration, and only starts at the end of the effect (Hold State)
+    }
+
+    [Serializable]
+    public class ETR_SplineWeight : INotifyPropertyChanged
+    {
+        #region NotifyPropChanged
+        [field: NonSerialized]
+        public event PropertyChangedEventHandler PropertyChanged;
+
+        protected void NotifyPropertyChanged(String propertyName = "")
+        {
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
+        }
+        #endregion
+
+        private float _startWeight;
+        private float _endWeight;
+        private float _startTangentWeight;
+        private float _endTangentWeight;
+
+        /// <summary>Weight of the newer segment position (Hermite h00).</summary>
+        public float StartWeight
+        {
+            get => _startWeight;
+            set
+            {
+                if (value != _startWeight)
+                {
+                    _startWeight = value;
+                    NotifyPropertyChanged(nameof(StartWeight));
+                    NotifyPropertyChanged(nameof(UndoableStartWeight));
+                }
+            }
+        }
+        /// <summary>Weight of the older segment position (Hermite h01).</summary>
+        public float EndWeight
+        {
+            get => _endWeight;
+            set
+            {
+                if (value != _endWeight)
+                {
+                    _endWeight = value;
+                    NotifyPropertyChanged(nameof(EndWeight));
+                    NotifyPropertyChanged(nameof(UndoableEndWeight));
+                }
+            }
+        }
+        /// <summary>Weight of the newer segment tangent (Hermite h10).</summary>
+        public float StartTangentWeight
+        {
+            get => _startTangentWeight;
+            set
+            {
+                if (value != _startTangentWeight)
+                {
+                    _startTangentWeight = value;
+                    NotifyPropertyChanged(nameof(StartTangentWeight));
+                    NotifyPropertyChanged(nameof(UndoableStartTangentWeight));
+                }
+            }
+        }
+        /// <summary>Weight of the older segment tangent (Hermite h11).</summary>
+        public float EndTangentWeight
+        {
+            get => _endTangentWeight;
+            set
+            {
+                if (value != _endTangentWeight)
+                {
+                    _endTangentWeight = value;
+                    NotifyPropertyChanged(nameof(EndTangentWeight));
+                    NotifyPropertyChanged(nameof(UndoableEndTangentWeight));
+                }
+            }
+        }
+
+        #region Undoable
+        public float UndoableStartWeight
+        {
+            get => StartWeight;
+            set
+            {
+                if (!MathHelpers.FloatEquals(value, StartWeight))
+                {
+                    UndoManager.Instance.AddUndo(new UndoablePropertyGeneric(nameof(StartWeight), this, StartWeight, value, "Spline Weight -> Start"));
+                    StartWeight = value;
+                }
+            }
+        }
+        public float UndoableEndWeight
+        {
+            get => EndWeight;
+            set
+            {
+                if (!MathHelpers.FloatEquals(value, EndWeight))
+                {
+                    UndoManager.Instance.AddUndo(new UndoablePropertyGeneric(nameof(EndWeight), this, EndWeight, value, "Spline Weight -> End"));
+                    EndWeight = value;
+                }
+            }
+        }
+        public float UndoableStartTangentWeight
+        {
+            get => StartTangentWeight;
+            set
+            {
+                if (!MathHelpers.FloatEquals(value, StartTangentWeight))
+                {
+                    UndoManager.Instance.AddUndo(new UndoablePropertyGeneric(nameof(StartTangentWeight), this, StartTangentWeight, value, "Spline Weight -> Start Tangent"));
+                    StartTangentWeight = value;
+                }
+            }
+        }
+        public float UndoableEndTangentWeight
+        {
+            get => EndTangentWeight;
+            set
+            {
+                if (!MathHelpers.FloatEquals(value, EndTangentWeight))
+                {
+                    UndoManager.Instance.AddUndo(new UndoablePropertyGeneric(nameof(EndTangentWeight), this, EndTangentWeight, value, "Spline Weight -> End Tangent"));
+                    EndTangentWeight = value;
+                }
+            }
+        }
+        #endregion
+
+        public ETR_SplineWeight() { }
+
+        public ETR_SplineWeight(float startWeight, float endWeight, float startTangentWeight, float endTangentWeight)
+        {
+            StartWeight = startWeight;
+            EndWeight = endWeight;
+            StartTangentWeight = startTangentWeight;
+            EndTangentWeight = endTangentWeight;
+        }
+
+        public ETR_SplineWeight(byte[] bytes, int offset)
+        {
+            StartWeight = BitConverter.ToSingle(bytes, offset);
+            EndWeight = BitConverter.ToSingle(bytes, offset + 4);
+            StartTangentWeight = BitConverter.ToSingle(bytes, offset + 8);
+            EndTangentWeight = BitConverter.ToSingle(bytes, offset + 12);
+        }
+
+        public override string ToString()
+        {
+            return $"{StartWeight}, {EndWeight}, {StartTangentWeight}, {EndTangentWeight}";
+        }
     }
 }
