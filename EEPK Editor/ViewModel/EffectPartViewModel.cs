@@ -326,8 +326,8 @@ namespace EEPK_Organiser.ViewModel
         }
         public bool I_39_4
         {
-            get => effectPart.HasFlag2(EepkEffectPartFlags2.ScaleZ_To_BonePositionZ);
-            set => SetFlags2(EepkEffectPartFlags2.ScaleZ_To_BonePositionZ, value);
+            get => effectPart.HasFlag2(EepkEffectPartFlags2.ScaleByBodySize);
+            set => SetFlags2(EepkEffectPartFlags2.ScaleByBodySize, value);
         }
         public bool I_39_5
         {

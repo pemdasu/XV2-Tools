@@ -991,10 +991,14 @@ namespace Xv2CoreLib.EEPK
         I_39_1 = 0x2000000,
         InverseTransparentDrawOrder = 0x4000000,
         RelativePositionZ_To_AbsolutePositionZ = 0x8000000,
-        ScaleZ_To_BonePositionZ = 0x10000000,
+        //Particle parts only: scale by the owner's body size (BCS F_48[1]) when spawned
+        ScaleByBodySize = 0x10000000,
         I_39_5 = 0x20000000,
         I_39_6 = 0x40000000,
-        ObjectOrientation_To_XXXX = 0x80000000
+        ObjectOrientation_To_XXXX = 0x80000000,
+
+        //Old name kept so old XML files still load
+        ScaleZ_To_BonePositionZ = ScaleByBodySize
     }
 
     public enum DeactivationMode : byte
