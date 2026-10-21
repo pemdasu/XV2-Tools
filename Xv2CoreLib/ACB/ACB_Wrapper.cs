@@ -22,6 +22,7 @@ namespace Xv2CoreLib.ACB
     public class ACB_Wrapper : IIsNull, INotifyPropertyChanged
     {
         #region NotifyPropertyChanged
+        [field: NonSerialized]
         public event PropertyChangedEventHandler PropertyChanged;
         private void NotifyPropertyChanged(string propertyName = "")
         {
@@ -423,6 +424,7 @@ namespace Xv2CoreLib.ACB
     public partial class Cue_Wrapper : INotifyPropertyChanged
     {
         #region NotifyPropertyChanged
+        [field: NonSerialized]
         public event PropertyChangedEventHandler PropertyChanged;
         private void NotifyPropertyChanged(string propertyName = "")
         {
@@ -957,6 +959,7 @@ namespace Xv2CoreLib.ACB
     public class Track_Wrapper : INotifyPropertyChanged
     {
         #region NotifyPropertyChanged
+        [field: NonSerialized]
         public event PropertyChangedEventHandler PropertyChanged;
         private void NotifyPropertyChanged(string propertyName = "")
         {
@@ -1196,6 +1199,7 @@ namespace Xv2CoreLib.ACB
     public class Waveform_Wrapper : INotifyPropertyChanged
     {
         #region NotifyPropertyChanged
+        [field: NonSerialized]
         public event PropertyChangedEventHandler PropertyChanged;
         private void NotifyPropertyChanged(string propertyName = "")
         {

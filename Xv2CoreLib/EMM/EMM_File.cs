@@ -17,6 +17,7 @@ namespace Xv2CoreLib.EMM
     [YAXSerializeAs("EMM")]
     public class EMM_File : IPreviewUpdate, IHueAdjustment
     {
+        [field: NonSerialized]
         public event EventHandler MaterialsChanged;
 
         public void TriggerMaterialsChanged()

@@ -21,6 +21,7 @@ namespace Xv2CoreLib
     public class Xv2File<T> : INotifyPropertyChanged where T : class
     {
         #region NotifyPropertyChanged
+        [field: NonSerialized]
         public event PropertyChangedEventHandler PropertyChanged;
 
         private void NotifyPropertyChanged(string propertyName = "")

@@ -18,6 +18,7 @@ namespace Xv2CoreLib.EMB_CLASS
     [Serializable]
     public class EMB_TextureFile : EMB_BaseFile<EMB_TextureEntry>, IHueAdjustment
     {
+        [field: NonSerialized]
         public event EventHandler TexturesChanged;
 
         public void TriggerTexturesChanged()
