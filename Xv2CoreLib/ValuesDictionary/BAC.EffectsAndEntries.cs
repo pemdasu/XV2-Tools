@@ -534,6 +534,26 @@ namespace Xv2CoreLib.ValuesDictionary
             { 372, "Jump Attack Hit" },
             { 373, "Jump Attack End" },
 
+            //Dash attacks
+            { 375, "Boost Light" },
+            { 376, "Step Dash Light" },
+            { 377, "Boost Heavy" },
+            { 378, "Step Dash Heavy" },
+
+            //Heavy + Ki Blast rush
+            { 419, "Heavy + Ki Blast Rush" },
+            { 420, "Heavy + Ki Blast Rush (Close)" },
+            { 425, "Heavy + Ki Blast Rush -> Jump Chase" },
+            { 426, "Heavy + Ki Blast Rush -> Jump Chase -> Light" },
+            { 427, "Heavy + Ki Blast Rush -> Jump Chase -> Heavy" },
+
+            //Light + Jump rush
+            { 440, "Light + Jump Rush" },
+            { 441, "Light + Jump Rush Hit" },
+            { 445, "Light + Jump Rush -> Jump Chase" },
+            { 446, "Light + Jump Rush -> Jump Chase Hit" },
+            { 483, "Light + Jump Rush Hit (Blocked)" },
+
             { 730, "Flash Revive Ally" },
             { 765 , "Auto-Dodge Left 1 (2)" },
             { 766 , "Auto-Dodge Right 1 (2)" },
